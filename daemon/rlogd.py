@@ -11,7 +11,7 @@ import time
 import commands
 import os
 import re
-import sys, time
+import sys, time, datetime
 from daemon import Daemon
 
 DEBUG = False
@@ -28,13 +28,16 @@ NEXTRING = 1
 
 bellcounter = 0
 
+def log(msg):
+    print "["+str(datetime.datetime.now())+"]: "+msg
+
 def discover_device():
     global SP
     for devID in range(99):
-        print "Checking if %s%d exists..." % (SP,devID)
+        log("Checking if %s%d exists..." % (SP,devID))
         if os.path.exists("%s%d" % (SP,devID)):
             SP = "%s%d" % (SP,devID)
-            print "Using device: %s" % SP
+            log("Using device: %s" % SP)
             break
     return
         
@@ -42,8 +45,8 @@ def validRow(tup):
     num_chars = len(tup)
     if num_chars == 64:
         return True
-    elif num_chars > 0
-        print "Wrong string length! String length is: %d" % num_chars
+    elif num_chars > 0:
+        log("Wrong string length! String length is: %d" % num_chars)
 
     return False
 
@@ -57,16 +60,15 @@ def updateBellCounter(val):
         ringBell()
         NEXTRING = NEXTRING + KWHPERRING
     
-    print """Bellcount: %s 
-Nextring: %s""" % (str(bellcounter),str(NEXTRING))
+    log("""Bellcount: %s 
+Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
     
     return
 
 #trigger playsound tool 
-def ringBell(): 
-    print "Playing sound"  
+def ringBell():  
     test=commands.getoutput("playsound "+SOUND)
-    print test
+    log(test)
     return
 
 
@@ -86,10 +88,10 @@ class RLogDaemon(Daemon):
         NEXTRING = sets[2]
         SOUND = sets[3]
 
-        print """Using Parameters:
+        log("""Using Parameters:
     KWHPERRING: %s
     NEXTRING: %s
-    SOUND: %s""" % (KWHPERRING,NEXTRING,SOUND)
+    SOUND: %s""" % (KWHPERRING,NEXTRING,SOUND))
 
         if DEBUG:
             ser = serial.Serial(DebugSP, 9600, timeout=60)
@@ -108,7 +110,7 @@ class RLogDaemon(Daemon):
 
                 deviceID = int(re.search('(?<=#)..','#010').group(0))
                 qString = "INSERT INTO solar VALUES(NULL," + str(time.time()) + ","+str(deviceID)+"," + tup + ")"
-                print qString
+                log(qString)
                 c.execute(qString)
                 connection.commit()
             
@@ -118,6 +120,10 @@ class RLogDaemon(Daemon):
         ser.close();
 
 if __name__ == "__main__":
+    if os.geteuid() != 0:
+        print "You must be root to run this script."
+        sys.exit(1)
+        
     daemon = RLogDaemon('/tmp/daemon-example.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
