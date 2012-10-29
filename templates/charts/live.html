@@ -1,0 +1,13 @@
+{% extends "charts/frame.html" %}
+
+{% block content %}
+<script type="text/javascript">
+$(document).ready(function() {
+	autoUpdate();
+    window.setInterval(autoUpdate, 1000);
+});
+</script>
+
+<h2>Live</h2>
+<div id="livechart" class="chart"></div>
+{% endblock %}

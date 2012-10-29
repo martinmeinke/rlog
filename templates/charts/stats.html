@@ -1,0 +1,78 @@
+{% extends "charts/frame.html" %}
+{% block content %}
+<script type="text/javascript">
+$(document).ready(function() {
+    addPlot({{ timeseries|safe }});
+    applySettings({{ plotsettings|safe }});
+});
+</script>
+<form method="POST" action="">
+    {% csrf_token %}
+    <div id="header">
+        <ul>
+            <li><a href="#tabs-1">Zeitraum</a></li>
+            <li><a href="#tabs-2">Anzeigeperiode</a></li>
+            <li><a href="#tabs-3">Report Inhalte</a></li>
+        </ul>
+        <div id="tabs-1">
+            <p>
+            <div id="timeframe">
+                <input type="radio" id="timeframe_hrs" value="timeframe_hrs" name="timeframe" /><label for="timeframe_hrs">Letzte Stunde</label>
+                <input type="radio" id="timeframe_day" value="timeframe_day" name="timeframe" /><label for="timeframe_day">Letzter Tag</label>
+                <input type="radio" id="timeframe_mon" value="timeframe_mon" name="timeframe" /><label for="timeframe_mon">Letzter Monat</label>
+                <input type="radio" id="timeframe_yrs" value="timeframe_yrs" name="timeframe" /><label for="timeframe_yrs">Letztes Jahr</label>
+                <input type="radio" id="timeframe_cus" value="timeframe_cus" name="timeframe" /><label for="timeframe_cus">Eigene</label>
+            </div>
+            <div id="datepickerArea">
+            <p>
+            <h2>Bitte Zeitraum auswählen</h2>
+            <table style="margin:0 auto;">
+                <tr>
+                    <td>
+                        <div name="datepickers" value="" id="datepickers"></div>
+                    </td>
+                    <td>
+                        <div name="datepickere" value="" id="datepickere"></div>
+                    </td>
+                </tr>
+            </table>
+            </p>
+            </div>
+            </p>
+        </div>
+        <div id="tabs-2">
+            <p>
+            <div id="period">
+                <input type="radio" id="period_min" value="period_min" name="period" /><label for="period_min">Minuten</label>
+                <input type="radio" id="period_hrs" value="period_hrs" name="period" /><label for="period_hrs">Stunden</label>
+                <input type="radio" id="period_day" value="period_day" name="period" /><label for="period_day">Tage</label>
+                <input type="radio" id="period_wks" value="period_wks" name="period" /><label for="period_wks">Wochen</label>
+                <input type="radio" id="period_mon" value="period_mon" name="period" /><label for="period_mon">Monate</label>
+            </div>     
+            </p>               
+        </div>
+        <div id="tabs-3">
+            <p>
+            <input type="checkbox" id="checkGraph" /><label for="checkGraph">Diagramm</label>
+            <input type="checkbox" id="checkStats" /><label for="checkStats">Kennzahlen</label>
+            <input type="checkbox" id="checkList" /><label for="checkList">Liste</label>
+            <input type="submit" value="Berechnen"/>
+            </p>
+        </div>
+    </div>
+</form>
+
+<div id="data">
+    <h2>{{ hd }}</h2>
+    <div id="chart" class="chart"></div>
+    <div id="stats">
+        <ul>
+                <li><a href="#tabs-1">Statistik</a></li>
+        </ul>
+        <div id="tabs-1">
+            {{ stats|safe }}
+        </div>
+    </div>
+    <div style="clear:both"></div>
+</div>
+{% endblock %}
