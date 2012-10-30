@@ -85,7 +85,7 @@ def validRow(tup):
         elif num_chars > 0:
             log("Read invalid row ; length is: %d" % num_chars)
     
-    log("Read invalid row ; None or invalid number of cols: %d" % len(tup.split()))
+    log("Read invalid row ; None or invalid number of cols:")
     return False
 
 #check if we need to play the sound
