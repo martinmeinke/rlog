@@ -22,6 +22,9 @@ DATABASE = PROJECT_PATH+"/../sensor.db"
 SP = "/dev/ttyUSB"
 DebugSP = "/dev/pts/7"
 
+ser = None
+slaves = []
+
 SOUND = ""
 KWHPERRING = 1
 NEXTRING = 1
@@ -40,10 +43,37 @@ def discover_device():
             log("Using device: %s" % SP)
             break
     return
+
+def requestFromDevice(devID):
+    global ser
+
+    dev = "{0:02d}".format(devID)
+    requeststring = "#"+str(dev)+"0\r"
+    log("Asking device %s " % requeststring)
+    ser.write(requeststring)
+    ser.write(requeststring)
+
+    #read 2 lines, because they sometimes seem to buffer their output
+    for i in range(2):
+        a = ser.readline()
+        if len(a) > 1:
+            return a
+
+    return None
+
+def detect_slaves():
+    global slaves
+
+    for deviceID in range(32):
+        if requestFromDevice(deviceID) != None
+            log("Device %d answered %s " % (deviceID, a))
+            slaves.append(deviceID)
+
+
         
 def validRow(tup):
     num_chars = len(tup)
-    if num_chars == 64:
+    if num_chars == 65:
         return True
     elif num_chars > 0:
         log("Wrong string length! String length is: %d" % num_chars)
@@ -74,6 +104,9 @@ def ringBell():
 
 class RLogDaemon(Daemon):
     def run(self):
+        global ser
+        global slaves
+
         connection = sqlite3.connect(DATABASE)
         c = connection.cursor()
 
@@ -94,36 +127,36 @@ class RLogDaemon(Daemon):
     SOUND: %s""" % (KWHPERRING,NEXTRING,SOUND))
 
         if DEBUG:
-            ser = serial.Serial(DebugSP, 9600, timeout=60)
+            ser = serial.Serial(DebugSP, 9600, timeout=1)
         else:
             ser = discover_device()
             ser = serial.Serial(SP)
-            ser.timeout = 60
+            ser.timeout = 1
+
+        detect_slaves()
         
-        dRow = "*010   4 353.9  0.28    99 231.2  0.27    59  25   1760 k 2500xi"
         while True:
-            if validRow(dRow):
-                cols = dRow.split()
-                updateBellCounter(cols[7])
+            for deviceID in slaves:
+                dRow = requestFromDevice(deviceID)
+                if validRow(dRow):
+                    cols = dRow.split()
+                    updateBellCounter(cols[7])
 
-                tup = ",".join(cols[2:9])
+                    tup = ",".join(cols[2:9])
 
-                deviceID = int(re.search('(?<=#)..','#010').group(0))
-                qString = "INSERT INTO solar VALUES(NULL," + str(time.time()) + ","+str(deviceID)+"," + tup + ")"
-                log(qString)
-                c.execute(qString)
-                connection.commit()
-            
-            dRow = "*010   4 353.9  0.28    99 231.2  0.27    59  25   1760 k 2500xi"
+                    dID = int(re.search('(?<=#)..','#010').group(0))
+                    qString = "INSERT INTO solar VALUES(NULL," + str(time.time()) + ","+str(dID)+"," + tup + ")"
+                    log(qString)
+                    c.execute(qString)
+                    connection.commit()
             time.sleep(10)
-
         ser.close();
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
         print "You must be root to run this script."
         sys.exit(1)
-        
+
     daemon = RLogDaemon('/tmp/daemon-example.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
