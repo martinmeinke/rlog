@@ -34,6 +34,9 @@ bellcounter = 0
 def log(msg):
     print "["+str(datetime.datetime.now())+"]: "+msg
 
+def is_ascii(s):
+    return all(ord(c) < 128 for c in s)
+
 def discover_device():
     global SP
     for devID in range(99):
@@ -59,13 +62,16 @@ def requestFromDevice(devID):
         if len(a) > 1:
             return a
 
+    sys.stdout.flush()
+
     return None
 
 def detect_slaves():
     global slaves
 
     for deviceID in range(32):
-        if requestFromDevice(deviceID) != None
+        a = requestFromDevice(deviceID)
+        if a != None:
             log("Device %d answered %s " % (deviceID, a))
             slaves.append(deviceID)
 
@@ -73,7 +79,7 @@ def detect_slaves():
         
 def validRow(tup):
     num_chars = len(tup)
-    if num_chars == 65:
+    if num_chars > 60 && is_ascii(tup):
         return True
     elif num_chars > 0:
         log("Wrong string length! String length is: %d" % num_chars)
@@ -97,7 +103,8 @@ Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
 
 #trigger playsound tool 
 def ringBell():  
-    test=commands.getoutput("playsound "+SOUND)
+    #add check if sound is correctly setup (tutorial in adafruit sound pdf)
+    test=commands.getoutput("mpg321 "+SOUND)
     log(test)
     return
 
