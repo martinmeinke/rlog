@@ -13,6 +13,7 @@ import os
 import re
 import sys, time, datetime
 from daemon import Daemon
+import subprocess
 
 DEBUG = False
 
@@ -32,7 +33,7 @@ NEXTRING = 1
 bellcounter = 0
 
 def log(msg):
-    print "["+str(datetime.datetime.now())+"]: "+msg
+    print "["+str(datetime.datetime.now())+"]: "+str(msg)
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
@@ -63,32 +64,33 @@ def requestFromDevice(devID):
             return a
 
     sys.stdout.flush()
-
     return None
 
 def detect_slaves():
     global slaves
 
-    for deviceID in range(32):
+    for deviceID in range(4):
         a = requestFromDevice(deviceID)
         if a != None:
             log("Device %d answered %s " % (deviceID, a))
             slaves.append(deviceID)
 
 def validRow(tup):
-    num_chars = len(tup)
-    if num_chars > 60 && is_ascii(tup):
-        return True
-    elif num_chars > 0:
-        log("Wrong string length! String length is: %d" % num_chars)
-
+    if tup != None and len(tup.split())==12:
+        num_chars = len(tup)
+        if num_chars > 60:
+            return True
+        elif num_chars > 0:
+            log("Read invalid row ; length is: %d" % num_chars)
+    
+    log("Read invalid row ; None or invalid number of cols: %d" % len(tup.split()))
     return False
 
 #check if we need to play the sound
 def updateBellCounter(val):
     global NEXTRING   
     global bellcounter
-    bellcounter += (float(val) / 360)
+    bellcounter += (float(val) / 360000)
     
     if(bellcounter > NEXTRING):
         ringBell()
@@ -102,7 +104,8 @@ Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
 #trigger playsound tool 
 def ringBell():  
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
-    test=commands.getoutput("mpg321 "+SOUND)
+    #subprocess.call(["mpg321", "/home/pi/rlog/sound/coin.mp3"])  
+    test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
     log(test)
     return
 
@@ -143,17 +146,30 @@ class RLogDaemon(Daemon):
         while True:
             for deviceID in slaves:
                 dRow = requestFromDevice(deviceID)
+                log("read row %s" % dRow)
                 if validRow(dRow):
-                    cols = dRow.split()
-                    updateBellCounter(cols[7])
 
-                    tup = ",".join(cols[2:9])
+                    try:
+                        cols = dRow.split()
+                        updateBellCounter(cols[7])
+                        tup = ",".join(cols[2:9])
 
-                    dID = int(re.search('(?<=#)..','#010').group(0))
-                    qString = "INSERT INTO solar VALUES(NULL," + str(time.time()) + ","+str(dID)+"," + tup + ")"
-                    log(qString)
-                    c.execute(qString)
-                    connection.commit()
+                        dID = int(re.search('(?<=\*)..',cols[0]).group(0))
+                        qString = "INSERT INTO charts_solarentry VALUES(NULL," + str(time.time()) + ","+str(dID)+"," + tup + ")"
+                        log(qString)
+                    
+                        try:
+                            c.execute(qString)
+                            connection.commit()
+                        except sqlite3.OperationalError:
+                            log("Database is locked!")
+
+                    except Exception as ex:
+                        print type(ex)
+                    except Error as err:
+                        print type(err)
+                        
+                        
             time.sleep(10)
         ser.close();
 
