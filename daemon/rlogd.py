@@ -65,12 +65,11 @@ def detect_slaves():
     global slaves
 
     for deviceID in range(32):
-        if requestFromDevice(deviceID) != None
+        a = requestFromDevice(deviceID)
+        if a != None:
             log("Device %d answered %s " % (deviceID, a))
             slaves.append(deviceID)
 
-
-        
 def validRow(tup):
     num_chars = len(tup)
     if num_chars == 65:
