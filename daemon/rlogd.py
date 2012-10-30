@@ -25,6 +25,8 @@ SOUND = ""
 KWHPERRING = 1
 NEXTRING = 1
 
+DELAY = 10
+
 bellcounter = 0
 
 ser = None
@@ -153,6 +155,7 @@ class RLogDaemon(Daemon):
         global KWHPERRING
         global NEXTRING
         global SOUND
+        global DELAY
 
 
         c.execute("SELECT * FROM charts_settings WHERE active = 1 ORDER BY id DESC LIMIT 1")
@@ -181,8 +184,11 @@ class RLogDaemon(Daemon):
         detect_slaves()
         
         while True:
+            t1 = time.time()
             pollDevices()
-            time.sleep(10)
+            t2 = time.time()
+            #nicht unbedingt so genau, aber sollte passen...
+            time.sleep(((DELAY*1000000)-(t2-t1))/1000000)
 
         ser.close();
 
