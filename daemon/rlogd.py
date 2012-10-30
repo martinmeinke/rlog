@@ -188,7 +188,8 @@ class RLogDaemon(Daemon):
             pollDevices()
             t2 = time.time()
             #nicht unbedingt so genau, aber sollte passen...
-            time.sleep(((DELAY*1000000)-(t2-t1))/1000000)
+            sleepduration = DELAY-(t2-t1)
+            time.sleep(sleepduration)
 
         ser.close();
 
