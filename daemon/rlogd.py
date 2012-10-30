@@ -18,19 +18,19 @@ import subprocess
 DEBUG = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-
 DATABASE = PROJECT_PATH+"/../sensor.db"
 SP = "/dev/ttyUSB"
 DebugSP = "/dev/pts/7"
-
-ser = None
-slaves = []
-
 SOUND = ""
 KWHPERRING = 1
 NEXTRING = 1
 
 bellcounter = 0
+
+ser = None
+slaves = []
+connection = sqlite3.connect(DATABASE)
+c = connection.cursor()
 
 def log(msg):
     print "["+str(datetime.datetime.now())+"]: "+str(msg)
@@ -89,7 +89,9 @@ def validRow(tup):
 #check if we need to play the sound
 def updateBellCounter(val):
     global NEXTRING   
+    global KWHPERRING
     global bellcounter
+
     bellcounter += (float(val) / 360000)
     
     if(bellcounter > NEXTRING):
@@ -102,21 +104,56 @@ Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
     return
 
 #trigger playsound tool 
-def ringBell():  
+def ringBell(): 
+    global SOUND 
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
-    #subprocess.call(["mpg321", "/home/pi/rlog/sound/coin.mp3"])  
-    test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
+    test=os.system("mpg321 -q "+SOUND)
     log(test)
     return
 
+def pollDevices():
+    global connection
+    global c
 
+    for deviceID in slaves:
+        dRow = requestFromDevice(deviceID)
+        log("Read row %s" % dRow)
+
+        if validRow(dRow):
+            #TODO catch errors more precise 
+            #Errors might occur during physical transmission 
+            try:
+                cols = dRow.split()
+                updateBellCounter(cols[7])
+                tup = ",".join(cols[2:9])
+
+                qString = "INSERT INTO charts_solarentry VALUES(NULL," + str(time.time()) + ","+str(deviceID)+"," + tup + ")"
+                log("Executing: "+qString)
+            
+                #this might fail if the database is currently accessed by another process
+                try:
+                    c.execute(qString)
+                    connection.commit()
+                except sqlite3.OperationalError:
+                    log("Database is locked!")
+
+            except Exception as ex:
+                print type(ex)
+            except Error as err:
+                print type(err)
+
+
+#TODO: pot more stuff into the class to eliminate the need for the global stuff
 class RLogDaemon(Daemon):
     def run(self):
         global ser
         global slaves
+        global connection
+        global cursor
+        global KWHPERRING
+        global NEXTRING
+        global SOUND
 
-        connection = sqlite3.connect(DATABASE)
-        c = connection.cursor()
 
         c.execute("SELECT * FROM charts_settings WHERE active = 1 ORDER BY id DESC LIMIT 1")
         
@@ -144,33 +181,9 @@ class RLogDaemon(Daemon):
         detect_slaves()
         
         while True:
-            for deviceID in slaves:
-                dRow = requestFromDevice(deviceID)
-                log("read row %s" % dRow)
-                if validRow(dRow):
-
-                    try:
-                        cols = dRow.split()
-                        updateBellCounter(cols[7])
-                        tup = ",".join(cols[2:9])
-
-                        dID = int(re.search('(?<=\*)..',cols[0]).group(0))
-                        qString = "INSERT INTO charts_solarentry VALUES(NULL," + str(time.time()) + ","+str(dID)+"," + tup + ")"
-                        log(qString)
-                    
-                        try:
-                            c.execute(qString)
-                            connection.commit()
-                        except sqlite3.OperationalError:
-                            log("Database is locked!")
-
-                    except Exception as ex:
-                        print type(ex)
-                    except Error as err:
-                        print type(err)
-                        
-                        
+            pollDevices()
             time.sleep(10)
+
         ser.close();
 
 if __name__ == "__main__":
