@@ -75,8 +75,6 @@ def detect_slaves():
             log("Device %d answered %s " % (deviceID, a))
             slaves.append(deviceID)
 
-
-        
 def validRow(tup):
     num_chars = len(tup)
     if num_chars > 60 && is_ascii(tup):
