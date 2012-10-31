@@ -34,7 +34,6 @@ slaves = []
 connection = sqlite3.connect(DATABASE)
 c = connection.cursor()
 
-
 def log(msg):
     print "["+str(datetime.datetime.now())+"]: "+str(msg)
 

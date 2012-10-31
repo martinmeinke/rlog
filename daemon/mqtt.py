@@ -1,4 +1,5 @@
 import thread, mosquitto, random
+# mosquitto reference and download can be found here: http://mosquitto.org/documentation/python/
 
 class mqtt():    
     def __init__(self, broker = "127.0.0.1", port = 1883):
