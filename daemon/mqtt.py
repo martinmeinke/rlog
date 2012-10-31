@@ -53,9 +53,12 @@ class mqtt():
         
     def on_unsubscribe(self,mosquitto_instance, mid):
         pass
-
-    def on_message(self, mosquitto_instance, msg):
+    
+    def on_message(self, msg):
         print "Message received on topic " + msg.topic + " with QoS " + str(msg.qos) + " and payload " + msg.payload
+    
+    def __on_message(self, mosquitto_instance, msg):
+        self.on_message(msg)
 
     #called on exit
     # disconnect MQTT and clean up subscriptions
@@ -79,7 +82,7 @@ class mqtt():
             #attach MQTT callbacks
             self._client.on_connect = self.on_connect
             self._client.on_disconnect = self.on_disconnect
-            self._client.on_message = self.on_message
+            self._client.on_message = self.__on_message
             self._client.on_subscribe = self.on_subscribe
             self._client.on_unsubscribe = self.on_unsubscribe
 
