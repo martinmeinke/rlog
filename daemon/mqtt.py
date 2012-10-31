@@ -73,7 +73,7 @@ class mqtt():
                 self.unsubscribe(topic)
             self.on_connect(rc)
         else:
-            print "We have an error here. Cleaning up ..."
+            print "We have an error here.\nERROR CODE IS " + rc + "\nCleaning up ..."
             self.__cleanup()
                   
     def __on_disconnect(self, mosquitto_instance):
@@ -107,28 +107,25 @@ class mqtt():
             pass
     
     def startMQTT(self):
-        try: 
-            client_uniq = "rlog" + str(random.randint(0, 1000))
-            self._client = mosquitto.Mosquitto(client_uniq)
-            
-            #attach MQTT callbacks
-            self._client.on_connect = self.__on_connect
-            self._client.on_disconnect = self.__on_disconnect
-            self._client.on_subscribe = self.__on_subscribe
-            self._client.on_unsubscribe = self.__on_unsubscribe
-            self._client.on_publish = self.__on_publish
-            self._client.on_message = self.__on_message
+          client_uniq = "rlog" + str(random.randint(0, 1000))
+          self._client = mosquitto.Mosquitto(client_uniq)
+          
+          #attach MQTT callbacks
+          self._client.on_connect = self.__on_connect
+          self._client.on_disconnect = self.__on_disconnect
+          self._client.on_subscribe = self.__on_subscribe
+          self._client.on_unsubscribe = self.__on_unsubscribe
+          self._client.on_publish = self.__on_publish
+          self._client.on_message = self.__on_message
 
-            #connect to broker
-            self._client.connect(self.__broker, self.__port, 60, True)
-            
-            #remain connected to broker 
-              # stupid that it doesn't work w/o that silly loop
-            thread.start_new_thread(self.loop, ())
-    
-        except (RuntimeError):
-            print "uh-oh! time to die"
-            self.__cleanup()
+          #connect to broker
+          if(self._client.connect(self.__broker, self.__port, 60, True) != 0):
+            raise Exception("Can't connect to broker")
+          
+          #remain connected to broker 
+            # stupid that it doesn't work w/o that silly loop
+          thread.start_new_thread(self.loop, ())
+
             
     def stopMQTT(self):
         self.__cleanup()
