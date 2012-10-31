@@ -14,6 +14,7 @@ import re
 import sys, time, datetime
 from daemon import Daemon
 import subprocess
+import thread, mosquitto, random
 
 DEBUG = False
 
