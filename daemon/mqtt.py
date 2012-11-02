@@ -2,7 +2,7 @@ import thread, mosquitto, random
 # mosquitto reference and download can be found here: http://mosquitto.org/documentation/python/
 
 class mqtt():    
-    def __init__(self, broker = "127.0.0.1", port = 1883):
+    def __init__(self, broker = "127.0.0.1", port = 1883, clientID = None):
         self.__broker = broker
         self.__port = port
         self._client = None
@@ -10,6 +10,9 @@ class mqtt():
         self.__pendingSubscriptionsList = []
         self.__pendingUnsubscriptionsList = []
         self.__connected = False
+        self.clientID = clientID
+        if self.clientID == None:
+            self.clientID = "PythonMQTTClient" + str(random.randint(0, 1000))
     
     def subscribe(self, topic, QoS = 0):
         if(self.__connected):
@@ -107,24 +110,21 @@ class mqtt():
             pass
     
     def startMQTT(self):
-          client_uniq = "rlog" + str(random.randint(0, 1000))
-          self._client = mosquitto.Mosquitto(client_uniq)
-          
-          #attach MQTT callbacks
-          self._client.on_connect = self.__on_connect
-          self._client.on_disconnect = self.__on_disconnect
-          self._client.on_subscribe = self.__on_subscribe
-          self._client.on_unsubscribe = self.__on_unsubscribe
-          self._client.on_publish = self.__on_publish
-          self._client.on_message = self.__on_message
+        self._client = mosquitto.Mosquitto(self.clientID)
+        #attach MQTT callbacks
+        self._client.on_connect = self.__on_connect
+        self._client.on_disconnect = self.__on_disconnect
+        self._client.on_subscribe = self.__on_subscribe
+        self._client.on_unsubscribe = self.__on_unsubscribe
+        self._client.on_publish = self.__on_publish
+        self._client.on_message = self.__on_message
 
-          #connect to broker
-          if(self._client.connect(self.__broker, self.__port, 60, True) != 0):
+        #connect to broker
+        if(self._client.connect(self.__broker, self.__port, 60, True) != 0):
             raise Exception("Can't connect to broker")
           
-          #remain connected to broker 
-            # stupid that it doesn't work w/o that silly loop
-          thread.start_new_thread(self.loop, ())
+        #remain connected to broker
+        thread.start_new_thread(self.loop, ())
 
             
     def stopMQTT(self):
