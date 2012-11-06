@@ -32,8 +32,8 @@ class mqtt():
             self.__pendingUnsubscriptionsList.append(topic)
             print "Client is not connected at the moment. Will unsubscribe on connection"
             
-    def publish(self, topic, message):
-        self._client.publish(topic, message)
+    def publish(self, topic, message, QoS = 0, retain = False):
+        self._client.publish(topic, message, QoS, retain)
     
     # override this methods to add your functionality
     def on_connect(self, rc):
