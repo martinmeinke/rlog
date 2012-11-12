@@ -94,7 +94,7 @@ def updateBellCounter(val):
     global KWHPERRING
     global bellcounter
 
-    bellcounter += (float(val) / 360000)
+    bellcounter += (float(val) / 36000)
     
     if(bellcounter > NEXTRING):
         ringBell()
@@ -109,7 +109,8 @@ Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
 def ringBell(): 
     global SOUND 
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
-    test=os.system("mpg321 -q "+SOUND)
+    #test=os.system("mpg321 -q "+SOUND)
+    test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
     log(test)
     return
 
@@ -189,7 +190,9 @@ class RLogDaemon(Daemon):
             t2 = time.time()
             #nicht unbedingt so genau, aber sollte passen...
             sleepduration = DELAY-(t2-t1)
-            time.sleep(sleepduration)
+            log("Sleeping: %f" % sleepduration)
+            if sleepduration > 0:
+              time.sleep(sleepduration)
 
         ser.close();
 
