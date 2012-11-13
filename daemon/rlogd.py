@@ -174,7 +174,8 @@ class RLogDaemon(Daemon):
             t1 = time.time()
             poll_devices()
             t2 = time.time()
-            time.sleep(((DELAY*1000000)-(t2-t1))/1000000)
+            sleepduration = DELAY-(t2-t1)
+            time.sleep(sleepduration)
 
         self._serial_port.close();
 
