@@ -20,7 +20,6 @@ class Chart(object):
     '''
     TABLE_BASE = "charts_solarentry"
     locale.setlocale( locale.LC_ALL, 'de_DE')
-    TICKS_ON_LIVE_VIEW = 100
 
     def __init__(self,pStartDate,pEndDate,pPeriod):
         '''

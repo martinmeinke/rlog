@@ -70,8 +70,17 @@ def valid_row(tup):
     return False
 
 #check if we need to play the sound
+<<<<<<< HEAD
+def updateBellCounter(val):
+    global NEXTRING   
+    global KWHPERRING
+    global bellcounter
+
+    bellcounter += (float(val) / 36000)
+=======
 def update_bell_counter(val):
     RLogDaemon.BELLCOUNTER += (float(val) / 360000)
+>>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     
     if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
         ring_bell()
@@ -85,7 +94,12 @@ Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
 #trigger playsound tool 
 def ring_bell():
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
+<<<<<<< HEAD
+    #test=os.system("mpg321 -q "+SOUND)
+    test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
+=======
     test=os.system("mpg321 -q "+RLogDaemon.SOUND)
+>>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     log(test)
     return
 
@@ -175,7 +189,9 @@ class RLogDaemon(Daemon):
             poll_devices()
             t2 = time.time()
             sleepduration = DELAY-(t2-t1)
-            time.sleep(sleepduration)
+            log("Sleeping: %f" % sleepduration)
+            if sleepduration > 0:
+              time.sleep(sleepduration)
 
         self._serial_port.close();
 
