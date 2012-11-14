@@ -9,6 +9,7 @@ class mqtt():
         self.__subscriptionsList = []
         self.__pendingSubscriptionsList = []
         self.__pendingUnsubscriptionsList = []
+        self.__publishQueue = []
         self.__connected = False
         self.clientID = clientID
         if self.clientID == None:
@@ -33,7 +34,7 @@ class mqtt():
             print "Client is not connected at the moment. Will unsubscribe on connection"
             
     def publish(self, topic, message, QoS = 0, retain = False):
-        self._client.publish(topic, message, QoS, retain)
+        self.__publishQueue.append((topic, message, QoS, retain));
     
     # override this methods to add your functionality
     def on_connect(self, rc):
@@ -91,6 +92,9 @@ class mqtt():
         self.on_unsubscribe(mid)
     
     def __on_publish(self, mosquitto_instance, mid):
+        while self.__publishQueue: # while publish queue is not empty
+            (topic, message, QoS, retain) = self.__publishQueue.pop(0)
+            self._client.publish(topic, message, QoS, retain)
         self.on_publish(mid)
     
     def __on_message(self, mosquitto_instance, message):
@@ -106,8 +110,10 @@ class mqtt():
         self._client.disconnect()
     
     def loop(self):
-        while self._client.loop(-1) == 0:
-            pass
+        while self._client.loop(10) == 0:
+            if self.__publishQueue: # if publish queue is not empty
+                (topic, message, QoS, retain) = self.__publishQueue.pop(0)
+                self._client.publish(topic, message, QoS, retain)
     
     def startMQTT(self):
         self._client = mosquitto.Mosquitto(self.clientID)
