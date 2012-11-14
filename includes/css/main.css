@@ -80,11 +80,11 @@ body
 
 #wrapper
 {
+	margin:0 auto;
+	margin-top:20px;
 	text-align:center;
 	min-width:750px;
 	max-width:1600px;
-	margin:0 auto;
-	margin-top:0;
 	background:#FFF;
 	padding-top:10px;
 	width:80%;

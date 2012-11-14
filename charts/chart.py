@@ -36,15 +36,15 @@ class Chart(object):
         self.__totalSupply = 0
         self.__rewardTotal = 0
         
-        self.__rowarray_list = []
-        self.__rowarray_list_live = []
+        self.__rowarray_list = {}
+        self.__rowarray_list_live = {}
         
         if self.__period == "period_min":
             self.__formatstring = "%d.%m.%Y %H:%M"
             self.__barwidth = 1000*60
             lft = datetime.datetime.fromtimestamp(self.__startdate)+datetime.timedelta(minutes=-1)
             rht = datetime.datetime.fromtimestamp(self.__enddate)+datetime.timedelta(minutes=1)
-        elif self.__period == "period_hrs":
+        if self.__period == "period_hrs":
             self.__formatstring = "%d.%m.%Y %H Uhr"
             self.__barwidth = 1000*60*60
             lft = datetime.datetime.fromtimestamp(self.__startdate)+datetime.timedelta(hours=-1)
@@ -68,43 +68,47 @@ class Chart(object):
         self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
         self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
         
-    def fetchTimeSeries(self):
+    def fetchTimeSeries(self, deviceID):
         cursor = self.__conn.cursor()
-        subselect = ("(",
-            "SELECT value ",
-            "FROM reward b ",
-            "WHERE time <= a.time ",
-            "   ORDER BY time DESC ",
-            "   LIMIT 1",
+        subselect = ("("
+            "SELECT value "
+            "FROM reward b "
+            "WHERE time <= a.time "
+            "   ORDER BY time DESC "
+            "   LIMIT 1"
             ")")
 
         q_string = (
-            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)",
-            "FROM " + self.TABLE_BASE + " a ",
-            "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate),
-                " GROUP BY strftime('" + self.__formatstring + "',datetime(time, 'unixepoch'),'localtime') ",
+            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)"
+            "FROM " + self.TABLE_BASE + " a "
+            "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate) +""
+                " GROUP BY strftime('" + self.__formatstring + "',datetime(time, 'unixepoch'),'localtime') "
                 " ORDER BY time ASC")
         
+        self.__rowarray_list.update({deviceID : []})
+
         for row in cursor.execute(q_string):
-            
             self.__totalSupply+=row[1]
             self.__rewardTotal+=row[2]
             Chart.log.info(str(row))
             t = (int(row[0]) * 1000, row[1])
-            self.__rowarray_list.append(t)
+            self.__rowarray_list[deviceID].append(t)
 
-    def fetchTimeSeriesLiveView(self):
+    def fetchTimeSeriesLiveView(self, deviceID):
         cursor = self.__conn.cursor()
         q_string = (
-            "SELECT time , lW ", 
-            "FROM " + self.TABLE_BASE + " a ",
-                " ORDER BY time DESC ",
+            "SELECT time , lW "
+            "FROM " + self.TABLE_BASE + " a "
+            "WHERE device = " + str(deviceID) + " "
+                " ORDER BY time DESC "
                 " LIMIT "+str(Chart.TICKS_ON_LIVE_VIEW))
+
+        self.__rowarray_list_live.update({deviceID : []})
 
         for row in cursor.execute(q_string):
             Chart.log.info(str(row))
             t = (int(row[0]) * 1000, row[1])
-            self.__rowarray_list_live.append(t)
+            self.__rowarray_list_live[deviceID].append(t)
     
     def chartOptions(self):
         settings = {}
@@ -128,6 +132,15 @@ class Chart(object):
                 "min" : self.jsonPlotBoundaries()[0],
                 "max" : self.jsonPlotBoundaries()[1]
         }
+
+        #some hacking, should be done a little bit nicer
+        tSpacing = relativedelta(
+            datetime.datetime.fromtimestamp(self.__enddate),
+            datetime.datetime.fromtimestamp(self.__startdate)
+        ).hours / 3
+
+        #determine the tick Size (axis labeling)
+        settings["xaxis"].update({"tickSize" : (tSpacing, "hour")})
         
         return settings
 
@@ -142,6 +155,8 @@ class Chart(object):
                 "timezone" : "browser",
                 "timeformat" : self.__formatstring
         }
+
+        settings["xaxis"].update({"tickSize" : (10, "minute")})
         
         return settings
     
@@ -152,11 +167,11 @@ class Chart(object):
         json = self.__lBoundary,self.__rBoundary
         return json
     
-    def getTimeSeriesLiveView(self):
-        return self.__rowarray_list_live
+    def getTimeSeriesLiveView(self, deviceID):
+        return self.__rowarray_list_live[deviceID]
 
-    def getTimeSeries(self):
-        return self.__rowarray_list
+    def getTimeSeries(self, deviceID):
+        return self.__rowarray_list[deviceID]
 
     def getStatTable(self):
         bz = datetime.datetime.fromtimestamp(self.__startdate).strftime(self.__formatstring)
@@ -206,8 +221,8 @@ class Chart(object):
         cursor = self.__conn.cursor()
         devices = []
         
-        for row in cursor.execute("SELECT DISTINCT device FROM "+TABLE_BASE):
-            devixes.add(row[0]);
+        for row in cursor.execute("SELECT DISTINCT device FROM "+self.TABLE_BASE):
+            devices.append(row[0]);
 
         print devices
         return devices

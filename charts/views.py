@@ -21,12 +21,15 @@ def liveData(request):
 	end = datetime.datetime.now()
 
 	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),"period_min")
-	chart.fetchTimeSeriesLiveView()
 
-	timetuples = chart.getTimeSeriesLiveView()
-	graph = {"label":"Einspeisung", "data":timetuples}
+	graphs = {}
 
-	timeseries = json.dumps(graph)
+	for i in chart.getDeviceIDList():
+		chart.fetchTimeSeriesLiveView(i)
+		timetuples = chart.getTimeSeriesLiveView(i)
+		graphs.update({"label":"Einspeisung #"+str(i), "data":timetuples});
+
+	timeseries = json.dumps(graphs)
 	plotsettings = json.dumps(chart.chartOptionsLiveView())
 
 	print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
