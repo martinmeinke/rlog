@@ -69,13 +69,22 @@ class Chart(object):
         
     def fetchTimeSeries(self):
         cursor = self.__conn.cursor()
-        subselect = "(SELECT value FROM reward b WHERE time <= a.time ORDER BY time DESC LIMIT 1)"
+        subselect = ("(",
+            "SELECT value ",
+            "FROM reward b ",
+            "WHERE time <= a.time ",
+            "   ORDER BY time DESC ",
+            "   LIMIT 1",
+            ")")
+
+        q_string = (
+            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)",
+            "FROM " + self.TABLE_BASE + " a ",
+            "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate),
+                " GROUP BY strftime('" + self.__formatstring + "',datetime(time, 'unixepoch'),'localtime') ",
+                " ORDER BY time ASC")
         
-        for row in cursor.execute(
-            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)" + 
-            "FROM " + self.TABLE_BASE + " a WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate) +
-                " GROUP BY strftime('" + self.__formatstring + "',datetime(time, 'unixepoch'),'localtime') "+
-                " ORDER BY time ASC"):
+        for row in cursor.execute(q_string):
             
             self.__totalSupply+=row[1]
             self.__rewardTotal+=row[2]
@@ -85,13 +94,13 @@ class Chart(object):
 
     def fetchTimeSeriesLiveView(self):
         cursor = self.__conn.cursor()
-        
-        for row in cursor.execute(
-            "SELECT time , lW " + 
-            "FROM " + self.TABLE_BASE + " a "+
-                " ORDER BY time DESC "+
-                " LIMIT "+str(Chart.TICKS_ON_LIVE_VIEW)):
-            
+        q_string = (
+            "SELECT time , lW ", 
+            "FROM " + self.TABLE_BASE + " a ",
+                " ORDER BY time DESC ",
+                " LIMIT "+str(Chart.TICKS_ON_LIVE_VIEW))
+
+        for row in cursor.execute(q_string):
             Chart.log.info(str(row))
             t = (int(row[0]) * 1000, row[1])
             self.__rowarray_list_live.append(t)

@@ -13,55 +13,38 @@ import os
 import re
 import sys, time, datetime
 from daemon import Daemon
-import subprocess
 
-DEBUG = False
+DEBUG_ENABLED = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
-SP = "/dev/ttyUSB"
-DebugSP = "/dev/pts/7"
-SOUND = ""
-KWHPERRING = 1
-NEXTRING = 1
-
-DELAY = 10
-
-bellcounter = 0
-
-ser = None
-slaves = []
-connection = sqlite3.connect(DATABASE)
-c = connection.cursor()
+DEVICE_NAME_BASE = "/dev/ttyUSB"
+DEBUG_SERIAL_PORT = "/dev/pts/7"
 
 def log(msg):
-    print "["+str(datetime.datetime.now())+"]: "+str(msg)
-
-def is_ascii(s):
-    return all(ord(c) < 128 for c in s)
+    stripped = msg.translate(string.maketrans("\n\r", ""))
+    print "[%s]: %s" % (str(datetime.datetime.now()), stripped)
 
 def discover_device():
-    global SP
-    for devID in range(99):
-        log("Checking if %s%d exists..." % (SP,devID))
-        if os.path.exists("%s%d" % (SP,devID)):
-            SP = "%s%d" % (SP,devID)
-            log("Using device: %s" % SP)
+    for device_id in range(0,100):
+        log("Checking if %s%d exists..." % (DEVICE_NAME_BASE,device_id))
+        if os.path.exists("%s%d" % (DEVICE_NAME_BASE,device_id)):
+            RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE,device_id)
+            log("Using device: %s" % RLogDaemon.DEVICE_NAME)
             break
     return
 
-def requestFromDevice(devID):
-    global ser
+def request_from_device(self, device_id_raw):
+    device_id = "{0:02d}".format(device_id_raw)
+    request_string = "#"+str(device_id)+"0\r"
+    log("Asking device %s " % request_string)
 
-    dev = "{0:02d}".format(devID)
-    requeststring = "#"+str(dev)+"0\r"
-    log("Asking device %s " % requeststring)
-    ser.write(requeststring)
-    ser.write(requeststring)
+    self._serial_port.write(request_string)
+    self._serial_port.write(request_string)
 
     #read 2 lines, because they sometimes seem to buffer their output
     for i in range(2):
-        a = ser.readline()
+        a = self._serial_port.readline()
         if len(a) > 1:
             return a
 
@@ -69,15 +52,13 @@ def requestFromDevice(devID):
     return None
 
 def detect_slaves():
-    global slaves
-
-    for deviceID in range(4):
-        a = requestFromDevice(deviceID)
+    for deviceID in range(1,100):
+        a = request_from_device(deviceID)
         if a != None:
             log("Device %d answered %s " % (deviceID, a))
-            slaves.append(deviceID)
+            self._slaves.append(deviceID)
 
-def validRow(tup):
+def valid_row(tup):
     if tup != None and len(tup.split())==12:
         num_chars = len(tup)
         if num_chars > 60:
@@ -89,54 +70,63 @@ def validRow(tup):
     return False
 
 #check if we need to play the sound
+<<<<<<< HEAD
 def updateBellCounter(val):
     global NEXTRING   
     global KWHPERRING
     global bellcounter
 
     bellcounter += (float(val) / 36000)
+=======
+def update_bell_counter(val):
+    RLogDaemon.BELLCOUNTER += (float(val) / 360000)
+>>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     
-    if(bellcounter > NEXTRING):
-        ringBell()
-        NEXTRING = NEXTRING + KWHPERRING
+    if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
+        ring_bell()
+        RLogDaemon.NEXTRING = RLogDaemon.NEXTRING + RLogDaemon.KWHPERRING
     
     log("""Bellcount: %s 
-Nextring: %s""" % (str(bellcounter),str(NEXTRING)))
+Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
     
     return
 
 #trigger playsound tool 
-def ringBell(): 
-    global SOUND 
+def ring_bell():
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
+<<<<<<< HEAD
     #test=os.system("mpg321 -q "+SOUND)
     test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
+=======
+    test=os.system("mpg321 -q "+RLogDaemon.SOUND)
+>>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     log(test)
     return
 
-def pollDevices():
-    global connection
-    global c
-
-    for deviceID in slaves:
-        dRow = requestFromDevice(deviceID)
+def poll_devices():
+    for device_id in self._slaves:
+        new_row = request_from_device(device_id)
         log("Read row %s" % dRow)
 
-        if validRow(dRow):
+        if validRow(new_row):
             #TODO catch errors more precise 
             #Errors might occur during physical transmission 
             try:
-                cols = dRow.split()
-                updateBellCounter(cols[7])
+                cols = new_row.split()
+                line_power = cols[7]
+                update_bell_counter(line_power)
                 tup = ",".join(cols[2:9])
 
-                qString = "INSERT INTO charts_solarentry VALUES(NULL," + str(time.time()) + ","+str(deviceID)+"," + tup + ")"
-                log("Executing: "+qString)
+                q_string = (
+                    "INSERT INTO charts_solarentry"
+                    "VALUES(NULL," + str(time.time()) + ","+str(device_id)+"," + tup + ")")
+
+                log("Executing: "+q_string)
             
                 #this might fail if the database is currently accessed by another process
                 try:
-                    c.execute(qString)
-                    connection.commit()
+                    self._c.execute(q_string)
+                    self._connection.commit()
                 except sqlite3.OperationalError:
                     log("Database is locked!")
 
@@ -148,53 +138,62 @@ def pollDevices():
 
 #TODO: pot more stuff into the class to eliminate the need for the global stuff
 class RLogDaemon(Daemon):
+    DEVICE_NAME = None
+    KWHPERRING = None
+    NEXTRING = None
+    SOUND = None
+    DELAY = 10
+    BELLCOUNTER = 0
+
+    def __init__(self):
+        self._serial_port = None
+        self._slaves = []
+        self._db_connection = sqlite3.connect(DATABASE)
+        self._db_cursor  = connection.cursor()
+
     def run(self):
-        global ser
-        global slaves
-        global connection
-        global cursor
-        global KWHPERRING
-        global NEXTRING
-        global SOUND
-        global DELAY
+        q_sting = (
+            "SELECT * "
+            "FROM charts_settings "
+            "WHERE active = 1 "
+            "   ORDER BY id DESC "
+            "   LIMIT 1")
 
-
-        c.execute("SELECT * FROM charts_settings WHERE active = 1 ORDER BY id DESC LIMIT 1")
-        
-        if c.rowcount == 0:
+        self._db_cursor.execute(q_string)
+        if self._db_cursor.rowcount == 0:
+            log("Couldn't read settings from database")
             return
 
-        sets = c.fetchone()
+        sets = self._db_cursor.fetchone()
 
-        KWHPERRING = sets[2]
-        NEXTRING = sets[2]
-        SOUND = sets[3]
+        RLogDaemon.KWHPERRING = sets[2]
+        RLogDaemon.NEXTRING = sets[2]
+        RLogDaemon.SOUND = sets[3]
 
         log("""Using Parameters:
     KWHPERRING: %s
     NEXTRING: %s
-    SOUND: %s""" % (KWHPERRING,NEXTRING,SOUND))
+    SOUND: %s""" % (RLogDaemon.KWHPERRING,RLogDaemon.NEXTRING,RLogDaemon.SOUND))
 
-        if DEBUG:
-            ser = serial.Serial(DebugSP, 9600, timeout=1)
+        if DEBUG_ENABLED:
+            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
-            ser = discover_device()
-            ser = serial.Serial(SP)
-            ser.timeout = 1
+            self._serial_port = discover_device()
+            self._serial_port = serial.Serial(RLogDaemon.DEVICE_NAME)
+            self._serial_port.timeout = 1
 
         detect_slaves()
         
         while True:
             t1 = time.time()
-            pollDevices()
+            poll_devices()
             t2 = time.time()
-            #nicht unbedingt so genau, aber sollte passen...
             sleepduration = DELAY-(t2-t1)
             log("Sleeping: %f" % sleepduration)
             if sleepduration > 0:
               time.sleep(sleepduration)
 
-        ser.close();
+        self._serial_port.close();
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
