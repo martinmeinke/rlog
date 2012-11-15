@@ -23,7 +23,7 @@ function applySettings(json) {
 
 function autoUpdate()
 {
-	$.getJSON('charts/liveData', function(data) {
+	$.getJSON('liveData', function(data) {
 		addPlot(data["timeseries"]);
 		applySettings(data["settings"]);
 	});

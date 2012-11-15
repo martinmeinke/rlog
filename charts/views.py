@@ -16,7 +16,7 @@ def live(request):
 	return render_to_response('charts/live.html', vars(), RequestContext(request))
 
 def liveData(request):
-	import pdb; pdb.set_trace()
+	#import pdb; pdb.set_trace()
 	start = datetime.datetime.now()-relativedelta(minutes=30, second=0, microsecond=0)
 	end = datetime.datetime.now()
 
