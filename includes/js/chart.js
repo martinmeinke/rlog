@@ -6,8 +6,7 @@ function drawPlot() {
 }
 
 function addPlot(json) {
-	data.pop();
-	data.push(json);
+	data = json;
 }
 
 function applySettings(json) {
@@ -17,7 +16,7 @@ function applySettings(json) {
 	//	options["series"] = json;
 	options["xaxis"]["min"] = eval(options["xaxis"]["min"]);
 	options["xaxis"]["max"] = eval(options["xaxis"]["max"]);	
-	//	alert(JSON.stringify(options))
+	//document.write(JSON.stringify(options));
 	drawPlot();
 }
 
@@ -25,7 +24,7 @@ function autoUpdate()
 {
 	$.getJSON('liveData', function(data) {
 		addPlot(data["timeseries"]);
-		//alert(JSON.stringify(data["timeseries"]))
+		//document.write(JSON.stringify(data["timeseries"]));
 		applySettings(data["settings"]);
 	});
 }

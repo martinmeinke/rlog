@@ -156,7 +156,7 @@ class Chart(object):
                 "timeformat" : self.__formatstring
         }
 
-        settings["xaxis"].update({"tickSize" : (10, "minute")})
+        settings["xaxis"].update({"tickSize" : (3, "minute")})
         
         return settings
     
