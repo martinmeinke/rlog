@@ -224,5 +224,6 @@ class Chart(object):
         for row in cursor.execute("SELECT DISTINCT device FROM "+self.TABLE_BASE):
             devices.append(row[0]);
 
+        print "strange"
         print devices
         return devices

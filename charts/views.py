@@ -26,13 +26,13 @@ def liveData(request):
 
 	for i in chart.getDeviceIDList():
 		chart.fetchTimeSeriesLiveView(i)
-		timetuples = chart.getTimeSeriesLiveView(i)
-		graphs.update({"label":"Einspeisung #"+str(i), "data":timetuples});
+        timetuples = chart.getTimeSeriesLiveView(i)
+        graphs.update({"label":"Einspeisung #"+str(i), "data":timetuples});
 
 	timeseries = json.dumps(graphs)
 	plotsettings = json.dumps(chart.chartOptionsLiveView())
 
-	print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
+	#print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
 	
 	return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
