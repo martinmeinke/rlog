@@ -12,6 +12,7 @@ import commands
 import os
 import re
 import sys, time, datetime
+import string
 from daemon import Daemon
 
 DEBUG_ENABLED = False
@@ -22,7 +23,7 @@ DEVICE_NAME_BASE = "/dev/ttyUSB"
 DEBUG_SERIAL_PORT = "/dev/pts/7"
 
 def log(msg):
-    stripped = msg.translate(string.maketrans("\n\r", ""))
+    stripped = str(msg).translate(string.maketrans("\n\r", "  "))
     print "[%s]: %s" % (str(datetime.datetime.now()), stripped)
 
 def discover_device():
@@ -33,30 +34,6 @@ def discover_device():
             log("Using device: %s" % RLogDaemon.DEVICE_NAME)
             break
     return
-
-def request_from_device(self, device_id_raw):
-    device_id = "{0:02d}".format(device_id_raw)
-    request_string = "#"+str(device_id)+"0\r"
-    log("Asking device %s " % request_string)
-
-    self._serial_port.write(request_string)
-    self._serial_port.write(request_string)
-
-    #read 2 lines, because they sometimes seem to buffer their output
-    for i in range(2):
-        a = self._serial_port.readline()
-        if len(a) > 1:
-            return a
-
-    sys.stdout.flush()
-    return None
-
-def detect_slaves():
-    for deviceID in range(1,100):
-        a = request_from_device(deviceID)
-        if a != None:
-            log("Device %d answered %s " % (deviceID, a))
-            self._slaves.append(deviceID)
 
 def valid_row(tup):
     if tup != None and len(tup.split())==12:
@@ -70,17 +47,8 @@ def valid_row(tup):
     return False
 
 #check if we need to play the sound
-<<<<<<< HEAD
-def updateBellCounter(val):
-    global NEXTRING   
-    global KWHPERRING
-    global bellcounter
-
-    bellcounter += (float(val) / 36000)
-=======
 def update_bell_counter(val):
     RLogDaemon.BELLCOUNTER += (float(val) / 360000)
->>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     
     if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
         ring_bell()
@@ -94,46 +62,10 @@ Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
 #trigger playsound tool 
 def ring_bell():
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
-<<<<<<< HEAD
     #test=os.system("mpg321 -q "+SOUND)
     test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
-=======
-    test=os.system("mpg321 -q "+RLogDaemon.SOUND)
->>>>>>> 7d7c3ddf1592a30a7fb2f022b54d0bcd2b685ec8
     log(test)
     return
-
-def poll_devices():
-    for device_id in self._slaves:
-        new_row = request_from_device(device_id)
-        log("Read row %s" % dRow)
-
-        if validRow(new_row):
-            #TODO catch errors more precise 
-            #Errors might occur during physical transmission 
-            try:
-                cols = new_row.split()
-                line_power = cols[7]
-                update_bell_counter(line_power)
-                tup = ",".join(cols[2:9])
-
-                q_string = (
-                    "INSERT INTO charts_solarentry"
-                    "VALUES(NULL," + str(time.time()) + ","+str(device_id)+"," + tup + ")")
-
-                log("Executing: "+q_string)
-            
-                #this might fail if the database is currently accessed by another process
-                try:
-                    self._c.execute(q_string)
-                    self._connection.commit()
-                except sqlite3.OperationalError:
-                    log("Database is locked!")
-
-            except Exception as ex:
-                print type(ex)
-            except Error as err:
-                print type(err)
 
 
 #TODO: pot more stuff into the class to eliminate the need for the global stuff
@@ -145,14 +77,15 @@ class RLogDaemon(Daemon):
     DELAY = 10
     BELLCOUNTER = 0
 
-    def __init__(self):
+    def __init__(self,pidfile):
+        super(RLogDaemon, self).__init__(pidfile)
         self._serial_port = None
         self._slaves = []
         self._db_connection = sqlite3.connect(DATABASE)
-        self._db_cursor  = connection.cursor()
+        self._db_cursor  = self._db_connection.cursor()
 
     def run(self):
-        q_sting = (
+        q_string = (
             "SELECT * "
             "FROM charts_settings "
             "WHERE active = 1 "
@@ -182,18 +115,74 @@ class RLogDaemon(Daemon):
             self._serial_port = serial.Serial(RLogDaemon.DEVICE_NAME)
             self._serial_port.timeout = 1
 
-        detect_slaves()
+        self.detect_slaves()
         
         while True:
             t1 = time.time()
-            poll_devices()
+            self.poll_devices()
             t2 = time.time()
-            sleepduration = DELAY-(t2-t1)
+            sleepduration = RLogDaemon.DELAY-(t2-t1)
             log("Sleeping: %f" % sleepduration)
             if sleepduration > 0:
               time.sleep(sleepduration)
 
         self._serial_port.close();
+
+    def request_from_device(self, device_id_raw):
+        device_id = "{0:02d}".format(device_id_raw)
+        request_string = "#"+str(device_id)+"0\r"
+        log("Asking device %s " % request_string)
+
+        self._serial_port.write(request_string)
+        self._serial_port.write(request_string)
+
+        #read 2 lines, because they sometimes seem to buffer their output
+        for i in range(2):
+            a = self._serial_port.readline()
+            if len(a) > 1:
+                return a
+
+        sys.stdout.flush()
+        return None
+
+    def detect_slaves(self):
+        for deviceID in range(1,33):
+            a = self.request_from_device(deviceID)
+            if a != None:
+                log("Device %d answered %s " % (deviceID, a))
+                self._slaves.append(deviceID)
+
+    def poll_devices(self):
+        for device_id in self._slaves:
+            new_row = self.request_from_device(device_id)
+            log("Read row %s" % new_row)
+
+            if valid_row(new_row):
+                #TODO catch errors more precise 
+                #Errors might occur during physical transmission 
+                try:
+                    cols = new_row.split()
+                    line_power = cols[7]
+                    update_bell_counter(line_power)
+                    tup = ",".join(cols[2:9])
+
+                    q_string = (
+                        "INSERT INTO charts_solarentry "
+                        "VALUES (NULL," + str(time.time()) + ","+str(device_id)+"," + tup + ")")
+
+                    log("Executing: "+q_string)
+                
+                    #this might fail if the database is currently accessed by another process
+                    try:
+                        self._db_connection.execute(q_string)
+                        self._db_connection.commit()
+                    except sqlite3.OperationalError:
+                        log("Database is locked!")
+
+                except Exception as ex:
+                    print str(type(ex))+str(ex)
+                except Error as err:
+                    print type(err)
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
