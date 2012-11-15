@@ -106,7 +106,7 @@ class Chart(object):
         self.__rowarray_list_live.update({deviceID : []})
 
         for row in cursor.execute(q_string):
-            Chart.log.info(str(row))
+            #Chart.log.info(str(row))
             t = (int(row[0]) * 1000, row[1])
             self.__rowarray_list_live[deviceID].append(t)
     
@@ -224,6 +224,4 @@ class Chart(object):
         for row in cursor.execute("SELECT DISTINCT device FROM "+self.TABLE_BASE):
             devices.append(row[0]);
 
-        print "strange"
-        print devices
         return devices

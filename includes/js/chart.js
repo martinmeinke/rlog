@@ -25,6 +25,7 @@ function autoUpdate()
 {
 	$.getJSON('liveData', function(data) {
 		addPlot(data["timeseries"]);
+		//alert(JSON.stringify(data["timeseries"]))
 		applySettings(data["settings"]);
 	});
 }
