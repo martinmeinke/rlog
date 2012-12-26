@@ -164,10 +164,10 @@ class RLogDaemon(Daemon):
                     cols = new_row.split()
                     line_power = cols[7]
                     update_bell_counter(line_power)
-                    tup = ",".join(cols[2:9])
+                    tup = ",".join(cols[2:10])
 
                     q_string = (
-                        "INSERT INTO charts_solarentry "
+                        "INSERT INTO charts_solarentrytick "
                         "VALUES (NULL," + str(time.time()) + ","+str(device_id)+"," + tup + ")")
 
                     log("Executing: "+q_string)

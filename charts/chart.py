@@ -18,7 +18,7 @@ class Chart(object):
     '''
     classdocs
     '''
-    TABLE_BASE = "charts_solarentry"
+    TABLE_BASE = "charts_solarentrytick"
     TICKS_ON_LIVE_VIEW = 100
     locale.setlocale( locale.LC_ALL, 'de_DE')
 

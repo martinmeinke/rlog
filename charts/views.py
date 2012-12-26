@@ -63,11 +63,16 @@ def stats(request):
 	heading=str(start)+" - "+str(end)+" | "+str(period)
 
 	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),period)
-	chart.fetchTimeSeries()
 
-	timetuples = chart.getTimeSeries()
-	graph = {"label":"Einspeisung", "data":timetuples}
-	timeseries = json.dumps(graph)
+	graphs = []
+
+	for i in chart.getDeviceIDList():
+		chart.fetchTimeSeries(i)
+		timetuples = chart.getTimeSeries(i)
+		graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples})
+
+	#graph = {"label":"Einspeisung", "data":timetuples}
+	timeseries = json.dumps(graphs)
 	plotsettings = json.dumps(chart.chartOptions())
 	stats = chart.getStatTable()
 	hd = heading
