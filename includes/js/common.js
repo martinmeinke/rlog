@@ -28,6 +28,7 @@ $(document).ready(function() {
 	});
 
 	$("#period").buttonset();
+	$("#live_timeframe").buttonset();
 
 	$("#checkGraph").button();
 	$("#checkStats").button();
