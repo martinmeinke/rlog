@@ -3,3 +3,4 @@
 *~
 settings.py
 sensor.db
+wsgi.py

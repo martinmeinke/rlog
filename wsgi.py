@@ -1,4 +1,6 @@
-import os
+import os, sys
+sys.path.append('/home/pi/git')
+sys.path.append('/home/pi/git/rlog')
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rlog.settings")
 
