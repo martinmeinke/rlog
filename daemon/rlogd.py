@@ -182,17 +182,19 @@ class RLogDaemon(Daemon):
                 
                     q_string2 = (
                         "INSERT OR REPLACE INTO charts_device (id, model) "
-                        "VALUES ("+str(device_id)+","+str(cols[12])+")")
+                        "VALUES ("+str(device_id)+",'"+str(cols[11])+"')")
+
+                    print q_string2
 
                     #this might fail if the database is currently accessed by another process
                     try:
                         self._db_connection.execute(q_string)
                         self._db_connection.execute(q_string2)
                         self._db_connection.commit()
-                    except sqlite3.OperationalError:
+                    except sqlite3.OperationalError as ex:
                         log("Database is locked!")
-
-                except Exception as ex:
+                        print str(type(ex))+str(ex)
+                except Exception as ex: 
                     print str(type(ex))+str(ex)
                 except Error as err:
                     print type(err)
