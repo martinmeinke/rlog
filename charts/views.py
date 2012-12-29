@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from chart import Chart
+from live_chart import LiveChart
 import sqlite3
 import cgi
 import datetime
@@ -8,6 +9,7 @@ import time
 import json
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
+from charts.models import Device
 
 def index(request):
 	return live(request)
@@ -17,27 +19,42 @@ def live(request):
 
 def liveData(request):
 	#import pdb; pdb.set_trace()
-	start = datetime.datetime.now()-relativedelta(minutes=30, second=0, microsecond=0)
-	end = datetime.datetime.now()
+	if 'lastTick' in request.GET:
+		last_tick_provided = datetime.datetime.fromtimestamp(int(request.GET["lastTick"])/1000)
+		
+		graphs = []
 
-	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),"period_min")
+		for device in Device.objects.distinct():
+			ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
+			timetuples = {}
+			timetuples.update({device.id : []})
+			for tick in ticks:
+				t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
+				timetuples[device.id].append(t)
+			graphs.append({"data": timetuples[device.id]})
+		timeseries = json.dumps(graphs)
 
-	graphs = []
+		return HttpResponse("{\"timeseries\": %s}" % timeseries)
 
-	for i in chart.getDeviceIDList():
-		print "#######################"+str(i)
-		chart.fetchTimeSeriesLiveView(i)
-		timetuples = chart.getTimeSeriesLiveView(i)
-		graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples})
+	else:
+		#perform the chart initialization
+		start = datetime.datetime.utcnow()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+		end = datetime.datetime.utcnow()
 
-	print graphs;
+		chart = LiveChart(start, end)
+		graphs = []
 
-	timeseries = json.dumps(graphs)
-	plotsettings = json.dumps(chart.chartOptionsLiveView())
+		for device in Device.objects.distinct():
+			chart.fetchTimeSeriesLiveView(device.id)
+			timetuples = chart.getTimeSeriesLiveView(device.id)
+			label = "Einspeisung WR %s (ID: %s)" % (device.model, device.id)
+			graphs.append({"label": label, "data":timetuples})
 
-	#print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
-	
-	return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
+		timeseries = json.dumps(graphs)
+		plotsettings = json.dumps(chart.chartOptionsLiveView())
+		#print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
+		
+		return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
 def stats(request):
 	#we use the data submitted by the form if empty

@@ -3,11 +3,20 @@
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
-	autoUpdate();
+	autoUpdateInitial(15);
     window.setInterval(autoUpdate, 5000);
 });
 </script>
 
 <h2>Live</h2>
+<form method="POST" action="">
+    {% csrf_token %}
+    <div id="live_timeframe">
+        <input type="radio" id="live_timeframe_5" value="5" name="live_timeframe" onchange="autoUpdateInitial(5)"/><label for="live_timeframe_5">5 Minuten</label>
+        <input type="radio" id="live_timeframe_15" checked="yes" value="15" name="live_timeframe" onchange="autoUpdateInitial(15)"/><label for="live_timeframe_15">15 Minuten</label>
+        <input type="radio" id="live_timeframe_30" value="30" name="live_timeframe" onchange="autoUpdateInitial(30)"/><label for="live_timeframe_30">30 Minuten</label>
+        <input type="radio" id="live_timeframe_60" value="60" name="live_timeframe" onchange="autoUpdateInitial(60)"/><label for="live_timeframe_60">60 Minuten</label>
+    </div>     
+</form>
 <div id="livechart" class="chart"></div>
 {% endblock %}

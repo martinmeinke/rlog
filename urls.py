@@ -5,7 +5,7 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns('',
-	  url(r'^$', 'charts.views.index'),
+	url(r'^$', 'charts.views.index'),
     url(r'^charts/', include('charts.urls')),
     url(r'^admin/', include(admin.site.urls)),
 )

@@ -13,14 +13,15 @@ import os
 import logging
 import sys
 import random
+from charts.models import SolarEntryTick, Settings, Device
 
 class Chart(object):
     '''
     classdocs
     '''
     TABLE_BASE = "charts_solarentrytick"
-    TICKS_ON_LIVE_VIEW = 100
-    locale.setlocale( locale.LC_ALL, 'de_DE')
+    TICKS_ON_LIVE_VIEW_DEFAULT = 100
+    #locale.setlocale( locale.LC_ALL, 'de_DE')
 
     def __init__(self,pStartDate,pEndDate,pPeriod):
         '''
@@ -35,7 +36,7 @@ class Chart(object):
         self.__conn = sqlite3.connect(settings.DATABASES['default']['NAME'])
         self.__totalSupply = 0
         self.__rewardTotal = 0
-        
+        self.__liveview_ticks = TICKS_ON_LIVE_VIEW_DEFAULT
         self.__rowarray_list = {}
         self.__rowarray_list_live = {}
         
@@ -64,7 +65,7 @@ class Chart(object):
             self.__barwidth = 1000*60*60*24*30
             lft = datetime.datetime.fromtimestamp(self.__startdate)+relativedelta(months=-1)
             rht = datetime.datetime.fromtimestamp(self.__enddate)+relativedelta(months=1)
-        
+
         self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
         self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
         
@@ -217,11 +218,14 @@ class Chart(object):
         else:
             return 1
 
-    def getDeviceIDList(self):
-        cursor = self.__conn.cursor()
+    @staticmethod
+    def getDeviceIDList():
+        cursor = sqlite3.connect(settings.DATABASES['default']['NAME']).cursor()
         devices = []
         
-        for row in cursor.execute("SELECT DISTINCT device FROM "+self.TABLE_BASE):
-            devices.append(row[0]);
+        distinct_devices = Device.objects.distinct()
+
+        for device in distinct_devices:
+            devices.append(device.id)
 
         return devices

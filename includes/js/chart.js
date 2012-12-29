@@ -1,5 +1,6 @@
 data = [];
 options = {};
+liveTicks = 100;
 
 function drawPlot() {
 	plot = $.plot($(".chart")[0], data, options);
@@ -20,11 +21,53 @@ function applySettings(json) {
 	drawPlot();
 }
 
-function autoUpdate()
+function getLatestTick()
 {
-	$.getJSON('liveData', function(data) {
+	var current = 0;
+	jQuery.each(data, function()
+	{
+		jQuery.each(this["data"], function()
+		{
+			if(this[0] > current)
+			{
+				current = this[0]
+			}
+		});
+	});
+
+	return current;
+}
+
+function autoUpdateInitial(minutes)
+{
+	$.getJSON('liveData', 
+	{
+		//last x minutes
+		timeframe: minutes
+  	},
+  	function(data) {
 		addPlot(data["timeseries"]);
 		//document.write(JSON.stringify(data["timeseries"]));
 		applySettings(data["settings"]);
+	});
+}
+
+function autoUpdate()
+{
+	var d = new Date();
+	$.getJSON('liveData', 
+	{
+		//get the last tick timestamp from current plot
+		lastTick: getLatestTick()
+  	},
+  	function(newData) {
+  		var i = 0;
+		jQuery.each(data, function()
+		{
+			//alert(JSON.stringify(newData["timeseries"][i]["data"]))
+			this["data"] = newData["timeseries"][i]["data"].concat(this["data"]);
+			i++;
+		});
+		drawPlot();
 	});
 }
