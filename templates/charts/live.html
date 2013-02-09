@@ -1,22 +1,23 @@
-{% extends "charts/frame.html" %}
+{% extends "charts/newframe.html" %}
 
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
 	autoUpdateInitial(15);
-    window.setInterval(autoUpdate, 5000);
+  window.setInterval(autoUpdate, 5000);
 });
 </script>
 
-<h2>Live</h2>
-<form method="POST" action="">
-    {% csrf_token %}
-    <div id="live_timeframe">
-        <input type="radio" id="live_timeframe_5" value="5" name="live_timeframe" onchange="autoUpdateInitial(5)"/><label for="live_timeframe_5">5 Minuten</label>
-        <input type="radio" id="live_timeframe_15" checked="yes" value="15" name="live_timeframe" onchange="autoUpdateInitial(15)"/><label for="live_timeframe_15">15 Minuten</label>
-        <input type="radio" id="live_timeframe_30" value="30" name="live_timeframe" onchange="autoUpdateInitial(30)"/><label for="live_timeframe_30">30 Minuten</label>
-        <input type="radio" id="live_timeframe_60" value="60" name="live_timeframe" onchange="autoUpdateInitial(60)"/><label for="live_timeframe_60">60 Minuten</label>
-    </div>     
+<h2 class="center">Live</h2>
+<form method="POST" class="form-inline" action="">
+  {% csrf_token %}
+	<select name="live_timeframe" id="live_timeframe" 
+  onchange="autoUpdateInitial(this.options[this.selectedIndex].value)" class="selectpicker">
+      <option value="5">5 Minutes</option>
+      <option selected=selected value="15">15 Minutes</option>
+      <option value="30">30 Minutes</option>
+      <option value="60">1 Hour</option>
+    </select>
 </form>
 <div id="livechart" class="chart"></div>
 {% endblock %}

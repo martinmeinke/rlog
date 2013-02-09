@@ -16,6 +16,13 @@ class SolarEntryTick(models.Model):
     temp = models.DecimalField(max_digits=9, decimal_places=3)
     total = models.DecimalField(max_digits=9, decimal_places=3)
 
+class SolarEntryMinute(models.Model):
+    time = models.DateTimeField()
+    device = models.ForeignKey(Device)
+    lW = models.DecimalField(max_digits=9, decimal_places=3)
+
+    class Meta:
+        unique_together = (("time", "device"))
 
 class SolarEntryHour(models.Model):
     time = models.DateTimeField()

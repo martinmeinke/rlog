@@ -3,6 +3,12 @@ options = {};
 liveTicks = 100;
 
 function drawPlot() {
+	setTimeout(drawIt, 1000);
+	plot = $.plot($(".chart")[0], data, options);
+}
+
+function drawIt()
+{
 	plot = $.plot($(".chart")[0], data, options);
 }
 

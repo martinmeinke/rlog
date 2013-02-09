@@ -43,7 +43,7 @@ class LiveChart(object):
         for tick in ticks:
             t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
             self.__rowarray_list_live[deviceID].append(t)
-    
+            
     def chartOptionsLiveView(self):
         settings = {}
         settings["series"] = {}

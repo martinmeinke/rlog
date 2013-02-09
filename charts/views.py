@@ -7,6 +7,7 @@ import cgi
 import datetime
 import time
 import json
+from charts.forms import StatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
 from charts.models import Device
@@ -56,31 +57,38 @@ def liveData(request):
 		
 		return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
-def stats(request):
-	#we use the data submitted by the form if empty
-	timeframe = request.POST.get('timeframe','timeframe_mon')
-	period = request.POST.get('period','period_day')
+def stats(request, timeframe_url):
+	#get form data
+	if request.method == 'POST':
+		form = StatsForm(request.POST)
+		if form.is_valid():
+			timeframe = form.cleaned_data["timeframe"]
+			period = form.cleaned_data["period"]
+		else:
+			print "Invalid form input"
+	else:		
+		timeframe = 'timeframe_day'
+		period = 'period_hrs'
 		
+	#determine start and end date for the chart
 	if timeframe != "timeframe_cus":
 		if timeframe == "timeframe_hrs":
-			start = datetime.datetime.now()+relativedelta(minute=0, second=0, microsecond=0)
+			start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
 		elif timeframe == "timeframe_day":
-			start = datetime.datetime.now()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+			start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
 		elif timeframe == "timeframe_mon":
-			start = datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+			start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
 		elif timeframe == "timeframe_yrs":
-			start = datetime.datetime.now()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+			start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 			print start
 		
-		end = datetime.datetime.now()
+		end = datetime.datetime.utcnow()
 	else:
 		start = datetime.datetime.strptime(request.POST.get('datepickers', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
 		end = datetime.datetime.strptime(request.POST.get('datepickere', datetime.datetime.now()), "%m/%d/%Y")
 		
-	heading=str(start)+" - "+str(end)+" | "+str(period)
-
-	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),period)
-
+	#create a chart and fetch its data
+	chart = Chart(start, end, period)
 	graphs = []
 
 	for i in chart.getDeviceIDList():
@@ -88,13 +96,18 @@ def stats(request):
 		timetuples = chart.getTimeSeries(i)
 		graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples})
 
-	#graph = {"label":"Einspeisung", "data":timetuples}
 	timeseries = json.dumps(graphs)
 	plotsettings = json.dumps(chart.chartOptions())
+
+	#TODO: the next couple of lines are pretty ugly
 	stats = chart.getStatTable()
-	hd = heading
+	hd =str(start)+" - "+str(end)+" | "+str(period)
+	form = StatsForm()
 
-	chart.log.info(timetuples)
-
+	#set the initial selection to what the url gave us
+	form.fields["timeframe"].initial = timeframe_url
+	
 	return render_to_response('charts/stats.html', vars(), RequestContext(request))
 
+def overview(request):
+	return render_to_response('charts/overview.html', vars(), RequestContext(request))
