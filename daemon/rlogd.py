@@ -99,9 +99,17 @@ class RLogDaemon(Daemon):
 
         sets = self._db_cursor.fetchone()
 
-        RLogDaemon.KWHPERRING = sets[2]
-        RLogDaemon.NEXTRING = sets[2]
-        RLogDaemon.SOUND = sets[3]
+        try:
+            RLogDaemon.KWHPERRING = sets[2]
+            RLogDaemon.NEXTRING = sets[2]
+            RLogDaemon.SOUND = sets[3]
+        except Exception as ex:
+            print str(type(ex))+str(ex)
+            RLogDaemon.KWHPERRING = 1
+            RLogDaemon.NEXTRING = 1
+            RLogDaemon.SOUND = "/home/pi/git/rlog/coin.mp3"
+        except Error as err:
+            print type(err)
 
         log("""Using Parameters:
     KWHPERRING: %s
@@ -168,27 +176,28 @@ class RLogDaemon(Daemon):
 
                     q_string = (
                         "INSERT INTO charts_solarentrytick "
-                        "VALUES (NULL," + str(time.time()) + ","+str(device_id)+"," + tup + ")")
+                        "VALUES (NULL, datetime('now') ,"+str(device_id)+"," + tup + ")")
 
                     log("Executing: "+q_string)
                 
                     q_string2 = (
                         "INSERT OR REPLACE INTO charts_device (id, model) "
-                        "VALUES ("+str(device_id)+","+str(cols[12])+")")
+                        "VALUES ("+str(device_id)+",'"+str(cols[11])+"')")
+
+                    print q_string2
 
                     #this might fail if the database is currently accessed by another process
                     try:
                         self._db_connection.execute(q_string)
                         self._db_connection.execute(q_string2)
                         self._db_connection.commit()
-                    except sqlite3.OperationalError:
+                    except sqlite3.OperationalError as ex:
                         log("Database is locked!")
-
-                except Exception as ex:
+                        print str(type(ex))+str(ex)
+                except Exception as ex: 
                     print str(type(ex))+str(ex)
                 except Error as err:
                     print type(err)
-
 if __name__ == "__main__":
     if os.geteuid() != 0:
         print "You must be root to run this script."
