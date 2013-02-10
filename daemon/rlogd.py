@@ -120,7 +120,7 @@ class RLogDaemon(Daemon):
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self._serial_port = discover_device()
-            self._serial_port = serial.Serial(RLogDaemon.DEVICE_NAME)
+            self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1)
             self._serial_port.timeout = 1
 
         self.detect_slaves()
@@ -142,7 +142,7 @@ class RLogDaemon(Daemon):
         log("Asking device %s " % request_string)
 
         self._serial_port.write(request_string)
-        self._serial_port.write(request_string)
+#        self._serial_port.write(request_string)
 
         #read 2 lines, because they sometimes seem to buffer their output
         for i in range(2):
@@ -154,7 +154,7 @@ class RLogDaemon(Daemon):
         return None
 
     def detect_slaves(self):
-        for deviceID in range(1,33):
+        for deviceID in range(1,4):
             a = self.request_from_device(deviceID)
             if a != None:
                 log("Device %d answered %s " % (deviceID, a))
@@ -164,6 +164,7 @@ class RLogDaemon(Daemon):
         for device_id in self._slaves:
             new_row = self.request_from_device(device_id)
             log("Read row %s" % new_row)
+            sys.stdout.flush()
 
             if valid_row(new_row):
                 #TODO catch errors more precise 
