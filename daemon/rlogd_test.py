@@ -43,7 +43,7 @@ def check_typ(typ_string):
   if ord(typ_string[-2]) != summe % 256:
     log("Read invalid Type Message: " + typ_string)
     return False
-  else
+  else:
     return True
 
 # checks checksum in data message
@@ -146,18 +146,26 @@ class RLogDaemon(Daemon):
               time.sleep(sleepduration)
 
         self._serial_port.close();
-
+	    
     def read_line(self, timeout = 3):
-	    response = ''
-	    start_zeit = time.time()
-	    while(True):
-	      response += self._serial_port.read()
-	      if response and response[-1] == '\r':
-	        break
-	      if time.time() - start_zeit > timeout:
-	        break
-	    self._serial_port.flushInput()
-	    return response
+      response = ''
+      start_zeit = time.time()
+      # skip everything until line feed
+      while(True):
+        response = self._serial_port.read()
+        if response and response[0] == '\n':
+          break
+        if time.time() - start_zeit > timeout:
+          return response
+      # read until return character
+      while(True):
+        response += self._serial_port.read()
+        if response and response[-1] == '\r':
+          break
+        if time.time() - start_zeit > timeout:
+          break
+      self._serial_port.flushInput()
+      return response
 
     def request_type_from_device(self, device_id_raw):
       self._serial_port.flushInput()
@@ -165,8 +173,9 @@ class RLogDaemon(Daemon):
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
       self._serial_port.flush()
-      typ = read_line()
+      typ = self.read_line()
       if len(typ) != 15: # so lang sind meine typen normalerweise
+        log("read type with invalid length (" + str(len(typ)) + ") " + typ)
         return None
       else:
         return typ
@@ -177,17 +186,18 @@ class RLogDaemon(Daemon):
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
       self._serial_port.flush()
-      daten = read_line()
+      daten = self.read_line()
       if len(daten) != 66: # so lang sind meine daten normalerweise
+        log("read data with invalid length (" + str(len(daten)) + ") " + daten)
         return None
       else:
         return daten
     
     # try to read type message of each WR to get their IDs on the bus 
     def detect_slaves(self):
-        for deviceID in range(1,4):
+        for deviceID in range(1, 4):
             typ = self.request_type_from_device(deviceID)
-            if typ != None and check_type(typ):
+            if typ != None and check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
                 self._slaves.append(deviceID)
 
@@ -196,7 +206,7 @@ class RLogDaemon(Daemon):
             new_row = self.request_data_from_device(device_id)
             log("Read row %s" % new_row)
 
-            if check_daten(new_row):
+            if new_row != None and check_daten(new_row):
                 try:
                     cols = new_row.split()
                     line_power = cols[7]
