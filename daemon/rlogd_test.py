@@ -135,7 +135,7 @@ class RLogDaemon(Daemon):
             self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1)
             self._serial_port.timeout = 1
 
-        self.detect_slaves()
+        self.findWR()
         
         while True:
             t1 = time.time()
@@ -194,12 +194,23 @@ class RLogDaemon(Daemon):
         return daten
     
     # try to read type message of each WR to get their IDs on the bus 
-    def detect_slaves(self):
+    def findWR(self):
         for deviceID in range(1, 4):
             typ = self.request_type_from_device(deviceID)
             if typ != None and check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
                 self._slaves.append(deviceID)
+                try:
+                    cols = typ.split()                
+                    q_string = (
+                        "INSERT OR REPLACE INTO charts_device (id, model) "
+                        "VALUES ("+str(deviceID)+",'"+str(cols[2])+"')")
+                    log("Executing: "+q_string)
+                    self._db_connection.execute(q_string)
+                    self._db_connection.commit()
+                except sqlite3.OperationalError as ex:
+                    log("Database is locked!")
+                    print str(type(ex))+str(ex)
 
     def poll_devices(self):
         for device_id in self._slaves:
@@ -216,19 +227,10 @@ class RLogDaemon(Daemon):
                     q_string = (
                         "INSERT INTO charts_solarentrytick "
                         "VALUES (NULL, datetime('now') ,"+str(device_id)+"," + tup + ")")
-
                     log("Executing: "+q_string)
-                
-                    q_string2 = (
-                        "INSERT OR REPLACE INTO charts_device (id, model) "
-                        "VALUES ("+str(device_id)+",'"+str(cols[11])+"')")
-
-                    print q_string2
-
                     #this might fail if the database is currently accessed by another process
                     try:
                         self._db_connection.execute(q_string)
-                        self._db_connection.execute(q_string2)
                         self._db_connection.commit()
                     except sqlite3.OperationalError as ex:
                         log("Database is locked!")
