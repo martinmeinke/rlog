@@ -26,37 +26,6 @@ def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))
     print "[%s]: %s" % (str(datetime.datetime.now()), stripped)
 
-def discover_device():
-    for device_id in range(0,100):
-        log("Checking if %s%d exists..." % (DEVICE_NAME_BASE,device_id))
-        if os.path.exists("%s%d" % (DEVICE_NAME_BASE,device_id)):
-            RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE,device_id)
-            log("Using device: %s" % RLogDaemon.DEVICE_NAME)
-            break
-    return
-
-# checks checksum in type message
-def check_typ(typ_string):
-  summe = 0
-  for i in range(1, len(typ_string) - 2): # 2. zeichen von hinten ist pruefsumme bei mir
-    summe += ord(typ_string[i])
-  if ord(typ_string[-2]) != summe % 256:
-    log("Read invalid Type Message: " + typ_string)
-    return False
-  else:
-    return True
-
-# checks checksum in data message
-def check_daten(data_string):
-  summe = 0
-  for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
-    summe += ord(data_string[i])
-  if ord(data_string[-9]) != summe % 256:
-    log("Read invalid Data Message: " + data_string)
-    return False
-  else:
-    return True
-
 #check if we need to play the sound
 def update_bell_counter(val):
     RLogDaemon.BELLCOUNTER += (float(val) / 360000)
@@ -95,8 +64,10 @@ class RLogDaemon(Daemon):
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
         self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
+        log("RLogDaemon created")
 
     def run(self):
+        log("daemon running")
         q_string = (
             "SELECT * "
             "FROM charts_settings "
@@ -131,11 +102,12 @@ class RLogDaemon(Daemon):
         if DEBUG_ENABLED:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
-            self._serial_port = discover_device()
+            self._serial_port = self.discover_device()
             self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=1)
 
+        log("looking for WR")
         self.findWR()
-        
+        log("starting normal execution")
         while True:
             t1 = time.time()
             self.poll_devices()
@@ -146,6 +118,37 @@ class RLogDaemon(Daemon):
               time.sleep(sleepduration)
 
         self._serial_port.close();
+    
+    def discover_device(self):
+        for device_id in range(0,100):
+            log("Checking if %s%d exists..." % (DEVICE_NAME_BASE, device_id))
+            if os.path.exists("%s%d" % (DEVICE_NAME_BASE,device_id)):
+                RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE, device_id)
+                log("Using device: %s" % RLogDaemon.DEVICE_NAME)
+                break
+        return
+
+    # checks checksum in type message
+    def check_typ(self, typ_string):
+      summe = 0
+      for i in range(1, len(typ_string) - 2): # 2. zeichen von hinten ist pruefsumme bei mir
+        summe += ord(typ_string[i])
+      if ord(typ_string[-2]) != summe % 256:
+        log("Read invalid Type Message: " + typ_string)
+        return False
+      else:
+        return True
+
+    # checks checksum in data message
+    def check_daten(self, data_string):
+      summe = 0
+      for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
+        summe += ord(data_string[i])
+      if ord(data_string[-9]) != summe % 256:
+        log("Read invalid Data Message: " + data_string)
+        return False
+      else:
+        return True
 	    
     def read_line(self, timeout = 2):
       response = ''
@@ -194,41 +197,45 @@ class RLogDaemon(Daemon):
     
     # try to read type message of each WR to get their IDs on the bus 
     def findWR(self):
+        statements = []
         for deviceID in range(1, 4):
             typ = self.request_type_from_device(deviceID)
-            if typ != None and check_typ(typ):
+            if typ != None and self.check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
-                self._slaves.append(deviceID)
-                try:
-                    cols = typ.split()                
-                    q_string = (
-                        "INSERT OR REPLACE INTO charts_device (id, model) "
-                        "VALUES ("+str(deviceID)+",'"+str(cols[2])+"')")
-                    log("Executing: "+q_string)
-                    self._db_connection.execute(q_string)
-                    self._db_connection.commit()
-                except sqlite3.OperationalError as ex:
-                    log("Database is locked!")
-                    print str(type(ex))+str(ex)
+                self._slaves.append(deviceID)  
+                statements.append([str(deviceID), typ.split()[2]])             
+                log("Adding" + typ.split()[2] + "with device ID" + str(deviceID) + "to transaction for charts_device table")
+        if statements:
+            try:
+                self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
+                self._db_connection.commit()
+            except sqlite3.OperationalError as ex:
+                log("Database is locked or some other DB error!")
+                print str(type(ex))+str(ex)
 
     def poll_devices(self):
         statements = []
         for device_id in self._slaves:
             new_row = self.request_data_from_device(device_id)
             log("Read row %s" % new_row)
-            if new_row != None and check_daten(new_row):
+            if new_row != None and self.check_daten(new_row):
                 cols = new_row.split()
-                line_power = cols[7]
-                update_bell_counter(line_power)
+                try:
+                  line_power = cols[7]
+                  update_bell_counter(line_power)
+                except Exception as e:
+                  print e
                 tmp = [str(device_id)]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 log("adding: "+ tmp + " to transaction")
-        try:
-          self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?", statements)
-        except sqlite3.OperationalError as ex:
-          log("Database is locked!")
-          print str(type(ex))+str(ex)
+        if statements:
+            try:
+              self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?", statements)
+              self._db_connection.commit()
+            except sqlite3.OperationalError as ex:
+              log("Database is locked or some other DB error!")
+              print str(type(ex))+str(ex)
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
