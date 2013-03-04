@@ -93,7 +93,8 @@ class RLogDaemon(Daemon):
         self._serial_port = None
         self._slaves = []
         self._db_connection = sqlite3.connect(DATABASE)
-        self._db_cursor  = self._db_connection.cursor()
+        self._db_cursor = self._db_connection.cursor()
+        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
 
     def run(self):
         q_string = (
@@ -164,7 +165,6 @@ class RLogDaemon(Daemon):
           break
         if time.time() - start_zeit > timeout:
           break
-      self._serial_port.flushInput()
       return response
 
     def request_type_from_device(self, device_id_raw):
