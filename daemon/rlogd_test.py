@@ -132,8 +132,7 @@ class RLogDaemon(Daemon):
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self._serial_port = discover_device()
-            self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1)
-            self._serial_port.timeout = 1
+            self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=1)
 
         self.findWR()
         
@@ -148,7 +147,7 @@ class RLogDaemon(Daemon):
 
         self._serial_port.close();
 	    
-    def read_line(self, timeout = 3):
+    def read_line(self, timeout = 2):
       response = ''
       start_zeit = time.time()
       # skip everything until line feed
@@ -213,32 +212,24 @@ class RLogDaemon(Daemon):
                     print str(type(ex))+str(ex)
 
     def poll_devices(self):
+        statements = []
         for device_id in self._slaves:
             new_row = self.request_data_from_device(device_id)
             log("Read row %s" % new_row)
-
             if new_row != None and check_daten(new_row):
-                try:
-                    cols = new_row.split()
-                    line_power = cols[7]
-                    update_bell_counter(line_power)
-                    tup = ",".join(cols[2:10])
+                cols = new_row.split()
+                line_power = cols[7]
+                update_bell_counter(line_power)
+                tmp = [str(device_id)]
+                tmp.extend(cols[2:10])
+                statements.append(tmp)
+                log("adding: "+ tmp + " to transaction")
+        try:
+          self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?", statements)
+        except sqlite3.OperationalError as ex:
+          log("Database is locked!")
+          print str(type(ex))+str(ex)
 
-                    q_string = (
-                        "INSERT INTO charts_solarentrytick "
-                        "VALUES (NULL, datetime('now') ,"+str(device_id)+"," + tup + ")")
-                    log("Executing: "+q_string)
-                    #this might fail if the database is currently accessed by another process
-                    try:
-                        self._db_connection.execute(q_string)
-                        self._db_connection.commit()
-                    except sqlite3.OperationalError as ex:
-                        log("Database is locked!")
-                        print str(type(ex))+str(ex)
-                except Exception as ex: 
-                    print str(type(ex))+str(ex)
-                except Error as err:
-                    print type(err)
 if __name__ == "__main__":
     if os.geteuid() != 0:
         print "You must be root to run this script."
