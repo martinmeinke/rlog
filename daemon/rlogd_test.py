@@ -63,7 +63,7 @@ class RLogDaemon(Daemon):
         self._slaves = []
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
-        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
+#        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
 
     def run(self):
