@@ -203,8 +203,8 @@ class RLogDaemon(Daemon):
             if typ != None and self.check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
                 self._slaves.append(deviceID)  
-                statements.append([str(deviceID), typ.split()[2]])             
-                log("Adding" + typ.split()[2] + "with device ID" + str(deviceID) + "to transaction for charts_device table")
+                statements.append([str(deviceID), typ.split()[1]])             
+                log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
         if statements:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
@@ -228,10 +228,10 @@ class RLogDaemon(Daemon):
                 tmp = [str(device_id)]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
-                log("adding: "+ tmp + " to transaction")
+                log("adding: "+ ", ".join(tmp) + " to transaction")
         if statements:
             try:
-              self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?", statements)
+              self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
               self._db_connection.commit()
             except sqlite3.OperationalError as ex:
               log("Database is locked or some other DB error!")
