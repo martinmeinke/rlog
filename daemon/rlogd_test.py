@@ -33,10 +33,8 @@ def update_bell_counter(val):
     if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
         ring_bell()
         RLogDaemon.NEXTRING = RLogDaemon.NEXTRING + RLogDaemon.KWHPERRING
-    
-    log("""Bellcount: %s 
-Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
-    
+    if DEBUG_ENABLED:
+        log("""Bellcount: %s Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
     return
 
 #trigger playsound tool 
@@ -113,7 +111,8 @@ class RLogDaemon(Daemon):
             self.poll_devices()
             t2 = time.time()
             sleepduration = RLogDaemon.DELAY-(t2-t1)
-            log("Sleeping: %f" % sleepduration)
+            if sleepduration < 0:
+              log("Timing problem: %f" % sleepduration)
             if sleepduration > 0:
               time.sleep(sleepduration)
 
@@ -177,7 +176,7 @@ class RLogDaemon(Daemon):
       self._serial_port.flush()
       typ = self.read_line()
       if len(typ) != 15: # so lang sind meine typen normalerweise
-        log("read type with invalid length (" + str(len(typ)) + ") " + typ)
+        log("read type with invalid length (" + str(len(typ)) + ") from WR " + str(device_id_raw) + " (" + typ + ")")
         return None
       else:
         return typ
@@ -190,7 +189,7 @@ class RLogDaemon(Daemon):
       self._serial_port.flush()
       daten = self.read_line()
       if len(daten) != 66: # so lang sind meine daten normalerweise
-        log("read data with invalid length (" + str(len(daten)) + ") " + daten)
+        log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
         return None
       else:
         return daten
@@ -203,8 +202,10 @@ class RLogDaemon(Daemon):
             if typ != None and self.check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
                 self._slaves.append(deviceID)  
-                statements.append([str(deviceID), typ.split()[1]])             
-                log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
+                statements.append([str(deviceID), typ.split()[1]])
+                if DEBUG_ENABLED:           
+                    log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
+                time.sleep(0.2)
         if statements:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
@@ -217,7 +218,8 @@ class RLogDaemon(Daemon):
         statements = []
         for device_id in self._slaves:
             new_row = self.request_data_from_device(device_id)
-            log("Read row %s" % new_row)
+            if DEBUG_ENABLED:
+                log("Read row %s" % new_row)
             if new_row != None and self.check_daten(new_row):
                 cols = new_row.split()
                 try:
@@ -228,7 +230,9 @@ class RLogDaemon(Daemon):
                 tmp = [str(device_id)]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
-                log("adding: "+ ", ".join(tmp) + " to transaction")
+                if DEBUG_ENABLED:
+                  log("adding: "+ ", ".join(tmp) + " to transaction")
+                time.sleep(0.2)
         if statements:
             try:
               self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)

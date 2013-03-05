@@ -61,19 +61,21 @@ function autoUpdateInitial(minutes)
 function autoUpdate()
 {
 	var d = new Date();
-	$.getJSON('liveData', 
-	{
-		//get the last tick timestamp from current plot
-		lastTick: getLatestTick()
-  	},
-  	function(newData) {
-  		var i = 0;
-		jQuery.each(data, function()
-		{
-			//alert(JSON.stringify(newData["timeseries"][i]["data"]))
-			this["data"] = newData["timeseries"][i]["data"].concat(this["data"]);
-			i++;
-		});
-		drawPlot();
-	});
+	if(getLatestTick() != 0){
+	  $.getJSON('liveData', 
+	  {
+		  //get the last tick timestamp from current plot
+		  lastTick: getLatestTick()
+    	},
+    	function(newData) {
+    		var i = 0;
+		  jQuery.each(data, function()
+		  {
+			  //alert(JSON.stringify(newData["timeseries"][i]["data"]))
+			  this["data"] = newData["timeseries"][i]["data"].concat(this["data"]);
+			  i++;
+		  });
+		  drawPlot();
+	  })
+	};
 }
