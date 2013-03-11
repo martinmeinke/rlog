@@ -205,7 +205,16 @@ class RLogDaemon(Daemon):
                 statements.append([str(deviceID), typ.split()[1]])
                 if DEBUG_ENABLED:           
                     log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
-                time.sleep(0.2)
+                time.sleep(0.33)
+            else: # it it didn't answer on type request it gets another chance and is asked for data this time ...
+               data = self.request_data_from_device(deviceID)
+               if data != None and self.check_daten(data):
+                   log("Device %d answered %s " % (deviceID, data))
+                   self._slaves.append(deviceID)
+                   statements.append([str(deviceID), data.split()[-1]])
+                   if DEBUG_ENABLED:           
+                      log("Adding " + data.split()[-1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
+                   time.sleep(0.33)
         if statements:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
@@ -232,7 +241,7 @@ class RLogDaemon(Daemon):
                 statements.append(tmp)
                 if DEBUG_ENABLED:
                   log("adding: "+ ", ".join(tmp) + " to transaction")
-                time.sleep(0.2)
+                time.sleep(0.33)
         if statements:
             try:
               self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)

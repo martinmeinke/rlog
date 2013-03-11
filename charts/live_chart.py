@@ -57,6 +57,7 @@ class LiveChart(object):
         }
 
         settings["xaxis"].update({"tickSize" : (3, "minute")})
+        settings["legend"] = {"backgroundOpacity" : "0.5"}
         
         return settings
 
