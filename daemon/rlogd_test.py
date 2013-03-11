@@ -3,7 +3,7 @@
 '''
 Created on Oct 10, 2012
 
-@author: martin
+@author: martin and stephan
 '''
 import serial
 import sqlite3
@@ -172,7 +172,7 @@ class RLogDaemon(Daemon):
       self._serial_port.flushInput()
       self._serial_port.flushOutput()
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
-      self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
+      #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
       self._serial_port.flush()
       typ = self.read_line()
       if len(typ) != 15: # so lang sind meine typen normalerweise
@@ -185,7 +185,7 @@ class RLogDaemon(Daemon):
       self._serial_port.flushInput()
       self._serial_port.flushOutput()
       self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
-      self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
+      #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
       self._serial_port.flush()
       daten = self.read_line()
       if len(daten) != 66: # so lang sind meine daten normalerweise
@@ -194,7 +194,7 @@ class RLogDaemon(Daemon):
       else:
         return daten
     
-    # try to read type message of each WR to get their IDs on the bus 
+    # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
     def findWR(self):
         statements = []
         for deviceID in range(1, 4):
@@ -206,7 +206,7 @@ class RLogDaemon(Daemon):
                 if DEBUG_ENABLED:           
                     log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
                 time.sleep(0.33)
-            else: # it it didn't answer on type request it gets another chance and is asked for data this time ...
+            else: # if it didn't answer on type request it gets another chance and is asked for data this time ...
                data = self.request_data_from_device(deviceID)
                if data != None and self.check_daten(data):
                    log("Device %d answered %s " % (deviceID, data))
