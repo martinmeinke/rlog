@@ -36,26 +36,31 @@ class Chart(object):
         
         if self.__period == "period_min":
             self.__formatstring = "%d.%m.%Y %H:%M"
+            self.__flot_formatstring = "%H:%M"
             self.__barwidth = 1000*60
             lft = self.__startdate+datetime.timedelta(minutes=-1)
             rht = self.__enddate+datetime.timedelta(minutes=1)
         elif self.__period == "period_hrs":
             self.__formatstring = "%d.%m.%Y %H Uhr"
+            self.__flot_formatstring = "%H Uhr"
             self.__barwidth = 1000*60*60
             lft = self.__startdate+datetime.timedelta(hours=-1)
             rht = self.__enddate+datetime.timedelta(hours=1)
         elif self.__period == "period_day":
             self.__formatstring = "%d.%m.%Y"
+            self.__flot_formatstring = "%d.%m"
             self.__barwidth = 1000*60*60*24
             lft = self.__startdate+datetime.timedelta(days=-1)
             rht = self.__enddate+datetime.timedelta(days=1)
         elif self.__period == "period_mon":
             self.__formatstring = "%m/%Y"
+            self.__flot_formatstring = "%m/%Y"
             self.__barwidth = 1000*60*60*24*30
             lft = self.__startdate+relativedelta(months=-1)
             rht = self.__enddate+relativedelta(months=1)
         elif self.__period == "period_yrs":
             self.__formatstring = "%Y"
+            self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
             lft = self.__startdate+relativedelta(years=-1)
             rht = self.__enddate+relativedelta(years=1)
@@ -177,7 +182,7 @@ class Chart(object):
         settings["xaxis"] = {
                 "mode" : "time",
                 "timezone" : "browser",
-                "timeformat" : self.__formatstring,
+                "timeformat" : self.__flot_formatstring,
                 "min" : self.jsonPlotBoundaries()[0],
                 "max" : self.jsonPlotBoundaries()[1]
         }
@@ -186,8 +191,9 @@ class Chart(object):
         tSpacing = relativedelta(self.__enddate, self.__startdate).hours / 3
 
         #determine the tick Size (axis labeling)
-        settings["xaxis"].update({"tickSize" : (tSpacing, "hour")})
-        
+        #settings["xaxis"].update({"tickSize" : (tSpacing, "hour")})
+        settings["xaxis"].update({"ticks" : 8})
+
         return settings
     
     def barWidth(self):

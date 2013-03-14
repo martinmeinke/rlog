@@ -56,7 +56,7 @@ class LiveChart(object):
                 "timeformat" : self.__formatstring
         }
 
-        settings["xaxis"].update({"tickSize" : (3, "minute")})
+        settings["xaxis"].update({"ticks" : 8})
         settings["legend"] = {"backgroundOpacity" : "0.5"}
         
         return settings
