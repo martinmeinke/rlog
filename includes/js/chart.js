@@ -57,6 +57,12 @@ function autoUpdateInitial(minutes)
 	});
 }
 
+function comparator(a, b){
+  if (a[0] < b[0]) return -1;
+  if (a[0] > b[0]) return 1;
+  return 0;
+}
+
 function autoUpdate()
 {
 	var d = new Date();
@@ -95,6 +101,7 @@ function autoUpdate()
 					{
 						data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
 					}
+					data[i]["data"] = data[i]["data"].sort(comparator);
 					i++;
 				});
 			  	drawPlot();
