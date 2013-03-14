@@ -36,7 +36,7 @@ function getLatestTick()
 		{
 			if(this[0] > current)
 			{
-				current = this[0]
+				current = this[0];
 			}
 		});
 	});
@@ -81,8 +81,7 @@ function autoUpdate()
 				jQuery.each(data, function()
 				{
 					//console.log($("#live_timeframe").val());
-
-					var oldestTick = this["data"][this["data"].length-1][0];
+					var oldestTick = this["data"][0][0];
 					var timeframeInMs = $("#live_timeframe").val()*60*1000;
 					var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
 
@@ -92,12 +91,12 @@ function autoUpdate()
 
 					while(oldestTick < newestTickMinusTimeframe)
 					{
-						this["data"].pop();
+						this["data"].shift();
 						oldestTick = this["data"][this["data"].length-1][0];
 					}
 
 					var y = 0;
-					for(; y<newData["timeseries"][i]["data"].length; y++)
+					for(; y < newData["timeseries"][i]["data"].length; y++)
 					{
 						data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
 					}
