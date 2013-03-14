@@ -99,6 +99,9 @@ function autoUpdate()
 				});
 			  	drawPlot();
 		  	}
+		  	window.setTimeout(autoUpdate, 3000);
 	  })
+	}else{
+	  window.setTimeout(autoUpdate, 500);
 	};
 }
