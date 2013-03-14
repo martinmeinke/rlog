@@ -52,8 +52,7 @@ function autoUpdateInitial(minutes)
 		timeframe: minutes
   	},
   	function(data) {
-		addPlot(data["timeseries"]);
-		//document.write(JSON.stringify(data["timeseries"]));
+		addPlot(data["timeseries"]);	
 		applySettings(data["settings"]);
 	});
 }
@@ -62,20 +61,44 @@ function autoUpdate()
 {
 	var d = new Date();
 	if(getLatestTick() != 0){
-	  $.getJSON('liveData', 
-	  {
-		  //get the last tick timestamp from current plot
-		  lastTick: getLatestTick()
+		console.log("lastTick is: "+getLatestTick());
+	  	$.getJSON('liveData', 
+	  	{
+		  	//get the last tick timestamp from current plot
+		  	lastTick: getLatestTick()
     	},
     	function(newData) {
-    		var i = 0;
-		  jQuery.each(data, function()
-		  {
-			  //alert(JSON.stringify(newData["timeseries"][i]["data"]))
-			  this["data"] = newData["timeseries"][i]["data"].concat(this["data"]);
-			  i++;
-		  });
-		  drawPlot();
+    		console.log("newData is :"+JSON.stringify(newData));
+    		if(newData["timeseries"][0]["data"].length > 0)
+			{
+	    		var i = 0;
+				jQuery.each(data, function()
+				{
+					//console.log($("#live_timeframe").val());
+
+					var oldestTick = this["data"][this["data"].length-1][0];
+					var timeframeInMs = $("#live_timeframe").val()*60*1000;
+					var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
+
+					/*console.log("Oldest: "+oldestTick);
+					console.log("Timeframeinms: "+timeframeInMs);
+					console.log("Newest: "+newestTickMinusTimeframe);*/
+
+					while(oldestTick < newestTickMinusTimeframe)
+					{
+						this["data"].pop();
+						oldestTick = this["data"][this["data"].length-1][0];
+					}
+
+					var y = 0;
+					for(; y<newData["timeseries"][i]["data"].length; y++)
+					{
+						data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
+					}
+					i++;
+				});
+			  	drawPlot();
+		  	}
 	  })
 	};
 }
