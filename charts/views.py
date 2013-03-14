@@ -1,5 +1,4 @@
 from django.http import HttpResponse
-from django.http import HttpResponseForbidden
 from django.shortcuts import render_to_response
 from chart import Chart
 from live_chart import LiveChart
@@ -23,22 +22,20 @@ def liveData(request):
 	#import pdb; pdb.set_trace()
 	if 'lastTick' in request.GET:
 		last_tick_provided = datetime.datetime.fromtimestamp(int(request.GET["lastTick"])/1000)
-		if last_tick_provided != datetime.datetime.fromtimestamp(0):
-		  graphs = []
+		
+		graphs = []
 
-		  for device in Device.objects.distinct():
-			  ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
-			  timetuples = {}
-			  timetuples.update({device.id : []})
-			  for tick in ticks:
-				  t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
-				  timetuples[device.id].append(t)
-			  graphs.append({"data": timetuples[device.id]})
-		  timeseries = json.dumps(graphs)
+		for device in Device.objects.distinct():
+			ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
+			timetuples = {}
+			timetuples.update({device.id : []})
+			for tick in ticks:
+				t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
+				timetuples[device.id].append(t)
+			graphs.append({"data": timetuples[device.id]})
+		timeseries = json.dumps(graphs)
 
-		  return HttpResponse("{\"timeseries\": %s}" % timeseries)
-		else:
-		  return HttpResponseForbidden("Zero in not a valid timestamp for me")
+		return HttpResponse("{\"timeseries\": %s}" % timeseries)
 
 	else:
 		#perform the chart initialization
