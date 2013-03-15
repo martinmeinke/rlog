@@ -31,6 +31,7 @@ class LiveChart(object):
         self.__rowarray_list_live = {}
         
         self.__formatstring = "%d.%m.%Y %H:%M"
+        self.__flot_formatstring = "%H:%M"
         self.__lft = pStartDate
         self.__rht = pEndDate
 
@@ -53,7 +54,7 @@ class LiveChart(object):
         settings["xaxis"] = {
                 "mode" : "time",
                 "timezone" : "browser",
-                "timeformat" : self.__formatstring
+                "timeformat" : self.__flot_formatstring
         }
 
         settings["xaxis"].update({"ticks" : 8})
