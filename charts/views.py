@@ -20,6 +20,11 @@ def live(request):
 
 def liveData(request):
 	#import pdb; pdb.set_trace()
+	#import logging
+	#l = logging.getLogger('django.db.backends')
+	#l.setLevel(logging.DEBUG)
+	#l.addHandler(logging.StreamHandler())
+
 	if 'lastTick' in request.GET:
 		last_tick_provided = datetime.datetime.fromtimestamp(int(request.GET["lastTick"])/1000)
 		
