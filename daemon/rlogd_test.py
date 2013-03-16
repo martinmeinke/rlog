@@ -100,8 +100,8 @@ class RLogDaemon(Daemon):
         if DEBUG_ENABLED:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
-            self._serial_port = self.discover_device()
-            self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=1)
+            self.discover_device()
+            
 
         log("looking for WR")
         self.findWR()
@@ -124,8 +124,9 @@ class RLogDaemon(Daemon):
             if os.path.exists("%s%d" % (DEVICE_NAME_BASE,device_id)):
                 RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE, device_id)
                 log("Using device: %s" % RLogDaemon.DEVICE_NAME)
-                break
-        return
+                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=1)
+                return
+        log("Unable to find serial port")
 
     # checks checksum in type message
     def check_typ(self, typ_string):
@@ -152,47 +153,70 @@ class RLogDaemon(Daemon):
     def read_line(self, timeout = 2):
       response = ''
       start_zeit = time.time()
-      # skip everything until line feed
-      while(True):
-        response = self._serial_port.read()
-        if response and response[0] == '\n':
-          break
-        if time.time() - start_zeit > timeout:
-          return response
-      # read until return character
-      while(True):
-        response += self._serial_port.read()
-        if response and response[-1] == '\r':
-          break
-        if time.time() - start_zeit > timeout:
-          break
+      try:
+        # skip everything until line feed
+        while(True):
+          response = self._serial_port.read()
+          if response and response[0] == '\n':
+            break
+          if time.time() - start_zeit > timeout:
+            return response
+        # read until return character
+        while(True):
+          response += self._serial_port.read()
+          if response and response[-1] == '\r':
+            break
+          if time.time() - start_zeit > timeout:
+            break
+      except SerialException as e:
+        log("Serial breakdown. looking for serial device again")
+        if DEBUG_ENABLED:
+            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
+        else:
+            self.discover_device()
       return response
 
     def request_type_from_device(self, device_id_raw):
-      self._serial_port.flushInput()
-      self._serial_port.flushOutput()
-      self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
-      #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
-      self._serial_port.flush()
-      typ = self.read_line()
-      if len(typ) != 15: # so lang sind meine typen normalerweise
-        log("read type with invalid length (" + str(len(typ)) + ") from WR " + str(device_id_raw) + " (" + typ + ")")
+      try:
+        self._serial_port.flushInput()
+        self._serial_port.flushOutput()
+        self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
+        #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
+        self._serial_port.flush()
+        typ = self.read_line()
+        if len(typ) != 15: # so lang sind meine typen normalerweise
+          log("read type with invalid length (" + str(len(typ)) + ") from WR " + str(device_id_raw) + " (" + typ + ")")
+          return None
+        else:
+          return typ
+      except SerialException as e:
+        log("Serial breakdown. looking for serial device again")
+        if DEBUG_ENABLED:
+            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
+        else:
+            self.discover_device()
         return None
-      else:
-        return typ
         
     def request_data_from_device(self, device_id_raw):
-      self._serial_port.flushInput()
-      self._serial_port.flushOutput()
-      self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
-      #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
-      self._serial_port.flush()
-      daten = self.read_line()
-      if len(daten) != 66: # so lang sind meine daten normalerweise
-        log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
+      try:
+        self._serial_port.flushInput()
+        self._serial_port.flushOutput()
+        self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
+        #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
+        self._serial_port.flush()
+        daten = self.read_line()
+        if len(daten) != 66: # so lang sind meine daten normalerweise
+          log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
+          return None
+        else:
+          return daten
+      except SerialException as e:
+        log("Serial breakdown. looking for serial device again")
+        if DEBUG_ENABLED:
+            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
+        else:
+            self.discover_device()
         return None
-      else:
-        return daten
     
     # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
     def findWR(self):
