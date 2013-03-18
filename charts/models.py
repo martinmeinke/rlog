@@ -15,6 +15,19 @@ class SolarEntryTick(models.Model):
     lW = models.DecimalField(max_digits=9, decimal_places=3)
     temp = models.DecimalField(max_digits=9, decimal_places=3)
     total = models.DecimalField(max_digits=9, decimal_places=3)
+    
+    
+class SolarEntryTickBackup(models.Model):
+    time = models.DateTimeField()
+    device = models.ForeignKey(Device)
+    gV = models.DecimalField(max_digits=9, decimal_places=3)
+    gA = models.DecimalField(max_digits=9, decimal_places=3)
+    gW = models.DecimalField(max_digits=9, decimal_places=3)
+    lV = models.DecimalField(max_digits=9, decimal_places=3)
+    lA = models.DecimalField(max_digits=9, decimal_places=3)
+    lW = models.DecimalField(max_digits=9, decimal_places=3)
+    temp = models.DecimalField(max_digits=9, decimal_places=3)
+    total = models.DecimalField(max_digits=9, decimal_places=3)
 
 class SolarEntryMinute(models.Model):
     time = models.DateTimeField()
