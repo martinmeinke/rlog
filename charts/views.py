@@ -36,8 +36,10 @@ def liveData(request):
 			#ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
 			timetuples = {}
 			timetuples.update({device.id : []})
+
+			tempid = tick.device.id
 			for tick in ticks:
-				if tick.device.id == device.id:
+				if tempid == device.id:
 					t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
 					timetuples[device.id].append(t)
 			graphs.append({"data": timetuples[device.id]})

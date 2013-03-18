@@ -40,8 +40,9 @@ class LiveChart(object):
         #ticks = SolarEntryTick.objects.filter(time__range=(self.__lft, self.__rht), device = str(deviceID)).order_by('-time')
         self.__rowarray_list_live.update({deviceID : []})
 
+        tempid = tick.device.id
         for tick in ticks:
-            if tick.device.id == deviceID:
+            if tempid == deviceID:
                 t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
                 self.__rowarray_list_live[deviceID].append(t)
             
