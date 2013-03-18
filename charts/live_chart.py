@@ -35,15 +35,15 @@ class LiveChart(object):
         self.__lft = pStartDate
         self.__rht = pEndDate
 
-    def fetchTimeSeriesLiveView(self, deviceID):
+    def fetchTimeSeriesLiveView(self, deviceID, ticks):
         print self.__lft, self.__rht
-        ticks = SolarEntryTick.objects.filter(time__range=(self.__lft, self.__rht), device = str(deviceID)).order_by('-time')
-
+        #ticks = SolarEntryTick.objects.filter(time__range=(self.__lft, self.__rht), device = str(deviceID)).order_by('-time')
         self.__rowarray_list_live.update({deviceID : []})
 
         for tick in ticks:
-            t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
-            self.__rowarray_list_live[deviceID].append(t)
+            if tick.device.id == deviceID:
+                t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
+                self.__rowarray_list_live[deviceID].append(t)
             
     def chartOptionsLiveView(self):
         settings = {}

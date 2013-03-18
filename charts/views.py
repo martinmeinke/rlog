@@ -11,6 +11,7 @@ from charts.forms import StatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
 from charts.models import Device
+from charts.models import SolarEntryTick
 
 def index(request):
 	return live(request)
@@ -30,16 +31,18 @@ def liveData(request):
 		
 		graphs = []
 
+		ticks = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
 		for device in Device.objects.distinct():
-			ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
+			#ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
 			timetuples = {}
 			timetuples.update({device.id : []})
 			for tick in ticks:
-				t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
-				timetuples[device.id].append(t)
+				if tick.device.id == device.id:
+					t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
+					timetuples[device.id].append(t)
 			graphs.append({"data": timetuples[device.id]})
-		timeseries = json.dumps(graphs)
 
+		timeseries = json.dumps(graphs)
 		return HttpResponse("{\"timeseries\": %s}" % timeseries)
 
 	else:
@@ -50,8 +53,10 @@ def liveData(request):
 		chart = LiveChart(start, end)
 		graphs = []
 
+		ticks = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+
 		for device in Device.objects.distinct():
-			chart.fetchTimeSeriesLiveView(device.id)
+			chart.fetchTimeSeriesLiveView(device.id, ticks)
 			timetuples = chart.getTimeSeriesLiveView(device.id)
 			label = "Einspeisung WR %s (ID: %s)" % (device.model, device.id)
 			graphs.append({"label": label, "data":timetuples})
