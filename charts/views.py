@@ -37,9 +37,8 @@ def liveData(request):
 			timetuples = {}
 			timetuples.update({device.id : []})
 
-			tempid = tick.device.id
 			for tick in ticks:
-				if tempid == device.id:
+				if tick.device.id == device.id:
 					t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
 					timetuples[device.id].append(t)
 			graphs.append({"data": timetuples[device.id]})
