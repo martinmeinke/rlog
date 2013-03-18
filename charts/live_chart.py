@@ -41,7 +41,7 @@ class LiveChart(object):
         self.__rowarray_list_live.update({deviceID : []})
 
         for tick in ticks:
-            if tick.device.id == deviceID:
+            if tick.device_id == deviceID:
                 t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
                 self.__rowarray_list_live[deviceID].append(t)
             
