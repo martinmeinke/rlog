@@ -3,12 +3,6 @@ options = {};
 liveTicks = 100;
 
 function drawPlot() {
-	setTimeout(drawIt, 1000);
-	plot = $.plot($(".chart")[0], data, options);
-}
-
-function drawIt()
-{
 	plot = $.plot($(".chart")[0], data, options);
 }
 
@@ -106,7 +100,7 @@ function autoUpdate()
 			  	drawPlot();
 		  	}
 		  	window.setTimeout(autoUpdate, 3000);
-	  })
+	  }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
 	}else{
 	  window.setTimeout(autoUpdate, 500);
 	};
