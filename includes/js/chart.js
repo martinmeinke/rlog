@@ -1,14 +1,18 @@
+plot = null;
 data = [];
 options = {};
 liveTicks = 100;
 
-function drawPlot() {
-	plot = $.plot($(".chart")[0], data, options);
+function addPlot(json) {
+  data = json;
 }
 
-function addPlot(json) {
-	data = json;
+function drawPlot() {
+	plot.setData(data);
+	plot.setupGrid()
+	plot.draw(); 
 }
+
 
 function applySettings(json) {
 	options = json;
@@ -18,7 +22,7 @@ function applySettings(json) {
 	options["xaxis"]["min"] = eval(options["xaxis"]["min"]);
 	options["xaxis"]["max"] = eval(options["xaxis"]["max"]);	
 	//document.write(JSON.stringify(options));
-	drawPlot();
+	//console.log("Optionen", options);
 }
 
 function getLatestTick()
@@ -45,9 +49,14 @@ function autoUpdateInitial(minutes)
 		//last x minutes
 		timeframe: minutes
   	},
-  	function(data) {
-		addPlot(data["timeseries"]);	
-		applySettings(data["settings"]);
+  	function(returnedJson) {
+		data = returnedJson["timeseries"];	
+		applySettings(returnedJson["settings"]);
+		plot = $.plot($(".chart")[0], data, options);
+	  $(".chart").bind("plothover",  function (event, pos, item) {
+	    latestPosition = pos;
+      updateLegend();
+    });
 	});
 }
 
@@ -69,38 +78,36 @@ function autoUpdate()
     	},
     	function(newData) {
     		console.log("newData is :"+JSON.stringify(newData));
-    		if(newData["timeseries"][0]["data"].length > 0)
-			{
-	    		var i = 0;
-				jQuery.each(data, function()
-				{
-					//console.log($("#live_timeframe").val());
-					var oldestTick = this["data"][0][0];
-					var timeframeInMs = $("#live_timeframe").val()*60*1000;
-					var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
+    		if(newData["timeseries"][0]["data"].length > 0){
+	        	var i = 0;
+				    jQuery.each(data, function(){
+					        //console.log($("#live_timeframe").val());
+					        var oldestTick = this["data"][0][0];
+					        var timeframeInMs = $("#live_timeframe").val()*60*1000;
+					        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
 
-					/*console.log("Oldest: "+oldestTick);
-					console.log("Timeframeinms: "+timeframeInMs);
-					console.log("Newest: "+newestTickMinusTimeframe);*/
+					        /*console.log("Oldest: "+oldestTick);
+					        console.log("Timeframeinms: "+timeframeInMs);
+					        console.log("Newest: "+newestTickMinusTimeframe);*/
 
-					while(oldestTick < newestTickMinusTimeframe)
-					{
-						this["data"].shift();
-						oldestTick = this["data"][this["data"].length-1][0];
-					}
+					        while(oldestTick < newestTickMinusTimeframe)
+					        {
+						        this["data"].shift();
+						        oldestTick = this["data"][this["data"].length-1][0];
+					        }
 
-					var y = 0;
-					for(; y < newData["timeseries"][i]["data"].length; y++)
-					{
-						data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
-					}
-					data[i]["data"] = data[i]["data"].sort(comparator);
-					i++;
-				});
-			  	drawPlot();
-		  	}
+					        var y = 0;
+					        for(; y < newData["timeseries"][i]["data"].length; y++)
+					        {
+						        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
+					        }
+					        data[i]["data"] = data[i]["data"].sort(comparator);
+					        i++;
+				    });
+			      drawPlot();
+		    }
 		  	window.setTimeout(autoUpdate, 3000);
-	  }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
+	    }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
 	}else{
 	  window.setTimeout(autoUpdate, 500);
 	};
@@ -108,20 +115,19 @@ function autoUpdate()
 
 
 var crosshair = $("#crosshairdata");
-var updateLegendTimeout = null;
 var latestPosition = null;
 
-function updateLegend() {
-    updateLegendTimeout = null;
-    
+function updateLegend() {    
     var pos = latestPosition;
     
     var axes = plot.getAxes();
+    
     if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
         pos.y < axes.yaxis.min || pos.y > axes.yaxis.max)
         return;
 
     var i, j, dataset = plot.getData();
+    console.log(dataset);
     for (i = 0; i < dataset.length; ++i) {
         var series = dataset[i];
 
@@ -139,13 +145,30 @@ function updateLegend() {
         else
             y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
 
-       // crosshair.eq(i).text(series.label.replace(/=.*/, "= " + y.toFixed(2)));
-       console.log("i = " + i + ", value: " + y);
+       var d1 = new Date(pos.x);
+       var curr_year = d1.getFullYear();
+
+        var curr_month = d1.getMonth() + 1; //Months are zero based
+        if (curr_month < 10)
+            curr_month = "0" + curr_month;
+
+        var curr_date = d1.getDate();
+        if (curr_date < 10)
+            curr_date = "0" + curr_date;
+
+        var curr_hour = d1.getHours();
+        if (curr_hour < 10)
+            curr_hour = "0" + curr_hour;
+
+        var curr_min = d1.getMinutes();
+        if (curr_min < 10)
+            curr_min = "0" + curr_min;
+
+        var curr_sec = d1.getSeconds();     
+        if (curr_sec < 10)
+            curr_sec = "0" + curr_sec;
+
+        var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " " + curr_hour + ":" + curr_min + ":" + curr_sec;
+       console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
     }
 }
-
-$("#crosshairdata").bind("plothover",  function (event, pos, item) {
-    latestPosition = pos;
-    if (!updateLegendTimeout)
-        updateLegendTimeout = setTimeout(updateLegend, 50);
-});

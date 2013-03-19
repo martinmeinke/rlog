@@ -59,6 +59,8 @@ class LiveChart(object):
 
         settings["xaxis"].update({"ticks" : 8})
         settings["legend"] = {"backgroundOpacity" : "0.5"}
+        settings["crosshair"] = {"mode" : "x"}
+        settings["grid"] = {"hoverable" : "true", "autoHighlight" : "false"}
         
         return settings
 
