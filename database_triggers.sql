@@ -8,6 +8,22 @@ BEGIN
     );
 END;
 
+CREATE TRIGGER update_maxima AFTER  INSERT ON charts_solarentrytick
+BEGIN
+	INSERT OR REPLACE INTO charts_solardailymaxima (time, device_id, lW) 
+	VALUES (
+		strftime('%Y-%m-%d 00:00:00', 'now') , 
+		new.device_id,
+		(select case when new.lW > (select lW as b from charts_solardailymaxima where device_id = new.device_id AND time = strftime('%Y-%m-%d 00:00:00', 'now'))
+			then 
+				new.lW
+			else 
+				(select lW as b from charts_solardailymaxima where device_id = new.device_id AND time = strftime('%Y-%m-%d 00:00:00', 'now'))
+			end
+		)
+    );
+END;
+
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryhour (time, device_id, lW) 
