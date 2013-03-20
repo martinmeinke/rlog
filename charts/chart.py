@@ -186,6 +186,13 @@ class Chart(object):
                 "min" : self.jsonPlotBoundaries()[0],
                 "max" : self.jsonPlotBoundaries()[1]
         }
+        settings["crosshair"] = {
+                "mode" : "x"
+        }
+        settings["grid"] = {
+                "hoverable" : "true",
+                "autoHighlight" : "false"
+        }
 
         #some hacking, should be done a little bit nicer
         tSpacing = relativedelta(self.__enddate, self.__startdate).hours / 3
