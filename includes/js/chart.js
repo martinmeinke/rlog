@@ -2,6 +2,8 @@ plot = null;
 data = [];
 options = {};
 liveTicks = 100;
+latestPosition = null;
+last_time_rendered = 0;
 
 function addPlot(json) {
   data = json;
@@ -53,9 +55,11 @@ function autoUpdateInitial(minutes)
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
 		plot = $.plot($(".chart")[0], data, options);
+		dataset = plot.getData();		
 	  $(".chart").bind("plothover",  function (event, pos, item) {
 	    latestPosition = pos;
-      updateLegend();
+	    if(new Date().getTime() - last_time_rendered > 77)
+        updateLegend();
     });
 	});
 }
@@ -113,10 +117,6 @@ function autoUpdate()
 	};
 }
 
-
-var crosshair = $("#crosshairdata");
-var latestPosition = null;
-
 function updateLegend() {    
     var pos = latestPosition;
     
@@ -127,7 +127,6 @@ function updateLegend() {
         return;
 
     var i, j, dataset = plot.getData();
-    console.log(dataset);
     for (i = 0; i < dataset.length; ++i) {
         var series = dataset[i];
 
@@ -168,7 +167,9 @@ function updateLegend() {
         if (curr_sec < 10)
             curr_sec = "0" + curr_sec;
 
-        var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " " + curr_hour + ":" + curr_min + ":" + curr_sec;
-       console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
+        var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " um " + curr_hour + ":" + curr_min + ":" + curr_sec + " Uhr";
+       //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
+       $("#crosshairdata").children()[i].innerHTML =  dataset[i].label + " " + newtimestamp + ": " + y.toFixed(2);
+       last_time_rendered = new Date().getTime();
     }
 }

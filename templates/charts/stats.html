@@ -16,9 +16,14 @@ $(document).ready(function() {
     addPlot({{ timeseries|safe }});
     applySettings({{ plotsettings|safe }});
     plot = $.plot($(".chart")[0], data, options);
+		dataset = plot.getData();		
+    for(i = 0; i < dataset.length; i++){
+		  $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Test</li>');
+		}
 	  $(".chart").bind("plothover",  function (event, pos, item) {
 	    latestPosition = pos;
-      updateLegend();
+      if(new Date().getTime() - last_time_rendered > 77)
+        updateLegend();
     });
 });
 </script>
@@ -50,6 +55,8 @@ $(document).ready(function() {
 <h2 class="center">{{ hd }}</h2>
 
 <div id="statschart" class="chart"></div>
+<ul id="crosshairdata"></ul>
+
 <!--<img id="canvasImg" alt="Right click to save me!">-->
 <div id="stat_table">
     {{ stats|safe }}
