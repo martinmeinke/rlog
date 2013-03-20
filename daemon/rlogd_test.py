@@ -177,46 +177,51 @@ class RLogDaemon(Daemon):
       return response
 
     def request_type_from_device(self, device_id_raw):
-      try:
-        self._serial_port.flushInput()
-        self._serial_port.flushOutput()
-        self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
-        #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
-        self._serial_port.flush()
-        typ = self.read_line()
-        if len(typ) != 15: # so lang sind meine typen normalerweise
-          log("read type with invalid length (" + str(len(typ)) + ") from WR " + str(device_id_raw) + " (" + typ + ")")
-          return None
-        else:
-          return typ
-      except SerialException as e:
-        log("Serial breakdown. looking for serial device again")
-        if DEBUG_ENABLED:
-            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
-        else:
-            self.discover_device()
-        return None
+        try:
+            self._serial_port.flushInput()
+            self._serial_port.flushOutput()
+            self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
+            #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "9\r")
+            self._serial_port.flush()
+            typ = self.read_line()
+            if len(typ) != 15: # so lang sind meine typen normalerweise
+              log("read type with invalid length (" + str(len(typ)) + ") from WR " + str(device_id_raw) + " (" + typ + ")")
+              return None
+            else:
+              return typ
+        except serial.SerialException as e:
+            log("Serial breakdown. looking for serial device again")
+            if DEBUG_ENABLED:
+                self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
+            else:
+                self.discover_device()
+            return None
+        except Exception as e:
+            return None
         
     def request_data_from_device(self, device_id_raw):
-      try:
-        self._serial_port.flushInput()
-        self._serial_port.flushOutput()
-        self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
-        #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
-        self._serial_port.flush()
-        daten = self.read_line()
-        if len(daten) != 66: # so lang sind meine daten normalerweise
-          log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
-          return None
-        else:
-          return daten
-      except SerialException as e:
-        log("Serial breakdown. looking for serial device again")
-        if DEBUG_ENABLED:
-            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
-        else:
-            self.discover_device()
-        return None
+        try:
+            self._serial_port.flushInput()
+            self._serial_port.flushOutput()
+            self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
+            #self._serial_port.write("#" + "{0:02d}".format(device_id_raw) + "0\r")
+            self._serial_port.flush()
+            daten = self.read_line()
+            if len(daten) != 66: # so lang sind meine daten normalerweise
+              log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
+              return None
+            else:
+              return daten
+        except serial.SerialException as e:
+            log("Serial breakdown. looking for serial device again")
+            if DEBUG_ENABLED:
+                self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
+            else:
+                self.discover_device()
+            return None
+        except Exception as e:
+            return None
+
     
     # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
     def findWR(self):
@@ -268,11 +273,11 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-              self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
-              self._db_connection.commit()
+                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
+                self._db_connection.commit()
             except sqlite3.OperationalError as ex:
-              log("Database is locked or some other DB error!")
-              print str(type(ex))+str(ex)
+                log("Database is locked or some other DB error!")
+                print str(type(ex))+str(ex)
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
