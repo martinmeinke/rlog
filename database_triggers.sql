@@ -23,7 +23,7 @@ BEGIN
             0)
         )
     );
-END
+END;
 
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
 BEGIN
