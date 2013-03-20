@@ -55,7 +55,10 @@ function autoUpdateInitial(minutes)
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
 		plot = $.plot($(".chart")[0], data, options);
-		dataset = plot.getData();		
+		dataset = plot.getData();
+		for(i = 0; i < dataset.length; i++){
+		  $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Test</li>');
+		}
 	  $(".chart").bind("plothover",  function (event, pos, item) {
 	    latestPosition = pos;
 	    if(new Date().getTime() - last_time_rendered > 77)
