@@ -14,15 +14,16 @@ BEGIN
 	VALUES (
 		strftime('%Y-%m-%d 00:00:00', 'now') , 
 		new.device_id,
-		(select case when new.lW > (select lW as b from charts_solardailymaxima where device_id = new.device_id AND time = strftime('%Y-%m-%d 00:00:00', 'now'))
-			then 
-				new.lW
-			else 
-				(select lW as b from charts_solardailymaxima where device_id = new.device_id AND time = strftime('%Y-%m-%d 00:00:00', 'now'))
-			end
-		)
+		max(new.lW,
+			ifnull((SELECT lW
+               	FROM charts_solardailymaxima
+               	WHERE device_id = new.device_id
+               		AND time = strftime('%Y-%m-%d 00:00:00', 'now')
+               	),
+            0)
+        )
     );
-END;
+END
 
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
 BEGIN
