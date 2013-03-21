@@ -26,6 +26,8 @@ $(document).ready(function() {
         updateLegend();
     });
 });
+
+$(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
 </script>
 
 <form class="form-inline" method="POST" action="">
@@ -54,7 +56,7 @@ $(document).ready(function() {
 
 <h2 class="center">{{ hd }}</h2>
 
-<div id="statschart" class="chart"><img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF"></div>
+<div id="statschart" class="chart"></div>
 <ul id="crosshairdata"></ul>
 
 <!--<img id="canvasImg" alt="Right click to save me!">-->
