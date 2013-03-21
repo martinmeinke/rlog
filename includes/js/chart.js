@@ -47,6 +47,7 @@ function getLatestTick()
 
 function autoUpdateInitial(minutes)
 {
+  $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">');
 	$.getJSON('liveData', 
 	{
 		//last x minutes
