@@ -18,15 +18,15 @@ BEGIN
 			ifnull((SELECT lW
                	FROM charts_solardailymaxima
                	WHERE device_id = new.device_id
-               		AND time = strftime('%Y-%m-%d 00:00:00', 'now')
+               		AND time = strftime('%Y-%m-%d 00:00:00', new.time)
                	),
             0)
         ),
-        ifnull((SELECT time 
+        ifnull((SELECT exacttime 
 			FROM charts_solardailymaxima 	
 			WHERE device_id = new.device_id
 				AND lW >= new.lW
-            	AND time = strftime('%Y-%m-%d 00:00:00', 'now')), datetime('now'))
+            	AND time = strftime('%Y-%m-%d 00:00:00', new.time)), datetime('now'))
     );
 END;
 
