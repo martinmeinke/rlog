@@ -27,9 +27,8 @@ BEGIN
 			WHERE device_id = new.device_id
 				AND lW >= new.lW
             	AND time = strftime('%Y-%m-%d 00:00:00', 'now')), datetime('now'))
-		
-    ); 
-END
+    );
+END;
 
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
 BEGIN

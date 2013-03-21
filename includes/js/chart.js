@@ -4,6 +4,7 @@ options = {};
 liveTicks = 100;
 latestPosition = null;
 last_time_rendered = 0;
+crosshair_data_list_created = false;
 
 function addPlot(json) {
   data = json;
@@ -55,15 +56,18 @@ function autoUpdateInitial(minutes)
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
 		plot = $.plot($(".chart")[0], data, options);
-		dataset = plot.getData();
-		for(i = 0; i < dataset.length; i++){
-		  $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Test</li>');
-		}
-	  $(".chart").bind("plothover",  function (event, pos, item) {
-	    latestPosition = pos;
-	    if(new Date().getTime() - last_time_rendered > 77)
-        updateLegend();
-    });
+		if(!crosshair_data_list_created){
+		  crosshair_data_list_created = true;
+		  dataset = plot.getData();
+		  for(i = 0; i < dataset.length; i++){
+		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Test</li>');
+		  }
+	    $(".chart").bind("plothover",  function (event, pos, item) {
+	      latestPosition = pos;
+	      if(new Date().getTime() - last_time_rendered > 77)
+          updateLegend();
+      });
+    }
 	});
 }
 
