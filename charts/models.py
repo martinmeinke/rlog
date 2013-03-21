@@ -80,6 +80,7 @@ class SolarDailyMaxima(models.Model):
   time = models.DateField()
   device = models.ForeignKey(Device)
   lW = models.DecimalField(max_digits=9, decimal_places=3)
+  exacttime = models.DateField()
   class Meta:
         unique_together = (("time", "device"))
   

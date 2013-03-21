@@ -8,11 +8,11 @@ BEGIN
     );
 END;
 
-CREATE TRIGGER update_maxima AFTER  INSERT ON charts_solarentrytick
+CREATE TRIGGER update_maxima AFTER INSERT ON charts_solarentrytick
 BEGIN
-	INSERT OR REPLACE INTO charts_solardailymaxima (time, device_id, lW) 
+	INSERT OR REPLACE INTO charts_solardailymaxima (time, device_id, lW, exacttime) 
 	VALUES (
-		strftime('%Y-%m-%d 00:00:00', 'now') , 
+		strftime('%Y-%m-%d 00:00:00', new.time) , 
 		new.device_id,
 		max(new.lW,
 			ifnull((SELECT lW
@@ -21,8 +21,14 @@ BEGIN
                		AND time = strftime('%Y-%m-%d 00:00:00', 'now')
                	),
             0)
-        )
-    );
+        ),
+        ifnull((SELECT time 
+			FROM charts_solardailymaxima 	
+			WHERE device_id = new.device_id
+				AND lW >= new.lW
+            	AND time = strftime('%Y-%m-%d 00:00:00', 'now')), datetime('now'))
+		
+    ); 
 END
 
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
