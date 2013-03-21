@@ -90,34 +90,35 @@ function autoUpdate()
     	},
     	function(newData) {
     		console.log("newData is :"+JSON.stringify(newData));
-    		if(newData["timeseries"][0]["data"].length > 0){
-	        	var i = 0;
-				    jQuery.each(data, function(){
-					        //console.log($("#live_timeframe").val());
-					        var oldestTick = this["data"][0][0];
-					        var timeframeInMs = $("#live_timeframe").val()*60*1000;
-					        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
+        	var i = 0;
+			    jQuery.each(data, function(){
+		    		if(newData["timeseries"][i]["data"].length > 0)
+		    		{
+				        //console.log($("#live_timeframe").val());
+				        var oldestTick = this["data"][0][0];
+				        var timeframeInMs = $("#live_timeframe").val()*60*1000;
+				        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
 
-					        /*console.log("Oldest: "+oldestTick);
-					        console.log("Timeframeinms: "+timeframeInMs);
-					        console.log("Newest: "+newestTickMinusTimeframe);*/
+				        /*console.log("Oldest: "+oldestTick);
+				        console.log("Timeframeinms: "+timeframeInMs);
+				        console.log("Newest: "+newestTickMinusTimeframe);*/
 
-					        while(oldestTick < newestTickMinusTimeframe)
-					        {
-						        this["data"].shift();
-						        oldestTick = this["data"][this["data"].length-1][0];
-					        }
+				        while(oldestTick < newestTickMinusTimeframe)
+				        {
+					        this["data"].shift();
+					        oldestTick = this["data"][this["data"].length-1][0];
+				        }
 
-					        var y = 0;
-					        for(; y < newData["timeseries"][i]["data"].length; y++)
-					        {
-						        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
-					        }
-					        data[i]["data"] = data[i]["data"].sort(comparator);
-					        i++;
-				    });
-			      drawPlot();
-		    }
+				        var y = 0;
+				        for(; y < newData["timeseries"][i]["data"].length; y++)
+				        {
+					        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
+				        }
+				        data[i]["data"] = data[i]["data"].sort(comparator);
+				        i++;
+				    }
+			    });
+			drawPlot();
 		  	window.setTimeout(autoUpdate, 3000);
 	    }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
 	}else{
