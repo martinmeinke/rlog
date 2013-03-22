@@ -61,7 +61,7 @@ function autoUpdateInitial(minutes)
 		  crosshair_data_list_created = true;
 		  dataset = plot.getData();
 		  for(i = 0; i < dataset.length; i++){
-		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Test</li>');
+		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
 		  }
 	    $(".chart").bind("plothover",  function (event, pos, item) {
 	      latestPosition = pos;
@@ -145,7 +145,7 @@ function updateLegend() {
         for (j = 0; j < series.data.length; ++j)
             if (series.data[j][0] > pos.x)
                 break;
-        
+        /*
         // now interpolate
         var y, p1 = series.data[j - 1], p2 = series.data[j];
         if (p1 == null)
@@ -154,33 +154,37 @@ function updateLegend() {
             y = p1[1];
         else
             y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
+       */
+       if(series.data.length != 0){
+         y = series.data[j][1];
+         var d1 = new Date(pos.x);
+         var curr_year = d1.getFullYear();
 
-       var d1 = new Date(pos.x);
-       var curr_year = d1.getFullYear();
+          var curr_month = d1.getMonth() + 1; //Months are zero based
+          if (curr_month < 10)
+              curr_month = "0" + curr_month;
 
-        var curr_month = d1.getMonth() + 1; //Months are zero based
-        if (curr_month < 10)
-            curr_month = "0" + curr_month;
+          var curr_date = d1.getDate();
+          if (curr_date < 10)
+              curr_date = "0" + curr_date;
 
-        var curr_date = d1.getDate();
-        if (curr_date < 10)
-            curr_date = "0" + curr_date;
+          var curr_hour = d1.getHours();
+          if (curr_hour < 10)
+              curr_hour = "0" + curr_hour;
 
-        var curr_hour = d1.getHours();
-        if (curr_hour < 10)
-            curr_hour = "0" + curr_hour;
+          var curr_min = d1.getMinutes();
+          if (curr_min < 10)
+              curr_min = "0" + curr_min;
 
-        var curr_min = d1.getMinutes();
-        if (curr_min < 10)
-            curr_min = "0" + curr_min;
+          var curr_sec = d1.getSeconds();     
+          if (curr_sec < 10)
+              curr_sec = "0" + curr_sec;
 
-        var curr_sec = d1.getSeconds();     
-        if (curr_sec < 10)
-            curr_sec = "0" + curr_sec;
-
-        var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " um " + curr_hour + ":" + curr_min + ":" + curr_sec + " Uhr";
-       //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-       $("#crosshairdata").children()[i].innerHTML =  dataset[i].label + " " + newtimestamp + ": " + y.toFixed(2);
+          var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " um " + curr_hour + ":" + curr_min + ":" + curr_sec + " Uhr";
+         //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
+         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + y.toFixed(2);
+       } else
+         $("#crosshairdata").children()[i].innerHTML = "Keine Daten vorhanden";
        last_time_rendered = new Date().getTime();
     }
 }
