@@ -47,6 +47,7 @@ function getLatestTick()
 
 function autoUpdateInitial(minutes)
 {
+  $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">');
 	$.getJSON('liveData', 
 	{
 		//last x minutes
@@ -67,7 +68,9 @@ function autoUpdateInitial(minutes)
 	      if(new Date().getTime() - last_time_rendered > 77)
           updateLegend();
       });
+      window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
     }
+    $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
 	});
 }
 

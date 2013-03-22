@@ -107,6 +107,7 @@ body
 {
 	width:100%;
 	height:80%;
+	position: relative;
 }
 
 #stats
@@ -114,4 +115,14 @@ body
 	width:29%;
 	float:left;
 	min-height:400px;
+}
+
+.loadingGIF
+{
+  left: 50%;
+  margin-left: -33px;
+  display: block;
+  top: 50%;
+  margin-top: -33px;
+  position: absolute;
 }
