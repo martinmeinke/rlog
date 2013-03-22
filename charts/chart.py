@@ -181,7 +181,7 @@ class Chart(object):
         
         settings["xaxis"] = {
                 "mode" : "time",
-                "timezone" : "browser",
+                "timezone" : "Europe/Berlin",
                 "timeformat" : self.__flot_formatstring,
                 "min" : self.jsonPlotBoundaries()[0],
                 "max" : self.jsonPlotBoundaries()[1]

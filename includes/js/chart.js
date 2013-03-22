@@ -4,7 +4,7 @@ options = {};
 liveTicks = 100;
 latestPosition = null;
 last_time_rendered = 0;
-crosshair_data_list_created = false;
+oneTimeStuffDone = false;
 
 function addPlot(json) {
   data = json;
@@ -57,8 +57,8 @@ function autoUpdateInitial(minutes)
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
 		plot = $.plot($(".chart")[0], data, options);
-		if(!crosshair_data_list_created){
-		  crosshair_data_list_created = true;
+		if(!oneTimeStuffDone){
+		  oneTimeStuffDone = true;
 		  dataset = plot.getData();
 		  for(i = 0; i < dataset.length; i++){
 		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
@@ -190,7 +190,7 @@ function updateLegend() {
              newtimestamp += " Uhr";
 
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + p[1];
+         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
          $("#crosshairdata").children()[i].innerHTML = "Keine Daten vorhanden";
        last_time_rendered = new Date().getTime();
