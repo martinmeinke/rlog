@@ -187,7 +187,8 @@ class Chart(object):
                 "max" : self.jsonPlotBoundaries()[1]
         }
         settings["crosshair"] = {
-                "mode" : "x"
+                "mode" : "x",
+                "color": "rgba(0, 170, 0, 0.80)"
         }
         settings["grid"] = {
                 "hoverable" : "true",
