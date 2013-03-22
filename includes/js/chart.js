@@ -167,20 +167,28 @@ function updateLegend() {
           var curr_date = d1.getDate();
           if (curr_date < 10)
               curr_date = "0" + curr_date;
+          var newtimestamp = curr_date + "." + curr_month + "." + curr_year;
 
           var curr_hour = d1.getHours();
           if (curr_hour < 10)
               curr_hour = "0" + curr_hour;
+          if(curr_hour != "00")
+             newtimestamp += " um " + curr_hour;
 
           var curr_min = d1.getMinutes();
           if (curr_min < 10)
               curr_min = "0" + curr_min;
-
+          if(curr_min != "00" || d1.getSeconds() != 0)
+              newtimestamp += ":" + curr_min;
+              
           var curr_sec = d1.getSeconds();     
           if (curr_sec < 10)
               curr_sec = "0" + curr_sec;
+          if(curr_sec != "00")
+             newtimestamp += ":" + curr_sec;
+          if(curr_hour != "00")
+             newtimestamp += " Uhr";
 
-          var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " um " + curr_hour + ":" + curr_min + ":" + curr_sec + " Uhr";
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
          $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + p[1];
        } else
