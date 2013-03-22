@@ -197,6 +197,7 @@ class RLogDaemon(Daemon):
                 self.discover_device()
             return None
         except Exception as e:
+            log("Exception during type request %s" % e)
             return None
         
     def request_data_from_device(self, device_id_raw):
@@ -220,6 +221,7 @@ class RLogDaemon(Daemon):
                 self.discover_device()
             return None
         except Exception as e:
+            log("Exception during data request %s" % e)
             return None
 
     
