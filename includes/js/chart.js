@@ -140,24 +140,24 @@ function updateLegend() {
     var i, j, dataset = plot.getData();
     for (i = 0; i < dataset.length; ++i) {
         var series = dataset[i];
-
-        // find the nearest points, x-wise
-        for (j = 0; j < series.data.length; ++j)
-            if (series.data[j][0] > pos.x)
-                break;
-        /*
-        // now interpolate
-        var y, p1 = series.data[j - 1], p2 = series.data[j];
-        if (p1 == null)
-            y = p2[1];
-        else if (p2 == null)
-            y = p1[1];
-        else
-            y = p1[1] + (p2[1] - p1[1]) * (pos.x - p1[0]) / (p2[0] - p1[0]);
-       */
+       
        if(series.data.length != 0){
-         y = series.data[j][1];
-         var d1 = new Date(pos.x);
+          // find first time that is later than pos.x
+          for (j = 0; j < series.data.length && series.data[j][0] < pos.x; ++j);
+
+          // get closest value
+          var p, p1 = series.data[j - 1], p2 = series.data[j];
+          if(j == 0) // cursor is left of leftmost point -> take first point
+            p = p2; 
+          else if(j == series.data.length) // cursor is right of rightmost point -> take last point
+            p = p1;
+          else // cursor is between two points
+            if((pos.x - p1[0]) > (p2[0] - pos.x)) // take the point right of the cursor
+              p = p2;
+             else  // take the point left of the cursor
+              p = p1;
+              
+         var d1 = new Date(p[0]);
          var curr_year = d1.getFullYear();
 
           var curr_month = d1.getMonth() + 1; //Months are zero based
@@ -182,7 +182,7 @@ function updateLegend() {
 
           var newtimestamp = curr_date + "." + curr_month + "." + curr_year + " um " + curr_hour + ":" + curr_min + ":" + curr_sec + " Uhr";
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + y.toFixed(2);
+         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + p[1];
        } else
          $("#crosshairdata").children()[i].innerHTML = "Keine Daten vorhanden";
        last_time_rendered = new Date().getTime();
