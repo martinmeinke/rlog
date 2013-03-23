@@ -66,8 +66,12 @@ class Chart(object):
             lft = self.__startdate+relativedelta(years=-1)
             rht = self.__enddate+relativedelta(years=1)
 
-        self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
-        self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
+#        self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
+#        self.__lBoundary = "(new timezoneJS.Date(" + str(lft.year)+","+str(lft.month - 1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second) + ", 'Europe/Berlin')).getTime()"
+        self.__lBoundary = calendar.timegm(lft.utctimetuple()) * 1000
+#        self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
+#        self.__rBoundary = "(new timezoneJS.Date(" +str(rht.year)+","+str(rht.month - 1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second) + ", 'Europe/Berlin')).getTime()"
+        self.__rBoundary = calendar.timegm(rht.utctimetuple()) * 1000
       
     def getFeederReward(self, deviceID):
         ticks = SolarEntryTick.objects.extra(
@@ -135,10 +139,15 @@ class Chart(object):
         #import pdb; pdb.set_trace()
         
         for tick in ticks:
-            t = (time.mktime(tick.time.timetuple())*1000, float(tick.lW))
-            print t, tick.time.timetuple(), "startdate",  self.__startdate, "enddate", self.__enddate
+            t = None
+            if self.__period == "period_min" or self.__period == "period_hrs":
+                t = (calendar.timegm(tick.time.utctimetuple()) * 1000, float(tick.lW))
+            else:
+                t = (time.mktime(tick.time.timetuple()) * 1000, float(tick.lW))
             self.__rowarray_list[deviceID].append(t)
-            print vars(tick)
+            print t
+           # print vars(tick)
+        print "start", self.__startdate, calendar.timegm(self.__startdate.utctimetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.utctimetuple()) * 1000
 
         return 0
 
@@ -195,6 +204,9 @@ class Chart(object):
         settings["grid"] = {
                 "hoverable" : "true",
                 "autoHighlight" : "false"
+        }
+        settings["legend"] = {
+            "backgroundOpacity" : "0.5"
         }
 
         #some hacking, should be done a little bit nicer

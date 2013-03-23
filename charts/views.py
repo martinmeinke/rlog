@@ -84,13 +84,17 @@ def stats(request, timeframe_url):
         else:
             timeframe = timeframe_url
         period = 'period_hrs'
-        
+    
     #determine start and end date for the chart
     if timeframe != "timeframe_cus":
         if timeframe == "timeframe_hrs":
             start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_day":
-            start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+            #start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+            localTime = datetime.datetime.now()
+            localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
+            timeSinceStartOfDay = localTime - localMidnight
+            start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
         elif timeframe == "timeframe_mon":
             start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_yrs":
