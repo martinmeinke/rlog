@@ -4,5 +4,5 @@ rlog
 Raspberry Pi based logger for KACO Powador inverters
 
 
-TODO:
-Backup of sensor.db to flashdrives
+unsupported locale setting
+sudo locale-gen de_DE de_DE.UTF-8
