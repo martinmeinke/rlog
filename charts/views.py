@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
 from charts.models import Device
 from charts.models import SolarEntryTick
+import calendar
 
 def index(request):
 	return live(request)
@@ -27,7 +28,7 @@ def liveData(request):
 	#l.addHandler(logging.StreamHandler())
 
 	if 'lastTick' in request.GET:
-		last_tick_provided = datetime.datetime.fromtimestamp(int(request.GET["lastTick"])/1000)
+		last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
 		
 		graphs = []
 
@@ -39,7 +40,7 @@ def liveData(request):
 
 			for tick in ticks:
 				if tick.device_id == device.id:
-					t = (time.mktime(tick.time.timetuple()) * 1000, int(tick.lW))
+					t = (calendar.timegm(tick.time.utctimetuple()) * 1000, int(tick.lW))
 					timetuples[device.id].append(t)
 			graphs.append({"data": timetuples[device.id]})
 

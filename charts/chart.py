@@ -13,6 +13,7 @@ import locale
 import os
 import sys
 import random
+import calendar
 from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward
 
 class Chart(object):
@@ -135,6 +136,7 @@ class Chart(object):
         
         for tick in ticks:
             t = (time.mktime(tick.time.timetuple())*1000, float(tick.lW))
+            print t, tick.time.timetuple(), "startdate",  self.__startdate, "enddate", self.__enddate
             self.__rowarray_list[deviceID].append(t)
             print vars(tick)
 
@@ -196,11 +198,11 @@ class Chart(object):
         }
 
         #some hacking, should be done a little bit nicer
-        tSpacing = relativedelta(self.__enddate, self.__startdate).hours / 3
+        #tSpacing = relativedelta(self.__enddate, self.__startdate).hours / 3
 
         #determine the tick Size (axis labeling)
         #settings["xaxis"].update({"tickSize" : (tSpacing, "hour")})
-        settings["xaxis"].update({"ticks" : 8})
+        #settings["xaxis"].update({"ticks" : 8})
 
         return settings
     

@@ -56,6 +56,8 @@ function autoUpdateInitial(minutes)
   	function(returnedJson) {
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
+		for (i = 0; i < data.length; i++)
+		  data[i]["data"] = data[i]["data"].sort(comparator);
 		plot = $.plot($(".chart")[0], data, options);
 		if(!oneTimeStuffDone){
 		  oneTimeStuffDone = true;
@@ -69,6 +71,7 @@ function autoUpdateInitial(minutes)
           updateLegend();
       });
       window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
+      drawPlot();
     }
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
 	});
@@ -133,9 +136,9 @@ function updateLegend() {
     
     var axes = plot.getAxes();
     
-    if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+   /* if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
         pos.y < axes.yaxis.min || pos.y > axes.yaxis.max)
-        return;
+        return;*/
 
     var i, j, dataset = plot.getData();
     for (i = 0; i < dataset.length; ++i) {
@@ -156,7 +159,7 @@ function updateLegend() {
               p = p2;
              else  // take the point left of the cursor
               p = p1;
-              
+         
          var d1 = new Date(p[0]);
          var curr_year = d1.getFullYear();
 
@@ -193,6 +196,6 @@ function updateLegend() {
          $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
          $("#crosshairdata").children()[i].innerHTML = "Keine Daten vorhanden";
-       last_time_rendered = new Date().getTime();
     }
+    last_time_rendered = new Date().getTime();
 }
