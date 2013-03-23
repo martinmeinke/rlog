@@ -145,7 +145,7 @@ class Chart(object):
             else:
                 t = (time.mktime(tick.time.timetuple()) * 1000, float(tick.lW))
             self.__rowarray_list[deviceID].append(t)
-            print t
+           # print t
            # print vars(tick)
         print "start", self.__startdate, calendar.timegm(self.__startdate.utctimetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.utctimetuple()) * 1000
 
