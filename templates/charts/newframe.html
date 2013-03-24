@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>RLog &middot; Raspberry Pi based solar logging</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <script type="text/javascript" src="{% get_static_prefix %}js/jquery-1.8.2.min.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}js/date.js"></script>    
+    <script type="text/javascript" src="{% get_static_prefix %}js/common.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}flot/jquery.flot.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}flot/jquery.flot.time.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}flot/jquery.flot.resize.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}flot/jquery.flot.crosshair.js"></script>
+    <script type="text/javascript" src="{% get_static_prefix %}js/chart.js"></script>
+    
+    <!-- Le styles -->
+    <link href="{% get_static_prefix %}bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="{% get_static_prefix %}bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="{% get_static_prefix %}bootstrap/css/bootstrap-select.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% get_static_prefix %}css/main_new.css">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">
+    <link rel="shortcut icon" href="../assets/ico/favicon.png">
+  </head>
+
+  <body>
+    <div id="mcontainer" class="container">
+    <div class="navbar-wrapper">
+      <!-- Wrap the .navbar in .container to center it within the absolutely positioned parent. -->
+      <div class="container">
+
+        <div class="navbar navbar-inverse">
+          <div class="navbar-inner">
+            <!-- Responsive Navbar Part 1: Button for triggering responsive navbar (not covered in tutorial). Include responsive CSS to utilize. -->
+            <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </a>
+            <a class="brand" href="#">RLog</a>
+            <!-- Responsive Navbar Part 2: Place all navbar contents you want collapsed withing .navbar-collapse.collapse. -->
+            <div class="nav-collapse collapse">
+              <ul class="nav">
+                <li class="active"><a href="{% url charts.views.overview %}">Home</a></li>
+                <li><a href="{% url charts.views.live %}">Live</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown">Stats<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li class="nav-header">Timeframe</li>
+                    <li><a href="{% url charts.views.stats 'timeframe_day'%}">Today</a></li>
+                    <li><a href="{% url charts.views.stats 'timeframe_mon'%}">This Month</a></li>
+                    <li><a href="{% url charts.views.stats 'timeframe_yrs'%}">This Year</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{% url charts.views.stats 'timeframe_cus'%}">Custom Period</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </div><!--/.nav-collapse -->
+          </div><!-- /.navbar-inner -->
+        </div><!-- /.navbar -->
+
+      </div> <!-- /.container -->
+      </div><!-- /.navbar-wrapper -->
+
+      {% block content %}
+      {% endblock %}
+
+      <!-- FOOTER -->
+      <footer>
+        <p class="pull-right"><a href="#">Back to top</a></p>
+        <p>&copy; 2012 Company, Inc. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
+      </footer>
+    </div> 
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="{% get_static_prefix %}bootstrap/js/bootstrap.js"></script>
+    <script src="{% get_static_prefix %}bootstrap/js/bootstrap-select.min.js"></script>
+    <script>
+      /*!function ($) {
+        $(function(){
+          // carousel demo
+          $('#myCarousel').carousel()
+        })
+      }(window.jQuery)*/
+    </script>
+  </body>
+</html>

@@ -1,72 +1,134 @@
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from chart import Chart
+from live_chart import LiveChart
 import sqlite3
 import cgi
 import datetime
 import time
 import json
+from charts.forms import StatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
+from charts.models import Device
+from charts.models import SolarEntryTick
+import calendar
 
 def index(request):
-	return live(request)
+    return live(request)
 
 def live(request):
-	return render_to_response('charts/live.html', vars(), RequestContext(request))
+    return render_to_response('charts/live.html', vars(), RequestContext(request))
 
 def liveData(request):
-	#import pdb; pdb.set_trace()
-	start = datetime.datetime.now()-relativedelta(minutes=30, second=0, microsecond=0)
-	end = datetime.datetime.now()
+    #import pdb; pdb.set_trace()
+    #import logging
+    #l = logging.getLogger('django.db.backends')
+    #l.setLevel(logging.DEBUG)
+    #l.addHandler(logging.StreamHandler())
 
-	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),"period_min")
-	chart.fetchTimeSeriesLiveView()
+    if 'lastTick' in request.GET:
+        last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
+        
+        graphs = []
 
-	timetuples = chart.getTimeSeriesLiveView()
-	graph = {"label":"Einspeisung", "data":timetuples}
+        ticks = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
+        for device in Device.objects.distinct():
+            #ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
+            timetuples = {}
+            timetuples.update({device.id : []})
 
-	timeseries = json.dumps(graph)
-	plotsettings = json.dumps(chart.chartOptionsLiveView())
+            for tick in ticks:
+                if tick.device_id == device.id:
+                    t = (calendar.timegm(tick.time.utctimetuple()) * 1000, int(tick.lW))
+                    timetuples[device.id].append(t)
+            graphs.append({"data": timetuples[device.id]})
 
-	print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
-	
-	return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
+        timeseries = json.dumps(graphs)
+        return HttpResponse("{\"timeseries\": %s}" % timeseries)
 
-def stats(request):
-	#we use the data submitted by the form if empty
-	timeframe = request.POST.get('timeframe','timeframe_mon')
-	period = request.POST.get('period','period_day')
-		
-	if timeframe != "timeframe_cus":
-		if timeframe == "timeframe_hrs":
-			start = datetime.datetime.now()+relativedelta(minute=0, second=0, microsecond=0)
-		elif timeframe == "timeframe_day":
-			start = datetime.datetime.now()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
-		elif timeframe == "timeframe_mon":
-			start = datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
-		elif timeframe == "timeframe_yrs":
-			start = datetime.datetime.now()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-			print start
-		
-		end = datetime.datetime.now()
-	else:
-		start = datetime.datetime.strptime(request.POST.get('datepickers', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
-		end = datetime.datetime.strptime(request.POST.get('datepickere', datetime.datetime.now()), "%m/%d/%Y")
-		
-	heading=str(start)+" - "+str(end)+" | "+str(period)
+    else:
+        #perform the chart initialization
+        start = datetime.datetime.utcnow()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+        end = datetime.datetime.utcnow()
 
-	chart = Chart(time.mktime(start.timetuple()),time.mktime(end.timetuple()),period)
-	chart.fetchTimeSeries()
+        chart = LiveChart(start, end)
+        graphs = []
 
-	timetuples = chart.getTimeSeries()
-	graph = {"label":"Einspeisung", "data":timetuples}
-	timeseries = json.dumps(graph)
-	plotsettings = json.dumps(chart.chartOptions())
-	stats = chart.getStatTable()
-	hd = heading
+        ticks = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
 
-	chart.log.info(timetuples)
+        for device in Device.objects.distinct():
+            chart.fetchTimeSeriesLiveView(device.id, ticks)
+            timetuples = chart.getTimeSeriesLiveView(device.id)
+            label = "Einspeisung WR %s (ID: %s)" % (device.model, device.id)
+            graphs.append({"label": label, "data":timetuples})
 
-	return render_to_response('charts/stats.html', vars(), RequestContext(request))
+        timeseries = json.dumps(graphs)
+        plotsettings = json.dumps(chart.chartOptionsLiveView())
+        #print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
+        
+        return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
+def stats(request, timeframe_url):
+    #get form data
+    if request.method == 'POST':
+        form = StatsForm(request.POST)
+        if form.is_valid():
+            timeframe = form.cleaned_data["timeframe"]
+            period = form.cleaned_data["period"]
+        else:
+            print "Invalid form input"
+    else:        
+        if timeframe_url == "timeframe_cus":
+            timeframe = "timeframe_day"
+        else:
+            timeframe = timeframe_url
+        period = 'period_hrs'
+    
+    #determine start and end date for the chart
+    if timeframe != "timeframe_cus":
+        if timeframe == "timeframe_hrs":
+            start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
+        elif timeframe == "timeframe_day":
+            if period == 'period_min' or period == 'period_hrs':
+                localTime = datetime.datetime.now()
+                localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
+                timeSinceStartOfDay = localTime - localMidnight
+                start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
+            else:
+                start = datetime.datetime.utcnow() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
+        elif timeframe == "timeframe_mon":
+            start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif timeframe == "timeframe_yrs":
+            start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            print start
+        
+        end = datetime.datetime.utcnow()
+    else:
+        start = datetime.datetime.strptime(request.POST.get('datepickers', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
+        end = datetime.datetime.strptime(request.POST.get('datepickere', datetime.datetime.now()), "%m/%d/%Y")
+        
+    #create a chart and fetch its data
+    chart = Chart(start, end, period)
+    graphs = []
+
+    for i in chart.getDeviceIDList():
+        chart.fetchTimeSeries(i)
+        timetuples = chart.getTimeSeries(i)
+        graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples})
+
+    timeseries = json.dumps(graphs)
+    plotsettings = json.dumps(chart.chartOptions())
+
+    #TODO: the next couple of lines are pretty ugly
+    stats = chart.getStatTable()
+    hd =str(start)+" - "+str(end)+" | "+str(period)
+    form = StatsForm()
+
+    #set the initial selection to what the url gave us
+    form.fields["timeframe"].initial = timeframe_url
+    
+    return render_to_response('charts/stats.html', vars(), RequestContext(request))
+
+def overview(request):
+    return render_to_response('charts/overview.html', vars(), RequestContext(request))

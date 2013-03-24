@@ -1,4 +1,7 @@
 $(document).ready(function() {
+  		timezoneJS.timezone.zoneFileBasePath = '/static/timezones';
+	    timezoneJS.timezone.defaultZoneFile = 'europe';
+	    timezoneJS.timezone.init({async: false});
 	/*
 	 * $("#header").mouseover(function() { $("#header").animate({
 	 * "margin-top":"0px" }, 500 ); $("#header").clearQueue();
@@ -18,7 +21,7 @@ $(document).ready(function() {
 		$(".menuitem").clearQueue();
 	});
 
-	$("#timeframe").buttonset();
+	//$("#timeframe").buttonset();
 	$("input[name='timeframe']").change(function() {
 		if ($("#timeframe_cus").is(':checked')) {
 			$("#datepickerArea").css("display", "block");
@@ -27,7 +30,8 @@ $(document).ready(function() {
 		}
 	});
 
-	$("#period").buttonset();
+	//$("#period").buttonset();
+	//$("#live_timeframe").buttonset();
 
 	$("#checkGraph").button();
 	$("#checkStats").button();
@@ -44,14 +48,13 @@ $(document).ready(function() {
 	htmlDatePickerize($("#datepickers"));
 	htmlDatePickerize($("#datepickere"));
 
-	$("#header").tabs({
+	/*$("#header").tabs({
 		collapsible : true
 	});
 
 	$("#stats").tabs({
 		collapsible : true
-	});
-
+	});*/
 });
 
 function htmlDatePickerize(selector) {

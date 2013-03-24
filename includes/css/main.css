@@ -80,11 +80,11 @@ body
 
 #wrapper
 {
+	margin:0 auto;
+	margin-top:20px;
 	text-align:center;
 	min-width:750px;
 	max-width:1600px;
-	margin:0 auto;
-	margin-top:0;
 	background:#FFF;
 	padding-top:10px;
 	width:80%;
@@ -107,6 +107,7 @@ body
 {
 	width:100%;
 	height:80%;
+	position: relative;
 }
 
 #stats
@@ -114,4 +115,14 @@ body
 	width:29%;
 	float:left;
 	min-height:400px;
+}
+
+.loadingGIF
+{
+  left: 50%;
+  margin-left: -33px;
+  display: block;
+  top: 50%;
+  margin-top: -33px;
+  position: absolute;
 }
