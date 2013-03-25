@@ -122,7 +122,13 @@ def stats(request, timeframe_url):
         if timeframe == "timeframe_hrs":
             start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_day":
-            start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+            if period == 'period_min' or period == 'period_hrs':
+                localTime = datetime.datetime.now()
+                localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
+                timeSinceStartOfDay = localTime - localMidnight
+                start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
+            else:
+                start = datetime.datetime.utcnow() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
         elif timeframe == "timeframe_mon":
             start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_yrs":
