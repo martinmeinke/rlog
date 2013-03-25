@@ -111,7 +111,7 @@ class RLogDaemon(Daemon):
             self.mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
             self.mqttPublisher.startMQTT()
         except Exception as e:
-            log("mqtt foo:" + str(e))
+            log("mqtt 114:" + str(e))
 
         log("looking for WR")
         self.findWR()
@@ -130,7 +130,7 @@ class RLogDaemon(Daemon):
         try:
             self.mqttPublisher.stopMQTT()
         except Exception as e:
-            log("mqtt foo:" + str(e))   
+            log("mqtt 133:" + str(e))   
     
     def discover_device(self):
         for device_id in range(0,100):
@@ -249,9 +249,9 @@ class RLogDaemon(Daemon):
                 self._slaves.append(deviceID)
                 self._slave_names.append(typ.split()[1])
                 try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + deviceID + ")/meta/type", "text")
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + str(deviceID) + ")/meta/type", "text", retain = True)
                 except Exception as e:
-                    log("mqtt foo:" + str(e))
+                    log("mqtt 252:" + str(e))
                 statements.append([str(deviceID), typ.split()[1]])
                 if DEBUG_ENABLED:           
                     log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
@@ -263,9 +263,9 @@ class RLogDaemon(Daemon):
                     self._slaves.append(deviceID)
                     self._slave_names.append(data.split()[-1])
                     try:
-                        self.mqttPublisher.publish("/devices/RLog/controls/" + data.split()[-1] + " (" + deviceID + ")/meta/type", "text", retain = True)
+                        self.mqttPublisher.publish("/devices/RLog/controls/" + data.split()[-1] + " (" + str(deviceID) + ")/meta/type", "text", retain = True)
                     except Exception as e:
-                        log("mqtt foo:" + str(e))
+                        log("mqtt 266:" + str(e))
                     statements.append([str(deviceID), data.split()[-1]])
                     if DEBUG_ENABLED:           
                         log("Adding " + data.split()[-1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
@@ -280,6 +280,7 @@ class RLogDaemon(Daemon):
 
     def poll_devices(self):
         statements = []
+        i = 0;
         for device_id in self._slaves:
             new_row = self.request_data_from_device(device_id)
             if DEBUG_ENABLED:
@@ -295,9 +296,10 @@ class RLogDaemon(Daemon):
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[device_id] + " (" + device_id + ")", tmp[-3], retain = True)
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device_id) + ")", tmp[-3], retain = True)
                 except Exception as e:
-                    log("mqtt foo:" + str(e))
+                    log("mqtt 298:" + str(e) + tmp[-3])
+                i = i + 1
                 if DEBUG_ENABLED:
                   log("adding: "+ ", ".join(tmp) + " to transaction")
                 time.sleep(0.33)
