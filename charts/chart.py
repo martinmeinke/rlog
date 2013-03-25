@@ -69,6 +69,8 @@ class Chart(object):
         self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
         self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
       
+        print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
+
     def getFeederReward(self, deviceID):
         ticks = SolarEntryTick.objects.extra(
             select={
@@ -129,16 +131,16 @@ class Chart(object):
         
         self.__rowarray_list.update({deviceID : []})
 
-        print ticks.query
+        #print ticks.query
         #print ticks
 
         #import pdb; pdb.set_trace()
         
         for tick in ticks:
             t = (time.mktime(tick.time.timetuple())*1000, float(tick.lW))
-            print t, tick.time.timetuple(), "startdate",  self.__startdate, "enddate", self.__enddate
+            #print t, tick.time.timetuple(), "startdate",  self.__startdate, "enddate", self.__enddate
             self.__rowarray_list[deviceID].append(t)
-            print vars(tick)
+            #print vars(tick)
 
         return 0
 

@@ -48,6 +48,8 @@ $(document).ready(function() {
 	htmlDatePickerize($("#datepickers"));
 	htmlDatePickerize($("#datepickere"));
 
+	$(".datePicker").datepicker();
+
 	/*$("#header").tabs({
 		collapsible : true
 	});

@@ -32,11 +32,17 @@ $(document).ready(function() {
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
 </script>
 
+{{ timeframe }}
 <form class="form-inline" method="POST" action="">
     {% csrf_token %}    
     <div class="well">
-        {{ form }} <input type="submit" class="btn" value="Berechnen"/>
-        <div id="custom_date_area" style="display:none">
+        {{ regular_form }} 
+        <div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
+        {{ custom_form }}
+        </div>
+        <input type="submit" name="regular_stats_form" class="btn" value="Berechnen"/>
+
+        <!--<div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
             <hr>
             <table class="table">
                 <thead>
@@ -52,7 +58,7 @@ $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-l
                     </tr>
                 </tbody>
             </table>
-        </div>
+        </div>-->
     </div>
 </form>
 

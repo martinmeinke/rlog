@@ -7,7 +7,7 @@ import cgi
 import datetime
 import time
 import json
-from charts.forms import StatsForm
+from charts.forms import StatsForm, CustomStatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
 from charts.models import Device
@@ -70,21 +70,53 @@ def liveData(request):
         return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
 def stats(request, timeframe_url):
-    #get form data
+    regular_form = StatsForm()
+    custom_form = CustomStatsForm()
+
+    #get form data if user already has been on stats page
     if request.method == 'POST':
         form = StatsForm(request.POST)
         if form.is_valid():
             timeframe = form.cleaned_data["timeframe"]
             period = form.cleaned_data["period"]
+
+            if(timeframe == "timeframe_cus"):
+                custom_stats_form = CustomStatsForm(request.POST)
+                if custom_stats_form.is_valid():
+                    start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
+                    end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.now()), "%m/%d/%Y")
+                else:
+                    print "Invalid form input"
+                    print form.errors
+                    return render_to_response('charts/stats.html', vars(), RequestContext(request))
         else:
             print "Invalid form input"
+            print form.errors
+            return render_to_response('charts/stats.html', vars(), RequestContext(request))
+
+    #user navigates to stats from main menu
     else:        
-        if timeframe_url == "timeframe_cus":
-            timeframe = "timeframe_day"
-        else:
-            timeframe = timeframe_url
-        period = 'period_hrs'
+        timeframe = timeframe_url
         
+        #determine start and end date for the chart
+        if timeframe != "timeframe_cus":
+            if timeframe == "timeframe_hrs":
+                start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
+                period = 'period_min'
+            elif timeframe == "timeframe_day":
+                start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                period = 'period_hrs'
+            elif timeframe == "timeframe_mon":
+                start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                period = 'period_day'
+            elif timeframe == "timeframe_yrs":
+                start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                period = 'period_mon'  
+            end = datetime.datetime.utcnow()
+        else:
+            regular_form.fields["timeframe"].initial = timeframe   
+            return render_to_response('charts/stats.html', vars(), RequestContext(request))
+
     #determine start and end date for the chart
     if timeframe != "timeframe_cus":
         if timeframe == "timeframe_hrs":
@@ -95,13 +127,12 @@ def stats(request, timeframe_url):
             start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_yrs":
             start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            print start
-        
         end = datetime.datetime.utcnow()
-    else:
-        start = datetime.datetime.strptime(request.POST.get('datepickers', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
-        end = datetime.datetime.strptime(request.POST.get('datepickere', datetime.datetime.now()), "%m/%d/%Y")
-        
+
+    #TODO: DRY
+    regular_form.fields["timeframe"].initial = timeframe   
+    regular_form.fields["period"].initial = period
+
     #create a chart and fetch its data
     chart = Chart(start, end, period)
     graphs = []
@@ -117,10 +148,6 @@ def stats(request, timeframe_url):
     #TODO: the next couple of lines are pretty ugly
     stats = chart.getStatTable()
     hd =str(start)+" - "+str(end)+" | "+str(period)
-    form = StatsForm()
-
-    #set the initial selection to what the url gave us
-    form.fields["timeframe"].initial = timeframe_url
     
     return render_to_response('charts/stats.html', vars(), RequestContext(request))
 

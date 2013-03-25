@@ -1,4 +1,6 @@
 from django import forms
+from django.forms import extras
+from django.core.exceptions import ValidationError
 
 class StatsForm(forms.Form):
     timeframe = forms.ChoiceField(
@@ -10,6 +12,7 @@ class StatsForm(forms.Form):
     	],
     	initial = "timeframe_mon",
     	label = "Zeitraum",
+        required = True,
         widget=forms.Select(attrs={'onchange': 'if($("#id_timeframe option:selected").val() == "timeframe_cus"){$("#custom_date_area").css("display", "block")}else{$("#custom_date_area").css("display", "none")}'})
     )    
     period = forms.ChoiceField(
@@ -21,5 +24,23 @@ class StatsForm(forms.Form):
     		["period_yrs", "Jaehrlcih"]
     	], 
     	initial = "period_day",
-    	label = "Periode"
-    )    
+    	label = "Periode",
+        required = True
+    ) 
+
+class CustomStatsForm(forms.Form):
+    startfrom = forms.DateField(
+        label = "Beginn",
+        input_formats=['%d/%m/%Y', '%m/%d/%Y',], 
+        widget=forms.DateInput(format = '%m/%d/%Y'),
+        required = True
+    )
+    startfrom.widget.attrs.update({'class':'datePicker', 'readonly':'true'})
+
+    endby = forms.DateField(
+        label = "Ende",
+        input_formats=['%d/%m/%Y', '%m/%d/%Y',], 
+        widget=forms.DateInput(format = '%m/%d/%Y'),
+        required = True
+    )
+    endby.widget.attrs.update({'class':'datePicker', 'readonly':'true'})
