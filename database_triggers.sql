@@ -54,9 +54,9 @@ CREATE TRIGGER update_monthly AFTER  INSERT ON charts_solarentryday
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentrymonth (time, device_id, lW) 
 	VALUES (
-		strftime('%Y-%m-00', 'now') , 
+		strftime('%Y-%m-01', 'now') , 
 		new.device_id,
-		(select SUM(lW) FROM charts_solarentryday WHERE device_id = new.device_id AND strftime('%Y-%m-00',  time) = strftime('%Y-%m-00',  'now'))
+		(select SUM(lW) FROM charts_solarentryday WHERE device_id = new.device_id AND strftime('%Y-%m-01',  time) = strftime('%Y-%m-01',  'now'))
     );
 END;
 
@@ -64,9 +64,9 @@ CREATE TRIGGER update_yearly AFTER  INSERT ON charts_solarentrymonth
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryyear(time, device_id, lW) 
 	VALUES (
-		strftime('%Y-00-00', 'now') , 
+		strftime('%Y-01-01', 'now') , 
 		new.device_id,
-		(select SUM(lW) FROM charts_solarentryday WHERE device_id = new.device_id AND strftime('%Y-00-00',  time) =  strftime('%Y-00-00',  'now'))
+		(select SUM(lW) FROM charts_solarentryday WHERE device_id = new.device_id AND strftime('%Y-01-01',  time) =  strftime('%Y-01-01',  'now'))
     );
 END;
 

@@ -73,6 +73,8 @@ class Chart(object):
 #        self.__rBoundary = "(new timezoneJS.Date(" +str(rht.year)+","+str(rht.month - 1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second) + ", 'Europe/Berlin')).getTime()"
         self.__rBoundary = calendar.timegm(rht.utctimetuple()) * 1000
       
+        print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
+
     def getFeederReward(self, deviceID):
         ticks = SolarEntryTick.objects.extra(
             select={
@@ -133,7 +135,7 @@ class Chart(object):
         
         self.__rowarray_list.update({deviceID : []})
 
-        print ticks.query
+        #print ticks.query
         #print ticks
 
         #import pdb; pdb.set_trace()
