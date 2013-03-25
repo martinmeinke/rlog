@@ -1,13 +1,23 @@
-{% extends "charts/frame.html" %}
+{% extends "charts/newframe.html" %}
 
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
-	autoUpdate();
-    window.setInterval(autoUpdate, 1000);
+	autoUpdateInitial(15);
+  window.setTimeout(autoUpdate, 5000);
 });
 </script>
-
-<h2>Live</h2>
+<h2 class="center">Live</h2>
+<form method="POST" class="form-inline" action="">
+  {% csrf_token %}
+	<select name="live_timeframe" id="live_timeframe" 
+  onchange="autoUpdateInitial(this.options[this.selectedIndex].value)" class="selectpicker">
+      <option value="5">5 Minutes</option>
+      <option selected=selected value="15">15 Minutes</option>
+      <option value="30">30 Minutes</option>
+      <option value="60">1 Hour</option>
+    </select>
+</form>
 <div id="livechart" class="chart"></div>
+<ul id="crosshairdata"></ul>
 {% endblock %}
