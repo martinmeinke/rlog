@@ -13,6 +13,7 @@ import os
 import re
 import sys, time, datetime
 import string
+import mqtt
 from daemon import Daemon
 
 DEBUG_ENABLED = False
@@ -21,6 +22,7 @@ PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
 DEBUG_SERIAL_PORT = "/dev/pts/7"
+MQTT_HOST = "192.168.8.34"
 
 def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))
@@ -59,6 +61,8 @@ class RLogDaemon(Daemon):
         super(RLogDaemon, self).__init__(pidfile)
         self._serial_port = None
         self._slaves = []
+        self._slave_names = []
+        self.mqttPublisher = None
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
@@ -101,7 +105,13 @@ class RLogDaemon(Daemon):
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self.discover_device()
-            
+        
+        log("starting MQTT")
+        try:
+            self.mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
+            self.mqttPublisher.startMQTT()
+        except Exception as e:
+            log("mqtt foo:" + str(e))
 
         log("looking for WR")
         self.findWR()
@@ -117,6 +127,10 @@ class RLogDaemon(Daemon):
               time.sleep(sleepduration)
 
         self._serial_port.close();
+        try:
+            self.mqttPublisher.stopMQTT()
+        except Exception as e:
+            log("mqtt foo:" + str(e))   
     
     def discover_device(self):
         for device_id in range(0,100):
@@ -232,7 +246,12 @@ class RLogDaemon(Daemon):
             typ = self.request_type_from_device(deviceID)
             if typ != None and self.check_typ(typ):
                 log("Device %d answered %s " % (deviceID, typ))
-                self._slaves.append(deviceID)  
+                self._slaves.append(deviceID)
+                self._slave_names.append(typ.split()[1])
+                try:
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + deviceID + ")/meta/type", "text")
+                except Exception as e:
+                    log("mqtt foo:" + str(e))
                 statements.append([str(deviceID), typ.split()[1]])
                 if DEBUG_ENABLED:           
                     log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
@@ -242,6 +261,7 @@ class RLogDaemon(Daemon):
                if data != None and self.check_daten(data):
                    log("Device %d answered %s " % (deviceID, data))
                    self._slaves.append(deviceID)
+                   self._slave_names.append(data.split()[-1])
                    statements.append([str(deviceID), data.split()[-1]])
                    if DEBUG_ENABLED:           
                       log("Adding " + data.split()[-1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
@@ -270,6 +290,10 @@ class RLogDaemon(Daemon):
                 tmp = [str(device_id)]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
+                try:
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[device_id] + " (" + device_id + ")", tmp[-3])
+                except Exception as e:
+                    log("mqtt foo:" + str(e))
                 if DEBUG_ENABLED:
                   log("adding: "+ ", ".join(tmp) + " to transaction")
                 time.sleep(0.33)
