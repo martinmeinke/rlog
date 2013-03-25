@@ -123,7 +123,7 @@ def stats(request, timeframe_url):
             period = 'period_min'
             start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
         elif timeframe == "timeframe_day":
-            period = 'period_day'
+            period = 'period_hrs'
             if period == 'period_min' or period == 'period_hrs':
                 localTime = datetime.datetime.now()
                 localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
