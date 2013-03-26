@@ -89,6 +89,22 @@ def stats(request, timeframe_url):
                     print "Invalid form input"
                     print form.errors
                     return render_to_response('charts/stats.html', vars(), RequestContext(request))
+            else:
+                if timeframe == "timeframe_hrs":
+                    start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
+                elif timeframe == "timeframe_day":
+                    if period == 'period_min' or period == 'period_hrs':
+                        localTime = datetime.datetime.now()
+                        localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
+                        timeSinceStartOfDay = localTime - localMidnight
+                        start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
+                    else:
+                        start = datetime.datetime.utcnow() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
+                elif timeframe == "timeframe_mon":
+                    start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                elif timeframe == "timeframe_yrs":
+                    start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                end = datetime.datetime.utcnow()
         else:
             print "Invalid form input"
             print form.errors
@@ -116,28 +132,6 @@ def stats(request, timeframe_url):
         else:
             regular_form.fields["timeframe"].initial = timeframe   
             return render_to_response('charts/stats.html', vars(), RequestContext(request))
-
-    #determine start and end date for the chart
-    if timeframe != "timeframe_cus":
-        if timeframe == "timeframe_hrs":
-            period = 'period_min'
-            start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
-        elif timeframe == "timeframe_day":
-            period = 'period_hrs'
-            if period == 'period_min' or period == 'period_hrs':
-                localTime = datetime.datetime.now()
-                localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
-                timeSinceStartOfDay = localTime - localMidnight
-                start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
-            else:
-                start = datetime.datetime.utcnow() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
-        elif timeframe == "timeframe_mon":
-            period = 'period_day'
-            start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
-        elif timeframe == "timeframe_yrs":
-            period = 'period_mon'
-            start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        end = datetime.datetime.utcnow()
 
     #TODO: DRY
     regular_form.fields["timeframe"].initial = timeframe   
