@@ -249,7 +249,7 @@ class RLogDaemon(Daemon):
                 self._slaves.append(deviceID)
                 self._slave_names.append(typ.split()[1])
                 try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + str(deviceID) + ")/meta/type", "text", retain = True)
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + str(deviceID) + ")/meta/type", "text", 0, True)
                 except Exception as e:
                     log("mqtt 252:" + str(e))
                 statements.append([str(deviceID), typ.split()[1]])
@@ -263,7 +263,7 @@ class RLogDaemon(Daemon):
                     self._slaves.append(deviceID)
                     self._slave_names.append(data.split()[-1])
                     try:
-                        self.mqttPublisher.publish("/devices/RLog/controls/" + data.split()[-1] + " (" + str(deviceID) + ")/meta/type", "text", retain = True)
+                        self.mqttPublisher.publish("/devices/RLog/controls/" + data.split()[-1] + " (" + str(deviceID) + ")/meta/type", "text", 0, True)
                     except Exception as e:
                         log("mqtt 266:" + str(e))
                     statements.append([str(deviceID), data.split()[-1]])
@@ -296,7 +296,7 @@ class RLogDaemon(Daemon):
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device_id) + ")", tmp[-3], retain = True)
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device_id) + ")", tmp[-3], 0, True)
                 except Exception as e:
                     log("mqtt 298:" + str(e) + tmp[-3])
                 i = i + 1
