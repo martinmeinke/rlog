@@ -141,6 +141,8 @@ class Chart(object):
         #import pdb; pdb.set_trace()
         
         for tick in ticks:
+            self.__totalSupply += tick.lW
+            self.__rewardTotal += self.get_reward_for_tick(tick)
             t = None
             if self.__period == "period_min" or self.__period == "period_hrs":
                 t = (calendar.timegm(tick.time.utctimetuple()) * 1000, float(tick.lW))
@@ -243,6 +245,7 @@ class Chart(object):
         rwrdtotal = locale.currency(self.__rewardTotal/100)
         avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
         
+        #TODO: split this up in several methods and move HTML to template
         table = """<table class="table table-striped">
                 <tr>
                     <td><strong>Beginn Zeitraum:</strong></td>
@@ -273,7 +276,7 @@ class Chart(object):
     
     def getNumPoints(self):
         if len(self.__rowarray_list) > 0:
-            return len(self.__rowarray_list)
+            return len(self.__rowarray_list[self.getDeviceIDList()[0]])
         else:
             return 1
 
@@ -287,6 +290,18 @@ class Chart(object):
             devices.append(device.id)
 
         return devices
+
+    def get_reward_for_tick(self, t):
+        try:
+            matching_reward = Reward.objects.filter(time__lte=t.time).order_by('-time')[0]
+            return matching_reward.value * t.lW / 1000
+        except Exception as ex:
+            print str(type(ex))+str(ex)
+        except Error as err:
+            print str(type(err))+str(err)
+
+        return 0
+
 
 class TickGroup():
     def __init__(self, key, group):
