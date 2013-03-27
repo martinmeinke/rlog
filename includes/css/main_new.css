@@ -13,6 +13,10 @@ footer{
 	position: relative;
 }
 
+.custom_date_area{
+  display:none;
+}
+
 .stats_form
 {
   background-color:#DADADA;
