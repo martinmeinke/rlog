@@ -76,8 +76,8 @@ INSERT INTO charts_device VALUES (1, "Device 1");
 INSERT INTO charts_device VALUES (2, "Device 2");
 INSERT INTO charts_device VALUES (3, "Device 3");
 
-
 CREATE INDEX IF NOT EXISTS IDX_DEV_ID ON charts_solarentrytick (device_id);
+
 PRAGMA main.page_size = 4096;
 PRAGMA main.cache_size=10000;
 PRAGMA main.locking_mode=EXCLUSIVE;

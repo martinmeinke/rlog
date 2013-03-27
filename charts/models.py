@@ -84,6 +84,7 @@ class SolarDailyMaxima(models.Model):
   class Meta:
         unique_together = (("time", "device"))
   
+  
 class Reward(models.Model):
 	time = models.DateTimeField()
 	value = models.DecimalField(max_digits=5, decimal_places=2)
