@@ -13,6 +13,11 @@ footer{
 	position: relative;
 }
 
+.stats_form
+{
+  background-color:#DADADA;
+}
+
 .loadingGIF
 {
   left: 50%;
