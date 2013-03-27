@@ -266,7 +266,7 @@ class Chart(object):
                     <td>%(ez)s</td>
                 </tr>
                 <tr>
-                    <td><strong>Kw Eingespeist:</strong></td>
+                    <td><strong>W eingespeist:</strong></td>
                     <td>%(kws)s</td>
                 </tr>
                 <tr>
