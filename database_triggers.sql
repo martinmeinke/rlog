@@ -12,13 +12,13 @@ CREATE TRIGGER update_maxima AFTER INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solardailymaxima (time, device_id, lW, exacttime) 
 	VALUES (
-		strftime('%Y-%m-%d 00:00:00', new.time) , 
+		strftime('%Y-%m-%d', new.time) , 
 		new.device_id,
 		max(new.lW,
 			ifnull((SELECT lW
                	FROM charts_solardailymaxima
                	WHERE device_id = new.device_id
-               		AND time = strftime('%Y-%m-%d 00:00:00', new.time)
+               		AND time = strftime('%Y-%m-%d', new.time)
                	),
             0)
         ),
@@ -26,7 +26,7 @@ BEGIN
 			FROM charts_solardailymaxima 	
 			WHERE device_id = new.device_id
 				AND lW >= new.lW
-            	AND time = strftime('%Y-%m-%d 00:00:00', new.time)), datetime('now'))
+            	AND time = strftime('%Y-%m-%d', new.time)), datetime('now'))
     );
 END;
 
