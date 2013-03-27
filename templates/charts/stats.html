@@ -32,34 +32,54 @@ $(document).ready(function() {
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
 </script>
 
-<form class="form-inline" method="POST" action="">
+<form class="form-horizontal" method="POST" action="">
+    <div class="well stats_form">
+        {% csrf_token %}    
+        <div class="control-group">
+            <label class="control-label" for="id_timeframe">{{ regular_form.timeframe.label }}</label>
+            <div class="controls">
+                {{ regular_form.timeframe }}
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label" for="id_period">{{ regular_form.period.label }}</label>
+            <div class="controls">
+                {{ regular_form.period }}
+            </div>
+        </div>
+        <div class="control-group custom_date_area">
+            <label class="control-label" for="id_startfrom">{{ custom_form.startfrom.label }}</label>
+            <div class="controls">
+                {{ custom_form.startfrom }}
+            </div>
+        </div>
+        <div class="control-group custom_date_area">
+            <label class="control-label" for="id_endby">{{ custom_form.endby.label }}</label>
+            <div class="controls">
+                {{ custom_form.endby }}
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="controls">
+                <input type="submit" name="regular_stats_form" class="btn" value="Berechnen"/>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+
+<!--<form class="form-inline" method="POST" action="">
     {% csrf_token %}    
-    <div class="well">
+    <div class="well stats_form">
         {{ regular_form }} 
-        <div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
+        </br>
+        <div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:inline;{% else %}display:none;{% endif %}">
         {{ custom_form }}
         </div>
         <input type="submit" name="regular_stats_form" class="btn" value="Berechnen"/>
-
-        <!--<div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
-            <hr>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Start date<a href="#" class="btn small" id="dp4" data-date-format="yyyy-mm-dd" data-date="2012-02-20">Change</a></th>
-                        <th>End date<a href="#" class="btn small" id="dp5" data-date-format="yyyy-mm-dd" data-date="2012-02-25">Change</a></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td id="startDate">2012-02-20</td>
-                        <td id="endDate">2012-02-25</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>-->
     </div>
-</form>
+</form>-->
 
 <h2 class="center">{{ hd }}</h2>
 
