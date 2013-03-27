@@ -14,7 +14,7 @@ import os
 import sys
 import random
 import calendar
-from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward
+from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward, SolarDailyMaxima
 
 class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
@@ -255,6 +255,25 @@ class Chart(object):
         except:
             pass
         
+        devices = []
+        distinct_devices = Device.objects.distinct()
+        for device in distinct_devices:
+            devices.append(device.id)
+        
+        # TODO find a way to put that HTML into template
+        maximaHTML = ""
+        try: # not sure if really works with old tables which do not match updated model
+            for deviceID in devices:
+                ticks = SolarDailyMaxima.objects.filter(
+                    time__range=(self.__startdate, self.__enddate), 
+                    device = deviceID).order_by('-lW')
+                maximaHTML += """<tr>
+                        <td><strong>Maximum WR {0}:</strong></td>
+                        <td>{1}W ({2})</td>
+                    </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.utctimetuple())))
+        except Exception as e:
+            print "maxima calculation failed", e
+        
         #TODO: split this up in several methods and move HTML to template
         table = """<table class="table table-striped">
                 <tr>
@@ -266,13 +285,14 @@ class Chart(object):
                     <td>%(ez)s</td>
                 </tr>
                 <tr>
-                    <td><strong>Kw Eingespeist:</strong></td>
+                    <td><strong>W eingespeist:</strong></td>
                     <td>%(kws)s</td>
                 </tr>
                 <tr>
                     <td><strong>Durchschnitt / Periode</strong></td>
                     <td>%(avgsp)s</td>
                 </tr>
+                %(maximaHTML)s
                 <tr>
                     <td><strong>Einspeiseverguetung</strong></td>
                     <td>%(rwrdtotal)s</td>
