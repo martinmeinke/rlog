@@ -26,6 +26,7 @@ class Chart(object):
         self.__startdate = pStartDate
         self.__enddate = pEndDate
         self.__period = pPeriod
+        self.__rewards = []
 
         self.__conn = sqlite3.connect(settings.DATABASES['default']['NAME'])
 
@@ -240,10 +241,19 @@ class Chart(object):
         ez = self.__enddate.strftime(self.__formatstring)
         
         kws = round(self.__totalSupply,2)
-        avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+        avgsp = None
+        try:
+            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+        except:
+            pass
         
         rwrdtotal = locale.currency(self.__rewardTotal/100)
-        avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
+
+        avgrwrd = None
+        try:
+            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
+        except:
+            pass
         
         #TODO: split this up in several methods and move HTML to template
         table = """<table class="table table-striped">
@@ -291,14 +301,26 @@ class Chart(object):
 
         return devices
 
+    #doing it the lazy way now ;)
     def get_reward_for_tick(self, t):
-        try:
-            matching_reward = Reward.objects.filter(time__lte=t.time).order_by('-time')[0]
-            return matching_reward.value * t.lW / 1000
-        except Exception as ex:
-            print str(type(ex))+str(ex)
-        except Error as err:
-            print str(type(err))+str(err)
+        if len(self.__rewards) == 0:
+            self.__rewards.extend(Reward.objects.order_by('-time'))
+        
+        for r in self.__rewards:
+            if isinstance(t.time, datetime.datetime):
+                if r.time.date() < t.time.date():
+                    return r.value * t.lW / 1000
+            else:
+                if r.time.date() < t.time:
+                    return r.value * t.lW / 1000
+
+        #try:
+        #    matching_reward = Reward.objects.filter(time__lte=t.time).order_by('-time')[0]
+        #    return matching_reward.value * t.lW / 1000
+        #except Exception as ex:
+        #    print str(type(ex))+str(ex)
+        #except Error as err:
+        #    print str(type(err))+str(err)
 
         return 0
 
