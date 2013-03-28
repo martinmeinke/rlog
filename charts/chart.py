@@ -265,7 +265,7 @@ class Chart(object):
         try: # not sure if really works with old tables which do not match updated model
             for deviceID in devices:
                 ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(self.__startdate, self.__enddate), 
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())), self.__enddate), 
                     device = deviceID).order_by('-lW')
                 maximaHTML += """<tr>
                         <td><strong>Maximum WR {0}:</strong></td>
