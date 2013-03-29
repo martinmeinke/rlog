@@ -15,6 +15,7 @@ import sys
 import random
 import calendar
 from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward, SolarDailyMaxima
+from django.db.models import Sum
 
 class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
@@ -237,8 +238,8 @@ class Chart(object):
         return self.__rowarray_list[deviceID]
 
     def getStatTable(self):
-        bz = self.__startdate.strftime(self.__formatstring)
-        ez = self.__enddate.strftime(self.__formatstring)
+        bz = datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())).strftime(self.__formatstring)
+        ez = datetime.datetime.fromtimestamp(calendar.timegm(self.__enddate.utctimetuple())).strftime(self.__formatstring)
         
         kws = round(self.__totalSupply,2)
         avgsp = None
@@ -273,6 +274,19 @@ class Chart(object):
                     </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.utctimetuple())))
         except Exception as e:
             print "maxima calculation failed", e
+            
+        single = ""
+        try: # i'm a chicken
+            for deviceID in devices:
+                ticks = SolarEntryDay.objects.filter(
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())), self.__enddate), 
+                    device = deviceID).aggregate(Sum('lW'))
+                single += """<tr>
+                        <td><strong>Einspeisung WR {0}:</strong></td>
+                        <td>{1}W</td>
+                    </tr>""".format(deviceID, round(ticks["lW__sum"], 2))
+        except Exception as e:
+            print "total energy calculation failed", e
         
         #TODO: split this up in several methods and move HTML to template
         table = """<table class="table table-striped">
@@ -284,13 +298,14 @@ class Chart(object):
                     <td><strong>Ende Zeitraum:</strong></td>
                     <td>%(ez)s</td>
                 </tr>
+                %(single)s
                 <tr>
-                    <td><strong>W eingespeist:</strong></td>
-                    <td>%(kws)s</td>
+                    <td><strong>insgesamt eingespeist:</strong></td>
+                    <td>%(kws)sWh</td>
                 </tr>
                 <tr>
                     <td><strong>Durchschnitt / Periode</strong></td>
-                    <td>%(avgsp)s</td>
+                    <td>%(avgsp)sW</td>
                 </tr>
                 %(maximaHTML)s
                 <tr>
@@ -298,7 +313,7 @@ class Chart(object):
                     <td>%(rwrdtotal)s</td>
                 </tr>
                 <tr>
-                    <td><strong>Durchschnittleiche Einspeiseverguetung</strong></td>
+                    <td><strong>Durchschnittleiche Einspeisevergütung</strong></td>
                     <td>%(avgrwrd)s</td>
                 </tr>
             </table>""" % vars()
