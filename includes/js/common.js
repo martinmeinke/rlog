@@ -78,3 +78,10 @@ function htmlDatePickerize(selector) {
 		}).datepicker("setDate", dateValue);
 	});
 }
+
+function check_custom_timeframe()
+{
+	if($("#id_timeframe option:selected").val() == "timeframe_cus"){
+		$(".custom_date_area").css("display", "block")}else{$(".custom_date_area").css("display", "none")
+	}
+}

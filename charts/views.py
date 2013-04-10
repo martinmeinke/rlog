@@ -85,9 +85,14 @@ def stats(request, timeframe_url):
                 if custom_stats_form.is_valid():
                     start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
                     end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.now()), "%m/%d/%Y")
+                    
+                    custom_form.fields["startfrom"].initial = start
+                    custom_form.fields["endby"].initial = end
+                    
                     #we usually mean the end of that day
                     end += relativedelta(days=1, hour=0, minute=0, second=0, microsecond=0) 
                     end -= relativedelta(day=0, hour=0, minute=0, seconds=1, microsecond=0)
+
                 else:
                     print "Invalid form input"
                     print form.errors

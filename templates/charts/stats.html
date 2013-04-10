@@ -16,17 +16,18 @@ $(document).ready(function() {
     addPlot({{ timeseries|safe }});
     applySettings({{ plotsettings|safe }});
     plot = $.plot($(".chart")[0], data, options);
-		dataset = plot.getData();		
+	dataset = plot.getData();		
     for(i = 0; i < dataset.length; i++){
-		  $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
-		}
-	  $(".chart").bind("plothover",  function (event, pos, item) {
+	   $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
+	}
+	$(".chart").bind("plothover",  function (event, pos, item) {
 	    latestPosition = pos;
-      if(new Date().getTime() - last_time_rendered > 77)
-        updateLegend();
+        if(new Date().getTime() - last_time_rendered > 77)
+            updateLegend();
     });
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
     window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
+    check_custom_timeframe();
 });
 
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
