@@ -24,7 +24,7 @@ DEBUG_SERIAL_PORT = "/dev/pts/7"
 
 def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))
-    print "[%s]: %s" % (str(datetime.datetime.now()), stripped)
+    print "[%s]: %s" % (str(datetime.datetime.today()), stripped)
 
 #check if we need to play the sound
 def update_bell_counter(val):
@@ -275,7 +275,7 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
+                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
