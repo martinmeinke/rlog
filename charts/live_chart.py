@@ -54,7 +54,7 @@ class LiveChart(object):
         
         settings["xaxis"] = {
                 "mode" : "time",
-                "timezone" : "Europe/Berlin",
+                "timezone" : "UTC",
                 "timeformat" : self.__flot_formatstring
         }
 

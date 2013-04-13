@@ -160,7 +160,11 @@ function updateLegend() {
              else  // take the point left of the cursor
               p = p1;
          
-         var d1 = new Date(p[0]);
+         //this one gives the date in localtime... we don't want that since we're treating utc as it was localtime
+         var d1_tmp = new Date(p[0]);
+         //now actually get the localtime
+         var d1 = new Date(d1_tmp.getUTCFullYear(), d1_tmp.getUTCMonth(), d1_tmp.getUTCDate(),  d1_tmp.getUTCHours(), d1_tmp.getUTCMinutes(), d1_tmp.getUTCSeconds());
+
          var curr_year = d1.getFullYear();
 
           var curr_month = d1.getMonth() + 1; //Months are zero based

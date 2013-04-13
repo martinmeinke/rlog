@@ -28,7 +28,7 @@ def liveData(request):
     #l.addHandler(logging.StreamHandler())
 
     if 'lastTick' in request.GET:
-        last_tick_provided = datetime.datetime.fromtimestamp(int(request.GET["lastTick"])/1000)
+        last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
         
         graphs = []
 

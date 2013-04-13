@@ -198,7 +198,7 @@ class Chart(object):
         
         settings["xaxis"] = {
                 "mode" : "time",
-                "timezone" : "Europe/Berlin",
+                "timezone" : "UTC",
                 "timeformat" : self.__flot_formatstring,
                 "min" : self.jsonPlotBoundaries()[0],
                 "max" : self.jsonPlotBoundaries()[1]
@@ -238,8 +238,8 @@ class Chart(object):
         return self.__rowarray_list[deviceID]
 
     def getStatTable(self):
-        bz = datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())).strftime(self.__formatstring)
-        ez = datetime.datetime.fromtimestamp(calendar.timegm(self.__enddate.timetuple())).strftime(self.__formatstring)
+        bz = self.__startdate.strftime(self.__formatstring)
+        ez = self.__enddate.strftime(self.__formatstring)
         
         kws = round(self.__totalSupply,2)
         avgsp = None
