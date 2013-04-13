@@ -70,10 +70,10 @@ class Chart(object):
 
 #        self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
 #        self.__lBoundary = "(new timezoneJS.Date(" + str(lft.year)+","+str(lft.month - 1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second) + ", 'Europe/Berlin')).getTime()"
-        self.__lBoundary = calendar.timegm(lft.utctimetuple()) * 1000
+        self.__lBoundary = calendar.timegm(lft.timetuple()) * 1000
 #        self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
 #        self.__rBoundary = "(new timezoneJS.Date(" +str(rht.year)+","+str(rht.month - 1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second) + ", 'Europe/Berlin')).getTime()"
-        self.__rBoundary = calendar.timegm(rht.utctimetuple()) * 1000
+        self.__rBoundary = calendar.timegm(rht.timetuple()) * 1000
       
         print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
 
@@ -147,13 +147,13 @@ class Chart(object):
             self.__rewardTotal += self.get_reward_for_tick(tick)
             t = None
             if self.__period == "period_min" or self.__period == "period_hrs":
-                t = (calendar.timegm(tick.time.utctimetuple()) * 1000, float(tick.lW))
+                t = (calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW))
             else:
                 t = (time.mktime(tick.time.timetuple()) * 1000, float(tick.lW))
             self.__rowarray_list[deviceID].append(t)
            # print t
            # print vars(tick)
-        print "start", self.__startdate, calendar.timegm(self.__startdate.utctimetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.utctimetuple()) * 1000
+        print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
 
         return 0
 
@@ -238,8 +238,8 @@ class Chart(object):
         return self.__rowarray_list[deviceID]
 
     def getStatTable(self):
-        bz = datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())).strftime(self.__formatstring)
-        ez = datetime.datetime.fromtimestamp(calendar.timegm(self.__enddate.utctimetuple())).strftime(self.__formatstring)
+        bz = datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())).strftime(self.__formatstring)
+        ez = datetime.datetime.fromtimestamp(calendar.timegm(self.__enddate.timetuple())).strftime(self.__formatstring)
         
         kws = round(self.__totalSupply,2)
         avgsp = None
@@ -266,12 +266,12 @@ class Chart(object):
         try: # not sure if really works with old tables which do not match updated model
             for deviceID in devices:
                 ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())), self.__enddate), 
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
                     device = deviceID).order_by('-lW')
                 maximaHTML += """<tr>
                         <td><strong>Maximum WR {0}:</strong></td>
                         <td>{1}W ({2})</td>
-                    </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.utctimetuple())))
+                    </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))
         except Exception as e:
             print "maxima calculation failed", e
             
@@ -279,7 +279,7 @@ class Chart(object):
         try: # i'm a chicken
             for deviceID in devices:
                 ticks = SolarEntryDay.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.utctimetuple())), self.__enddate), 
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
                 single += """<tr>
                         <td><strong>Einspeisung WR {0}:</strong></td>
