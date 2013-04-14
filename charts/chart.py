@@ -17,6 +17,11 @@ import calendar
 from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward, SolarDailyMaxima
 from django.db.models import Sum
 
+class StatsItem(object):
+    def __init__(self, pLabel, pValue):
+        self.label = pLabel
+        self.value = pValue
+
 class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
 
@@ -38,31 +43,31 @@ class Chart(object):
         self.__rowarray_list_live = {}
         
         if self.__period == "period_min":
-            self.__formatstring = "%d.%m.%Y %H:%M"
+            self._formatstring = "%d.%m.%Y %H:%M"
             self.__flot_formatstring = "%H:%M"
             self.__barwidth = 1000*60
             lft = self.__startdate+datetime.timedelta(minutes=-1)
             rht = self.__enddate+datetime.timedelta(minutes=1)
         elif self.__period == "period_hrs":
-            self.__formatstring = "%d.%m.%Y %H Uhr"
+            self._formatstring = "%d.%m.%Y %H Uhr"
             self.__flot_formatstring = "%H Uhr"
             self.__barwidth = 1000*60*60
             lft = self.__startdate+datetime.timedelta(hours=-1)
             rht = self.__enddate+datetime.timedelta(hours=1)
         elif self.__period == "period_day":
-            self.__formatstring = "%d.%m.%Y"
+            self._formatstring = "%d.%m.%Y"
             self.__flot_formatstring = "%d.%m"
             self.__barwidth = 1000*60*60*24
             lft = self.__startdate+datetime.timedelta(days=-1)
             rht = self.__enddate+datetime.timedelta(days=1)
         elif self.__period == "period_mon":
-            self.__formatstring = "%m/%Y"
+            self._formatstring = "%m/%Y"
             self.__flot_formatstring = "%m/%Y"
             self.__barwidth = 1000*60*60*24*30
             lft = self.__startdate+relativedelta(months=-1)
             rht = self.__enddate+relativedelta(months=1)
         elif self.__period == "period_yrs":
-            self.__formatstring = "%Y"
+            self._formatstring = "%Y"
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
             lft = self.__startdate+relativedelta(years=-1)
@@ -117,7 +122,7 @@ class Chart(object):
 
         #ticks = SolarEntryTick.objects.extra(
         #    select={
-        #        "groupkey":"strftime('" + self.__formatstring + "', datetime(time, 'utc'),'localtime')",
+        #        "groupkey":"strftime('" + self._formatstring + "', datetime(time, 'utc'),'localtime')",
         #    }
         #).filter(
         #    time__range=(self.__startdate, self.__enddate), 
@@ -171,7 +176,7 @@ class Chart(object):
             "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)"
             "FROM " + self.TABLE_BASE + " a "
             "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate) +""
-                " GROUP BY strftime('" + self.__formatstring + "',datetime(time, 'utc'),'localtime') "
+                " GROUP BY strftime('" + self._formatstring + "',datetime(time, 'utc'),'localtime') "
                 " ORDER BY time ASC")
         
         self.__rowarray_list.update({deviceID : []})
@@ -238,8 +243,8 @@ class Chart(object):
         return self.__rowarray_list[deviceID]
 
     def getStatTable(self):
-        bz = self.__startdate.strftime(self.__formatstring)
-        ez = self.__enddate.strftime(self.__formatstring)
+        bz = self.__startdate.strftime(self._formatstring)
+        ez = self.__enddate.strftime(self._formatstring)
         
         kws = round(self.__totalSupply,2)
         avgsp = None
@@ -318,6 +323,63 @@ class Chart(object):
                 </tr>
             </table>""" % vars()
         return table
+
+    def getStatItems(self):
+        bz = self.__startdate.strftime(self._formatstring)
+        ez = self.__enddate.strftime(self._formatstring)
+        
+        kws = round(self.__totalSupply,2)
+        avgsp = None
+        try:
+            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+        except:
+            pass
+        
+        rwrdtotal = locale.currency(self.__rewardTotal/100)
+
+        avgrwrd = None
+        try:
+            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
+        except:
+            pass
+        
+        devices = []
+        distinct_devices = Device.objects.distinct()
+        for device in distinct_devices:
+            devices.append(device.id)
+        
+        items = []
+        
+        # TODO find a way to put that HTML into template
+        maximaHTML = ""
+        try: # not sure if really works with old tables which do not match updated model
+            for deviceID in devices:
+                ticks = SolarDailyMaxima.objects.filter(
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    device = deviceID).order_by('-lW')
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))))
+        except Exception as e:
+            print "maxima calculation failed", e
+            
+        single = ""
+        try: # i'm a chicken
+            for deviceID in devices:
+                ticks = SolarEntryDay.objects.filter(
+                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    device = deviceID).aggregate(Sum('lW'))
+                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}W".format(round(ticks["lW__sum"]),2)))
+        except Exception as e:
+            print "total energy calculation failed", e
+
+        items.append(StatsItem("Beginn Zeitraum: ", bz))
+        items.append(StatsItem("Ende Zeitraum: ", ez))
+        items.append(StatsItem("Insgesamt eingespeist: ", kws))
+        items.append(StatsItem("Durchschnitt / Periode", avgsp))
+        items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
+        items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
+
+        return items
+       
     
     def getNumPoints(self):
         if len(self.__rowarray_list) > 0:

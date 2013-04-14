@@ -158,8 +158,9 @@ def stats(request, timeframe_url):
     plotsettings = json.dumps(chart.chartOptions())
 
     #TODO: the next couple of lines are pretty ugly
-    stats = chart.getStatTable()
-    hd =str(start)+" - "+str(end)+" | "+str(period)
+    stat_items = chart.getStatItems()
+    ui_begin ="Beginn: "+start.strftime(chart._formatstring)
+    ui_end = "Ende: "+end.strftime(chart._formatstring)
     
     return render_to_response('charts/stats.html', vars(), RequestContext(request))
 
