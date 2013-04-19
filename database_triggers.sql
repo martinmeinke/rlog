@@ -1,3 +1,4 @@
+DROP TRIGGER IF EXISTS update_minutely;
 CREATE TRIGGER update_minutely AFTER  INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryminute (time, device_id, lW) 
@@ -8,6 +9,7 @@ BEGIN
     );
 END;
 
+DROP TRIGGER IF EXISTS update_maxima;
 CREATE TRIGGER update_maxima AFTER INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solardailymaxima (time, device_id, lW, exacttime) 
@@ -30,6 +32,7 @@ BEGIN
     );
 END;
 
+DROP TRIGGER IF EXISTS update_hourly;
 CREATE TRIGGER update_hourly AFTER  INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryhour (time, device_id, lW) 
@@ -40,6 +43,7 @@ BEGIN
     );
 END;
 
+DROP TRIGGER IF EXISTS update_daily;
 CREATE TRIGGER update_daily AFTER  INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryday (time, device_id, lW) 
@@ -50,6 +54,7 @@ BEGIN
     );
 END;
 
+DROP TRIGGER IF EXISTS update_monthly;
 CREATE TRIGGER update_monthly AFTER  INSERT ON charts_solarentryday
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentrymonth (time, device_id, lW) 
@@ -60,6 +65,7 @@ BEGIN
     );
 END;
 
+DROP TRIGGER IF EXISTS update_yearly;
 CREATE TRIGGER update_yearly AFTER  INSERT ON charts_solarentrymonth
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryyear(time, device_id, lW) 
