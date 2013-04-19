@@ -9,12 +9,19 @@ footer{
 
 .chart{
   width:100%;
-  height:600px;  
+  min-height:500px;
 	position: relative;
 }
 
 .custom_date_area{
   display:none;
+}
+
+.chart_overlay
+{
+  position:absolute;
+  top:0;
+  left:0;
 }
 
 .stats_form

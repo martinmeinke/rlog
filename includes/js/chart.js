@@ -11,11 +11,57 @@ function addPlot(json) {
 }
 
 function drawPlot() {
+  console.log("draw");
 	plot.setData(data);
 	plot.setupGrid()
 	plot.draw(); 
+
+  if(data[0].data.length == 0)
+  {
+      add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
+  }else{
+      remove_overlay();
+  }
 }
 
+function add_disabled_overlay(message)
+{
+    var msg_width = message.length * 8;
+    var msg_height = 50;
+
+    var canvas_width = $('.chart').first().width();
+    var canvas_height = $('.chart').first().height();
+
+    var newCanvas = 
+        $('<canvas/>',{'class':'chart_overlay'})
+        .width(canvas_width)
+        .height(canvas_height);
+
+    $('.chart').first().append(newCanvas);
+    var appended = document.getElementsByClassName('chart_overlay')[0];
+    appended.width = canvas_width;
+    appended.height = canvas_height;
+    var ctx=appended.getContext("2d");
+
+    var msg_box_x = canvas_width / 2 - msg_width / 2;
+    var msg_box_y = canvas_height / 2 - msg_height / 2;
+
+    ctx.fillStyle = "rgba(200, 200, 200, 0.7)";
+    ctx.fillRect(0,0,canvas_width,canvas_height);
+
+    ctx.fillStyle = "rgba(27, 27, 27, 1)";
+    ctx.fillRect(msg_box_x, msg_box_y, msg_width, msg_height);
+
+    ctx.fillStyle = "rgba(255, 255, 255, 1)";
+    ctx.font = "16px Arial";
+    ctx.fillText(message, msg_box_x+10, msg_box_y+30);
+    return 0;
+}
+
+function remove_overlay()
+{
+    $('.chart_overlay').remove();
+}
 
 function applySettings(json) {
 	options = json;
@@ -56,23 +102,29 @@ function autoUpdateInitial(minutes)
   	function(returnedJson) {
 		data = returnedJson["timeseries"];	
 		applySettings(returnedJson["settings"]);
+
 		for (i = 0; i < data.length; i++)
 		  data[i]["data"] = data[i]["data"].sort(comparator);
+
 		plot = $.plot($(".chart")[0], data, options);
+
 		if(!oneTimeStuffDone){
 		  oneTimeStuffDone = true;
 		  dataset = plot.getData();
+
 		  for(i = 0; i < dataset.length; i++){
 		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
 		  }
+
 	    $(".chart").bind("plothover",  function (event, pos, item) {
 	      latestPosition = pos;
 	      if(new Date().getTime() - last_time_rendered > 77)
           updateLegend();
       });
+
       window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
-      drawPlot();
     }
+    drawPlot();
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
 	});
 }
@@ -85,6 +137,7 @@ function comparator(a, b){
 
 function autoUpdate()
 {
+  console.log("au");
 	var d = new Date();
 	if(getLatestTick() != 0){
 		console.log("lastTick is: "+getLatestTick());
@@ -95,40 +148,41 @@ function autoUpdate()
     	},
     	function(newData) {
     		console.log("newData is :"+JSON.stringify(newData));
-        	var i = 0;
-			    jQuery.each(data, function(){
-		    		if(newData["timeseries"][i]["data"].length > 0)
-		    		{
-				        //console.log($("#live_timeframe").val());
-				        var oldestTick = this["data"][0][0];
-				        var timeframeInMs = $("#live_timeframe").val()*60*1000;
-				        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
+      	var i = 0;
+		    jQuery.each(data, function(){
+	    		if(newData["timeseries"][i]["data"].length > 0)
+	    		{
+			        //console.log($("#live_timeframe").val());
+			        var oldestTick = this["data"][0][0];
+			        var timeframeInMs = $("#live_timeframe").val()*60*1000;
+			        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
 
-				        /*console.log("Oldest: "+oldestTick);
-				        console.log("Timeframeinms: "+timeframeInMs);
-				        console.log("Newest: "+newestTickMinusTimeframe);*/
+			        /*console.log("Oldest: "+oldestTick);
+			        console.log("Timeframeinms: "+timeframeInMs);
+			        console.log("Newest: "+newestTickMinusTimeframe);*/
 
-				        while(oldestTick < newestTickMinusTimeframe)
-				        {
-					        this["data"].shift();
-					        oldestTick = this["data"][this["data"].length-1][0];
-				        }
+			        while(oldestTick < newestTickMinusTimeframe)
+			        {
+				        this["data"].shift();
+				        oldestTick = this["data"][this["data"].length-1][0];
+			        }
 
-				        var y = 0;
-				        for(; y < newData["timeseries"][i]["data"].length; y++)
-				        {
-					        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
-				        }
-				        data[i]["data"] = data[i]["data"].sort(comparator);
-				        i++;
-				    }
-			    });
-			drawPlot();
+			        var y = 0;
+			        for(; y < newData["timeseries"][i]["data"].length; y++)
+			        {
+				        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
+			        }
+			        data[i]["data"] = data[i]["data"].sort(comparator);
+			        i++;
+			    }
+		    });
+        drawPlot();
 		  	window.setTimeout(autoUpdate, 3000);
 	    }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
 	}else{
+    drawPlot();
 	  window.setTimeout(autoUpdate, 500);
-	};
+	}
 }
 
 function updateLegend() {    
