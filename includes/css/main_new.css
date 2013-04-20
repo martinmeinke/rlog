@@ -1,6 +1,6 @@
 #stat_table
 {
-  margin:40px;
+  margin:20px;
 }
 
 footer{
@@ -10,7 +10,12 @@ footer{
 .chart{
   width:100%;
   min-height:500px;
-	position: relative;
+}
+
+.chart_wrapper{
+  background-color:#f9f9f9;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 
 .custom_date_area{
