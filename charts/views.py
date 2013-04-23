@@ -75,6 +75,7 @@ def stats(request, timeframe_url):
 
     #get form data if user already has been on stats page
     if request.method == 'POST':
+
         form = StatsForm(request.POST)
         if form.is_valid():
             timeframe = form.cleaned_data["timeframe"]
@@ -119,7 +120,8 @@ def stats(request, timeframe_url):
             return render_to_response('charts/stats.html', vars(), RequestContext(request))
 
     #user navigates to stats from main menu
-    else:        
+    else:   
+        preselect_period = True     
         timeframe = timeframe_url
         
         #determine start and end date for the chart

@@ -57,7 +57,6 @@ $(document).ready(function() {
 	$("#stats").tabs({
 		collapsible : true
 	});*/
-	check_custom_timeframe();
 });
 
 function htmlDatePickerize(selector) {
@@ -83,8 +82,11 @@ function htmlDatePickerize(selector) {
 /*
 create the choices
 */
-function update_period_choices(timeframe)
+function update_period_choices(timeframe, set_current, period)
 {
+	if(set_current)
+		console.log("SET CURREN");
+
 	var hrsOptions = {
 	    "period_min" : "Minuetlich"
 	};
@@ -122,41 +124,71 @@ function update_period_choices(timeframe)
 		$.each(hrsOptions, function(val, text) {
 		    options[options.length] = new Option(text, val);
 		});
-		$('#id_period').val("period_min");
+
+		if(set_current)
+		{
+			$('#id_period').val("period_min");
+		}else{
+			$('#id_period').val(period);
+		}
 	}else if(timeframe == "timeframe_day")
 	{
 		$.each(dayOptions, function(val, text) {
 		    options[options.length] = new Option(text, val);
 		});
-		$('#id_period').val("period_hrs");
+
+		if(set_current)
+		{
+			$('#id_period').val("period_hrs");
+		}else{
+			$('#id_period').val(period);
+		}
 	}else if(timeframe == "timeframe_mon")
 	{
 		$.each(monOptions, function(val, text) {
 		    options[options.length] = new Option(text, val);
 		});
-		$('#id_period').val("period_day");
+
+		if(set_current)
+		{
+			$('#id_period').val("period_day");
+		}else{
+			$('#id_period').val(period);
+		}
 	}else if(timeframe == "timeframe_yrs")
 	{
 		$.each(yrsOptions, function(val, text) {
 		    options[options.length] = new Option(text, val);
 		});
-		$('#id_period').val("period_mon");
+
+		if(set_current)
+		{
+			$('#id_period').val("period_mon");
+		}else{
+			$('#id_period').val(period);
+		}
 	}
 	else if(timeframe == "timeframe_cus")
 	{
 		$.each(cusOptions, function(val, text) {
 		    options[options.length] = new Option(text, val);
 		});
-		$('#id_period').val("period_day");
+
+		if(set_current)
+		{
+			$('#id_period').val("period_day");
+		}else{
+			$('#id_period').val(period);
+		}
 	}
 }
 
-function check_custom_timeframe()
+function check_custom_timeframe(set_current, period)
 {
 	var selected_timeframe = $("#id_timeframe option:selected").val();
 	if($("#id_timeframe option:selected").val() == "timeframe_cus"){
 		$(".custom_date_area").css("display", "block")}else{$(".custom_date_area").css("display", "none")
 	}
 
-	update_period_choices(selected_timeframe);
+	update_period_choices(selected_timeframe, set_current, period);
 }

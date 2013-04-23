@@ -27,11 +27,19 @@ $(document).ready(function() {
     });
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
     window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
-    check_custom_timeframe();
+    check_custom_timeframe(0, "{{ period }}");
 });
 
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
 </script>
+
+{% if preselect_period %}
+<script type="text/javascript">
+$(document).ready(function() {
+check_custom_timeframe(1);
+});
+</script>
+{% endif %}
 
 <form class="form-horizontal" method="POST" action="">
     <div class="well stats_form">

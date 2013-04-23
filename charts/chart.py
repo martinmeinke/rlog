@@ -34,6 +34,8 @@ class Chart(object):
         self.__period = pPeriod
         self.__rewards = []
 
+        self.__bar_scale_factor = 0.9
+
         self.__conn = sqlite3.connect(settings.DATABASES['default']['NAME'])
 
         self.__totalSupply = 0
@@ -191,23 +193,26 @@ class Chart(object):
     def chartOptions(self):
         settings = {}
         settings["series"] = {}
-        if len(self.__rowarray_list) > 0:
-            settings["series"]["lines"] = {"show" : "true"}
-            settings["series"]["points"] = {"show" : "true"}
-        else:
-            settings["series"]["bars"] = {
-                            "show": "true",
-                            "align": "left",
-                            "barWidth": self.barWidth(),
-                            "fill": "true"}
+        #if len(self.__rowarray_list) > 0:
+        settings["series"]["lines"] = {"show" : "true", "steps" : "true"}
+        #settings["series"]["points"] = {"show" : "true"}
+        #else:
+        #settings["series"]["bars"] = {
+        #                "show": "true",
+        #                "align": "center",
+        #                "barWidth": self.barWidth()*self.__bar_scale_factor,
+        #                "fill": "true",
+        #                "fillColor": "rgba(255, 255, 255, 0.2)"}
         
         settings["xaxis"] = {
                 "mode" : "time",
                 "timezone" : "UTC",
-                "timeformat" : self.__flot_formatstring,
-                "min" : self.jsonPlotBoundaries()[0],
-                "max" : self.jsonPlotBoundaries()[1]
+                "timeformat" : self.__flot_formatstring
         }
+
+        #,
+        #        "min" : self.jsonPlotBoundaries()[0],
+        #        "max" : self.jsonPlotBoundaries()[1]
         settings["crosshair"] = {
                 "mode" : "x",
                 "color": "rgba(0, 170, 0, 0.80)"

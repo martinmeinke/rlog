@@ -1,7 +1,6 @@
 plot = null;
 data = [];
 options = {};
-liveTicks = 100;
 latestPosition = null;
 last_time_rendered = 0;
 oneTimeStuffDone = false;
