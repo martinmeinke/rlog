@@ -48,32 +48,27 @@ class Chart(object):
             self._formatstring = "%d.%m.%Y %H:%M"
             self.__flot_formatstring = "%H:%M"
             self.__barwidth = 1000*60
-            lft = self.__startdate+datetime.timedelta(minutes=-1)
-            rht = self.__enddate+datetime.timedelta(minutes=1)
         elif self.__period == "period_hrs":
             self._formatstring = "%d.%m.%Y %H Uhr"
             self.__flot_formatstring = "%H Uhr"
             self.__barwidth = 1000*60*60
-            lft = self.__startdate+datetime.timedelta(hours=-1)
-            rht = self.__enddate+datetime.timedelta(hours=1)
         elif self.__period == "period_day":
             self._formatstring = "%d.%m.%Y"
             self.__flot_formatstring = "%d.%m"
             self.__barwidth = 1000*60*60*24
-            lft = self.__startdate+datetime.timedelta(days=-1)
-            rht = self.__enddate+datetime.timedelta(days=1)
         elif self.__period == "period_mon":
             self._formatstring = "%m/%Y"
             self.__flot_formatstring = "%m/%Y"
             self.__barwidth = 1000*60*60*24*30
-            lft = self.__startdate+relativedelta(months=-1)
-            rht = self.__enddate+relativedelta(months=1)
         elif self.__period == "period_yrs":
             self._formatstring = "%Y"
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
-            lft = self.__startdate+relativedelta(years=-1)
-            rht = self.__enddate+relativedelta(years=1)
+
+        lft = self.__startdate
+        rht = self.__enddate
+
+        print ""+str(lft)+" "+str(rht)
 
 #        self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
 #        self.__lBoundary = "(new timezoneJS.Date(" + str(lft.year)+","+str(lft.month - 1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second) + ", 'Europe/Berlin')).getTime()"
@@ -207,12 +202,11 @@ class Chart(object):
         settings["xaxis"] = {
                 "mode" : "time",
                 "timezone" : "UTC",
-                "timeformat" : self.__flot_formatstring
+                "timeformat" : self.__flot_formatstring,
+                "min" : self.jsonPlotBoundaries()[0],
+                "max" : self.jsonPlotBoundaries()[1]
         }
 
-        #,
-        #        "min" : self.jsonPlotBoundaries()[0],
-        #        "max" : self.jsonPlotBoundaries()[1]
         settings["crosshair"] = {
                 "mode" : "x",
                 "color": "rgba(0, 170, 0, 0.80)"

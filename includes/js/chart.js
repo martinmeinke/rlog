@@ -71,6 +71,7 @@ function applySettings(json) {
 	options["xaxis"]["max"] = eval(options["xaxis"]["max"]);	
 	//document.write(JSON.stringify(options));
 	//console.log("Optionen", options);
+
 }
 
 function getLatestTick()

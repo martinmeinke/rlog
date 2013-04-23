@@ -185,10 +185,13 @@ function update_period_choices(timeframe, set_current, period)
 
 function check_custom_timeframe(set_current, period)
 {
+	console.log("sel");
 	var selected_timeframe = $("#id_timeframe option:selected").val();
-	if($("#id_timeframe option:selected").val() == "timeframe_cus"){
-		$(".custom_date_area").css("display", "block")}else{$(".custom_date_area").css("display", "none")
-	}
 
-	update_period_choices(selected_timeframe, set_current, period);
+	if(selected_timeframe == "timeframe_cus"){
+		$(".custom_date_area").css("display", "block");
+	}else{
+		$(".custom_date_area").css("display", "none");
+		update_period_choices(selected_timeframe, set_current, period);
+	}
 }

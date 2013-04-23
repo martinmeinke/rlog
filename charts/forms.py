@@ -13,7 +13,7 @@ class StatsForm(forms.Form):
     	initial = "timeframe_mon",
     	label = "Zeitraum",
         required = True,
-        widget=forms.Select(attrs={'onchange': 'check_custom_timeframe()'})
+        widget=forms.Select(attrs={'onchange': 'check_custom_timeframe(0, 0)'})
     )    
     period = forms.ChoiceField(
     	choices = [

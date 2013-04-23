@@ -13,6 +13,7 @@ function export_image()
 }
 
 $(document).ready(function() {
+    check_custom_timeframe(0, "{{ period }}");
     addPlot({{ timeseries|safe }});
     applySettings({{ plotsettings|safe }});
     plot = $.plot($(".chart")[0], data, options);
@@ -27,7 +28,6 @@ $(document).ready(function() {
     });
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
     window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
-    check_custom_timeframe(0, "{{ period }}");
 });
 
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
@@ -36,7 +36,7 @@ $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-l
 {% if preselect_period %}
 <script type="text/javascript">
 $(document).ready(function() {
-check_custom_timeframe(1);
+    check_custom_timeframe(1, 0);
 });
 </script>
 {% endif %}
@@ -76,7 +76,7 @@ check_custom_timeframe(1);
     </div>
 </form>
 
-{% if timeframe != "timeframe_cus" %}
+{% if timeframe != "timeframe_cus" or ui_begin %}
 <hr>
 <h2 class="center" style="float:left;">{{ ui_begin }}</h2>
 <h2 class="center" style="float:right;">{{ ui_end }}</h2>

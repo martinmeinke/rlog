@@ -101,19 +101,16 @@ def stats(request, timeframe_url):
             else:
                 if timeframe == "timeframe_hrs":
                     start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
+                    end = datetime.datetime.today()
                 elif timeframe == "timeframe_day":
-                    if period == 'period_min' or period == 'period_hrs':
-                        localTime = datetime.datetime.today()
-                        localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
-                        timeSinceStartOfDay = localTime - localMidnight
-                        start = datetime.datetime.today() - timeSinceStartOfDay # local midnight in UTC
-                    else:
-                        start = datetime.datetime.today() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
+                    start = datetime.datetime.today() + relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                    end = start + relativedelta(hour = 23, minute = 59)
                 elif timeframe == "timeframe_mon":
                     start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 elif timeframe == "timeframe_yrs":
                     start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                end = datetime.datetime.today()
+                    end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
         else:
             print "Invalid form input"
             print form.errors
@@ -128,17 +125,20 @@ def stats(request, timeframe_url):
         if timeframe != "timeframe_cus":
             if timeframe == "timeframe_hrs":
                 start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
+                end = datetime.datetime.today()
                 period = 'period_min'
             elif timeframe == "timeframe_day":
                 start = datetime.datetime.today()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(hour = 23, minute = 59)
                 period = 'period_hrs'
             elif timeframe == "timeframe_mon":
                 start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_day'
             elif timeframe == "timeframe_yrs":
                 start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_mon'  
-            end = datetime.datetime.today()
         else:
             regular_form.fields["timeframe"].initial = timeframe   
             return render_to_response('charts/stats.html', vars(), RequestContext(request))
