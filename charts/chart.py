@@ -188,16 +188,16 @@ class Chart(object):
     def chartOptions(self):
         settings = {}
         settings["series"] = {}
-        #if len(self.__rowarray_list) > 0:
-        settings["series"]["lines"] = {"show" : "true", "steps" : "true"}
-        #settings["series"]["points"] = {"show" : "true"}
-        #else:
-        #settings["series"]["bars"] = {
-        #                "show": "true",
-        #                "align": "center",
-        #                "barWidth": self.barWidth()*self.__bar_scale_factor,
-        #                "fill": "true",
-        #                "fillColor": "rgba(255, 255, 255, 0.2)"}
+
+        if len(self.__rowarray_list) > 35:
+            settings["series"]["lines"] = {"show" : "true"}
+            settings["series"]["points"] = {"show" : "true"}
+        else:
+            settings["series"]["bars"] = {
+                            "show": "true",
+                            "align": "center",
+                            "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
+                            "fill": "true"}
         
         settings["xaxis"] = {
                 "mode" : "time",
