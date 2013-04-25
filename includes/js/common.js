@@ -45,18 +45,7 @@ $(document).ready(function() {
 	 * showButtonPanel : true, changeMonth : true, changeYear : true });
 	 */
 
-	htmlDatePickerize($("#datepickers"));
-	htmlDatePickerize($("#datepickere"));
-
-	$(".datePicker").datepicker();
-
-	/*$("#header").tabs({
-		collapsible : true
-	});
-
-	$("#stats").tabs({
-		collapsible : true
-	});*/
+	$(".datePicker").datepicker({ firstDay : 1});
 });
 
 function htmlDatePickerize(selector) {
