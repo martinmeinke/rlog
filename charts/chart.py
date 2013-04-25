@@ -159,61 +159,54 @@ class Chart(object):
 
         return 0
 
-        '''
-        cursor = self.__conn.cursor()
-        subselect = ("("
-            "SELECT value "
-            "FROM reward b "
-            "WHERE time <= a.time "
-            "   ORDER BY time DESC "
-            "   LIMIT 1"
-            ")")
+    def use_line_chart(self):
+        maximum_ticks = len(self.__rowarray_list[self.getDeviceIDList()[0]])
 
-        q_string = (
-            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)"
-            "FROM " + self.TABLE_BASE + " a "
-            "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate) +""
-                " GROUP BY strftime('" + self._formatstring + "',datetime(time, 'utc'),'localtime') "
-                " ORDER BY time ASC")
-        
-        self.__rowarray_list.update({deviceID : []})
+        #compute based on period + timeframe
+        delta = self.__enddate - self.__startdate
+        seconds = (delta.seconds + delta.days*60*60*24)
+        if self.__period == "period_min":
+            maximum_ticks = max(maximum_ticks, seconds / 60)
+        elif self.__period == "period_hrs":
+            maximum_ticks = max(maximum_ticks, seconds / (60*60))
+        elif self.__period == "period_day":
+            maximum_ticks = max(maximum_ticks, seconds / (60*60*24))
+        elif self.__period == "period_mon":
+            maximum_ticks = max(maximum_ticks, seconds / (60*60*24*30))
+        elif self.__period == "period_yrs":
+            maximum_ticks = max(maximum_ticks, seconds / (60*60*24*30*12))
 
-        for row in cursor.execute(q_string):
-            self.__totalSupply+=row[1]
-            self.__rewardTotal+=row[2]
-            t = (int(row[0]) * 1000, row[1])
-            self.__rowarray_list[deviceID].append(t)
-        '''
+        return True if maximum_ticks > 35 else False
 
     def chartOptions(self):
         settings = {}
         settings["series"] = {}
 
-        if len(self.__rowarray_list) > 35:
+        if self.use_line_chart():
             settings["series"]["lines"] = {"show" : "true"}
             settings["series"]["points"] = {"show" : "true"}
         else:
             settings["series"]["bars"] = {
-                            "show": "true",
-                            "align": "center",
-                            "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
-                            "fill": "true"}
+                "show": "true",
+                "align": "left",
+                "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
+                "fill": "true"}
         
         settings["xaxis"] = {
-                "mode" : "time",
-                "timezone" : "UTC",
-                "timeformat" : self.__flot_formatstring,
-                "min" : self.jsonPlotBoundaries()[0],
-                "max" : self.jsonPlotBoundaries()[1]
+            "mode" : "time",
+            "timezone" : "UTC",
+            "timeformat" : self.__flot_formatstring,
+            "min" : self.jsonPlotBoundaries()[0],
+            "max" : self.jsonPlotBoundaries()[1]
         }
 
         settings["crosshair"] = {
-                "mode" : "x",
-                "color": "rgba(0, 170, 0, 0.80)"
+            "mode" : "x",
+            "color": "rgba(0, 170, 0, 0.80)"
         }
         settings["grid"] = {
-                "hoverable" : "true",
-                "autoHighlight" : "false"
+            "hoverable" : "true",
+            "autoHighlight" : "false"
         }
         settings["legend"] = {
             "backgroundOpacity" : "0.5"
@@ -234,94 +227,21 @@ class Chart(object):
     def jsonPlotBoundaries(self):
         json = self.__lBoundary,self.__rBoundary
         return json
+
+    #currently not used!
+    @staticmethod
+    def build_tick_array(self):
+        ticks = []
+        for i in self.__rowarray_list[self.getDeviceIDList()[0]]:
+            print i
+            ticks.append((i[0], "date"))
+        return ticks
     
     def getTimeSeriesLiveView(self, deviceID):
         return self.__rowarray_list_live[deviceID]
 
     def getTimeSeries(self, deviceID):
         return self.__rowarray_list[deviceID]
-
-    def getStatTable(self):
-        bz = self.__startdate.strftime(self._formatstring)
-        ez = self.__enddate.strftime(self._formatstring)
-        
-        kws = round(self.__totalSupply,2)
-        avgsp = None
-        try:
-            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
-        except:
-            pass
-        
-        rwrdtotal = locale.currency(self.__rewardTotal/100)
-
-        avgrwrd = None
-        try:
-            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
-        except:
-            pass
-        
-        devices = []
-        distinct_devices = Device.objects.distinct()
-        for device in distinct_devices:
-            devices.append(device.id)
-        
-        # TODO find a way to put that HTML into template
-        maximaHTML = ""
-        try: # not sure if really works with old tables which do not match updated model
-            for deviceID in devices:
-                ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
-                    device = deviceID).order_by('-lW')
-                maximaHTML += """<tr>
-                        <td><strong>Maximum WR {0}:</strong></td>
-                        <td>{1}W ({2})</td>
-                    </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))
-        except Exception as e:
-            print "maxima calculation failed", e
-            
-        single = ""
-        try: # i'm a chicken
-            for deviceID in devices:
-                ticks = SolarEntryDay.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
-                    device = deviceID).aggregate(Sum('lW'))
-                single += """<tr>
-                        <td><strong>Einspeisung WR {0}:</strong></td>
-                        <td>{1}W</td>
-                    </tr>""".format(deviceID, round(ticks["lW__sum"], 2))
-        except Exception as e:
-            print "total energy calculation failed", e
-        
-        #TODO: split this up in several methods and move HTML to template
-        table = """<table class="table table-striped">
-                <tr>
-                    <td><strong>Beginn Zeitraum:</strong></td>
-                    <td>%(bz)s</td>
-                </tr>
-                <tr>
-                    <td><strong>Ende Zeitraum:</strong></td>
-                    <td>%(ez)s</td>
-                </tr>
-                %(single)s
-                <tr>
-                    <td><strong>insgesamt eingespeist:</strong></td>
-                    <td>%(kws)sWh</td>
-                </tr>
-                <tr>
-                    <td><strong>Durchschnitt / Periode</strong></td>
-                    <td>%(avgsp)sW</td>
-                </tr>
-                %(maximaHTML)s
-                <tr>
-                    <td><strong>Einspeiseverguetung</strong></td>
-                    <td>%(rwrdtotal)s</td>
-                </tr>
-                <tr>
-                    <td><strong>Durchschnittleiche Einspeisevergütung</strong></td>
-                    <td>%(avgrwrd)s</td>
-                </tr>
-            </table>""" % vars()
-        return table
 
     def getStatItems(self):
         bz = self.__startdate.strftime(self._formatstring)
@@ -342,11 +262,7 @@ class Chart(object):
         except:
             pass
         
-        devices = []
-        distinct_devices = Device.objects.distinct()
-        for device in distinct_devices:
-            devices.append(device.id)
-        
+        devices = self.getDeviceIDList()
         items = []
         
         # TODO find a way to put that HTML into template

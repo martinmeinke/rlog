@@ -84,9 +84,6 @@ create the choices
 */
 function update_period_choices(timeframe, set_current, period)
 {
-	if(set_current)
-		console.log("SET CURREN");
-
 	var hrsOptions = {
 	    "period_min" : "Minuetlich"
 	};
@@ -185,13 +182,13 @@ function update_period_choices(timeframe, set_current, period)
 
 function check_custom_timeframe(set_current, period)
 {
-	console.log("sel");
 	var selected_timeframe = $("#id_timeframe option:selected").val();
 
 	if(selected_timeframe == "timeframe_cus"){
 		$(".custom_date_area").css("display", "block");
 	}else{
 		$(".custom_date_area").css("display", "none");
-		update_period_choices(selected_timeframe, set_current, period);
 	}
+	
+	update_period_choices(selected_timeframe, set_current, period);
 }
