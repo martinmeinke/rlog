@@ -26,7 +26,7 @@ class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
 
     SECONDS_PER_MINUTE = 60
-    SECONDS_PER_HOUR = SECONDS_PER_MINUTE*60
+    SECONDS_PER_HOUR = SECONDS_PER_MINUTE * 60
     SECONDS_PER_DAY = SECONDS_PER_HOUR * 24
     SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
     SECONDS_PER_YEAR = SECONDS_PER_MONTH * 12
@@ -155,15 +155,15 @@ class Chart(object):
         delta = self.__enddate - self.__startdate
         seconds = (delta.seconds + delta.days*60*60*24)
         if self.__period == "period_min":
-            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_MINUTE)
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_MINUTE)
         elif self.__period == "period_hrs":
-            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_HOUR)
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_HOUR)
         elif self.__period == "period_day":
-            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_DAY)
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_DAY)
         elif self.__period == "period_mon":
-            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_MONTH)
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_MONTH)
         elif self.__period == "period_yrs":
-            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_YEAR)
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_YEAR)
 
         return True if maximum_ticks > 35 else False
 
