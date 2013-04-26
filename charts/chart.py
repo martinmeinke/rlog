@@ -25,6 +25,12 @@ class StatsItem(object):
 class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
 
+    SECONDS_PER_MINUTE = 60
+    SECONDS_PER_HOUR = SECONDS_PER_MINUTE*60
+    SECONDS_PER_DAY = SECONDS_PER_HOUR * 24
+    SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
+    SECONDS_PER_YEAR = SECONDS_PER_MONTH * 12
+
     def __init__(self,pStartDate,pEndDate,pPeriod):
         '''
         Constructor
@@ -116,33 +122,11 @@ class Chart(object):
             ticks = SolarEntryYear.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
                 device = str(deviceID))
-
-        #ticks = SolarEntryTick.objects.extra(
-        #    select={
-        #        "groupkey":"strftime('" + self._formatstring + "', datetime(time, 'utc'),'localtime')",
-        #    }
-        #).filter(
-        #    time__range=(self.__startdate, self.__enddate), 
-        #    device = str(deviceID)
-        #)
-
-        #tick_groups = {}
-
-        #groups = groupby(ticks, lambda x: x.groupkey)
-        #for key, group in groups: 
-        #    tick_groups[key] = TickGroup(key, group)
-        #    tick_groups[key]["lW"] = 0
-        #    for tick in group:
-        #        print "A %s is in %s." % (tick.groupkey, key)
-        #        tick_groups[key]["lW"] += tick.lW
-        #    print " "
         
         self.__rowarray_list.update({deviceID : []})
 
         #print ticks.query
         #print ticks
-
-        #import pdb; pdb.set_trace()
         
         for tick in ticks:
             self.__totalSupply += tick.lW
@@ -159,6 +143,11 @@ class Chart(object):
 
         return 0
 
+    # basically we want to use bar charts. This is not always possible since the get too
+    # small when theres too much of them
+    # this is not a very nice solution but at least it works.
+    # TODO: consider performing this kind of tasks on the client machine, 
+    # maybe giving the decision in the users hand.
     def use_line_chart(self):
         maximum_ticks = len(self.__rowarray_list[self.getDeviceIDList()[0]])
 
@@ -166,15 +155,15 @@ class Chart(object):
         delta = self.__enddate - self.__startdate
         seconds = (delta.seconds + delta.days*60*60*24)
         if self.__period == "period_min":
-            maximum_ticks = max(maximum_ticks, seconds / 60)
+            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_MINUTE)
         elif self.__period == "period_hrs":
-            maximum_ticks = max(maximum_ticks, seconds / (60*60))
+            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_HOUR)
         elif self.__period == "period_day":
-            maximum_ticks = max(maximum_ticks, seconds / (60*60*24))
+            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_DAY)
         elif self.__period == "period_mon":
-            maximum_ticks = max(maximum_ticks, seconds / (60*60*24*30))
+            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_MONTH)
         elif self.__period == "period_yrs":
-            maximum_ticks = max(maximum_ticks, seconds / (60*60*24*30*12))
+            maximum_ticks = max(maximum_ticks, seconds / SECONDS_PER_YEAR)
 
         return True if maximum_ticks > 35 else False
 

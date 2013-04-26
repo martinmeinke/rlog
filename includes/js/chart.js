@@ -10,11 +10,13 @@ function addPlot(json) {
 }
 
 function drawPlot() {
-  console.log("draw");
-	plot.setData(data);
-	plot.setupGrid()
-	plot.draw(); 
-
+  if(plot != null)
+  {
+  	plot.setData(data);
+  	plot.setupGrid()
+  	plot.draw(); 
+  }
+  
   if(data[0].data.length == 0)
   {
       add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
@@ -137,7 +139,7 @@ function comparator(a, b){
 
 function autoUpdate()
 {
-  console.log("au");
+  console.log("autoUpdate");
 	var d = new Date();
 	if(getLatestTick() != 0){
 		console.log("lastTick is: "+getLatestTick());
@@ -178,7 +180,10 @@ function autoUpdate()
 		    });
         drawPlot();
 		  	window.setTimeout(autoUpdate, 3000);
-	    }).error(function() { console.log("Server Error"); window.setTimeout(autoUpdate, 10000);});
+	    }).error(function() { 
+        console.log("Server Error"); 
+        window.setTimeout(autoUpdate, 3000);
+      });
 	}else{
     drawPlot();
 	  window.setTimeout(autoUpdate, 500);
