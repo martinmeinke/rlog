@@ -79,6 +79,7 @@
                 minMaxValues[0] = series[i].data[0][AxeIdx];
                 minMaxValues[1] = series[i].data[series[i].data.length - 1][AxeIdx];
             }
+
             return minMaxValues;
         }
 

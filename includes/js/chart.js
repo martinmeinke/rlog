@@ -10,18 +10,18 @@ function addPlot(json) {
 }
 
 function drawPlot() {
-  if(plot != null)
+  if(plot != null && data != null)
   {
   	plot.setData(data);
   	plot.setupGrid()
   	plot.draw(); 
-  }
-  
-  if(data[0].data.length == 0)
-  {
-      add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
-  }else{
-      remove_overlay();
+
+    if(data[0].data.length == 0)
+    {
+        add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
+    }else{
+        remove_overlay();
+    }
   }
 }
 
@@ -127,6 +127,7 @@ function autoUpdateInitial(minutes)
       window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
     }
     drawPlot();
+    initialSet = true;
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
 	});
 }

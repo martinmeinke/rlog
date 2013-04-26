@@ -179,14 +179,27 @@ class Chart(object):
                 "show": "true",
                 "align": "left",
                 "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
-                "fill": "true"}
+                "fill": "true",
+                "lineWidth": 1}
         
         settings["xaxis"] = {
             "mode" : "time",
             "timezone" : "UTC",
             "timeformat" : self.__flot_formatstring,
             "min" : self.jsonPlotBoundaries()[0],
-            "max" : self.jsonPlotBoundaries()[1]
+            "max" : self.jsonPlotBoundaries()[1],
+            "axisLabelUseCanvas": "true",
+            "axisLabelFontSizePixels": 14,
+            "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+            "axisLabelPadding": 10
+        }
+
+        settings["yaxis"] = {
+            "axisLabel": 'Eingespeiste Leistung [W]',
+            "axisLabelUseCanvas": "true",
+            "axisLabelFontSizePixels": 14,
+            "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+            "axisLabelPadding": 10
         }
 
         settings["crosshair"] = {
@@ -195,7 +208,8 @@ class Chart(object):
         }
         settings["grid"] = {
             "hoverable" : "true",
-            "autoHighlight" : "false"
+            "autoHighlight" : "false",
+            "borderWidth": 1
         }
         settings["legend"] = {
             "backgroundOpacity" : "0.5"
