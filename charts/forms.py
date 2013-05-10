@@ -13,7 +13,7 @@ class StatsForm(forms.Form):
     	initial = "timeframe_mon",
     	label = "Zeitraum",
         required = True,
-        widget=forms.Select(attrs={'onchange': 'if($("#id_timeframe option:selected").val() == "timeframe_cus"){$(".custom_date_area").css("display", "block")}else{$(".custom_date_area").css("display", "none")}'})
+        widget=forms.Select(attrs={'onchange': 'check_custom_timeframe(0, 0)'})
     )    
     period = forms.ChoiceField(
     	choices = [

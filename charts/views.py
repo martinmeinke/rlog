@@ -49,8 +49,8 @@ def liveData(request):
 
     else:
         #perform the chart initialization
-        start = datetime.datetime.utcnow()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
-        end = datetime.datetime.utcnow()
+        start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+        end = datetime.datetime.today()
 
         chart = LiveChart(start, end)
         graphs = []
@@ -75,6 +75,7 @@ def stats(request, timeframe_url):
 
     #get form data if user already has been on stats page
     if request.method == 'POST':
+
         form = StatsForm(request.POST)
         if form.is_valid():
             timeframe = form.cleaned_data["timeframe"]
@@ -83,55 +84,61 @@ def stats(request, timeframe_url):
             if(timeframe == "timeframe_cus"):
                 custom_stats_form = CustomStatsForm(request.POST)
                 if custom_stats_form.is_valid():
-                    start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.now()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
-                    end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.now()), "%m/%d/%Y")
+                    start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
+                    end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.today()), "%m/%d/%Y")
+                    
+                    custom_form.fields["startfrom"].initial = start
+                    custom_form.fields["endby"].initial = end
+                    
                     #we usually mean the end of that day
                     end += relativedelta(days=1, hour=0, minute=0, second=0, microsecond=0) 
                     end -= relativedelta(day=0, hour=0, minute=0, seconds=1, microsecond=0)
+
                 else:
                     print "Invalid form input"
                     print form.errors
                     return render_to_response('charts/stats.html', vars(), RequestContext(request))
             else:
                 if timeframe == "timeframe_hrs":
-                    start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
+                    start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
+                    end = datetime.datetime.today()
                 elif timeframe == "timeframe_day":
-                    if period == 'period_min' or period == 'period_hrs':
-                        localTime = datetime.datetime.now()
-                        localMidnight = datetime.datetime.combine(localTime, datetime.time(0))
-                        timeSinceStartOfDay = localTime - localMidnight
-                        start = datetime.datetime.utcnow() - timeSinceStartOfDay # local midnight in UTC
-                    else:
-                        start = datetime.datetime.utcnow() + relativedelta(hour=0, minute=0, second=0, microsecond=0) # UTC midnight (1:00 here in Germany))
+                    start = datetime.datetime.today() + relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                    end = start + relativedelta(hour = 23, minute = 59)
                 elif timeframe == "timeframe_mon":
-                    start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 elif timeframe == "timeframe_yrs":
-                    start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                end = datetime.datetime.utcnow()
+                    start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                    end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
         else:
             print "Invalid form input"
             print form.errors
             return render_to_response('charts/stats.html', vars(), RequestContext(request))
 
     #user navigates to stats from main menu
-    else:        
+    else:   
+        preselect_period = True     
         timeframe = timeframe_url
         
         #determine start and end date for the chart
         if timeframe != "timeframe_cus":
             if timeframe == "timeframe_hrs":
-                start = datetime.datetime.utcnow()+relativedelta(minute=0, second=0, microsecond=0)
+                start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
+                end = datetime.datetime.today()
                 period = 'period_min'
             elif timeframe == "timeframe_day":
-                start = datetime.datetime.utcnow()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.today()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(hour = 23, minute = 59)
                 period = 'period_hrs'
             elif timeframe == "timeframe_mon":
-                start = datetime.datetime.utcnow()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_day'
             elif timeframe == "timeframe_yrs":
-                start = datetime.datetime.utcnow()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_mon'  
-            end = datetime.datetime.utcnow()
         else:
             regular_form.fields["timeframe"].initial = timeframe   
             return render_to_response('charts/stats.html', vars(), RequestContext(request))
@@ -153,8 +160,9 @@ def stats(request, timeframe_url):
     plotsettings = json.dumps(chart.chartOptions())
 
     #TODO: the next couple of lines are pretty ugly
-    stats = chart.getStatTable()
-    hd =str(start)+" - "+str(end)+" | "+str(period)
+    stat_items = chart.getStatItems()
+    ui_begin ="Beginn: "+start.strftime(chart._formatstring)
+    ui_end = "Ende: "+end.strftime(chart._formatstring)
     
     return render_to_response('charts/stats.html', vars(), RequestContext(request))
 

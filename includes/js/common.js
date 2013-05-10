@@ -78,3 +78,120 @@ function htmlDatePickerize(selector) {
 		}).datepicker("setDate", dateValue);
 	});
 }
+
+/*
+create the choices
+*/
+function update_period_choices(timeframe, set_current, period)
+{
+	if(set_current)
+		console.log("SET CURREN");
+
+	var hrsOptions = {
+	    "period_min" : "Minuetlich"
+	};
+
+	var dayOptions = {
+	    "period_min" : "Minuetlich",
+        "period_hrs" : "Stuendlich"
+	};
+
+	var monOptions = {
+        "period_hrs" : "Stuendlich",
+        "period_day" : "Taeglich"
+	};
+
+	var yrsOptions = {
+        "period_day" : "Taeglich",
+        "period_mon" : "Monatlich"
+	};
+
+	var cusOptions = {
+	    "period_min" : "Minuetlich",
+        "period_hrs" : "Stuendlich",
+        "period_day" : "Taeglich",
+        "period_mon" : "Monatlich",
+        "period_yrs" : "Jaehrlich"
+	};
+
+	var select = $('#id_period');
+	var options = select.prop('options');
+
+	$('option', select).remove();
+
+	if(timeframe == "timeframe_hrs")
+	{
+		$.each(hrsOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_min");
+		}else{
+			$('#id_period').val(period);
+		}
+	}else if(timeframe == "timeframe_day")
+	{
+		$.each(dayOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_hrs");
+		}else{
+			$('#id_period').val(period);
+		}
+	}else if(timeframe == "timeframe_mon")
+	{
+		$.each(monOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_day");
+		}else{
+			$('#id_period').val(period);
+		}
+	}else if(timeframe == "timeframe_yrs")
+	{
+		$.each(yrsOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_mon");
+		}else{
+			$('#id_period').val(period);
+		}
+	}
+	else if(timeframe == "timeframe_cus")
+	{
+		$.each(cusOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_day");
+		}else{
+			$('#id_period').val(period);
+		}
+	}
+}
+
+function check_custom_timeframe(set_current, period)
+{
+	console.log("sel");
+	var selected_timeframe = $("#id_timeframe option:selected").val();
+
+	if(selected_timeframe == "timeframe_cus"){
+		$(".custom_date_area").css("display", "block");
+	}else{
+		$(".custom_date_area").css("display", "none");
+		update_period_choices(selected_timeframe, set_current, period);
+	}
+}
