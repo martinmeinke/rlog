@@ -54,8 +54,11 @@ def liveData(request):
 
         chart = LiveChart(start, end)
         graphs = []
-
-        ticks = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+        ticks = None
+        if int(request.GET["timeframe"]) == 1440:
+            ticks = SolarEntryTick.objects.order_by('-time')
+        else:
+            ticks = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
 
         for device in Device.objects.distinct():
             chart.fetchTimeSeriesLiveView(device.id, ticks)

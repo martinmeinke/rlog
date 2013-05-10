@@ -110,8 +110,9 @@ class RLogDaemon(Daemon):
         try:
             self.mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
             self.mqttPublisher.startMQTT()
+            self.mqttPublisher.on_disconnect = lambda: self.mqttPublisher.startMQTT()
         except Exception as e:
-            log("mqtt 114:" + str(e))
+            log("mqtt start problem:" + str(e))
 
         log("looking for WR")
         self.findWR()
@@ -130,7 +131,7 @@ class RLogDaemon(Daemon):
         try:
             self.mqttPublisher.stopMQTT()
         except Exception as e:
-            log("mqtt 133:" + str(e))   
+            log("mqtt stop problem:" + str(e))   
     
     def discover_device(self):
         for device_id in range(0,100):

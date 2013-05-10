@@ -385,7 +385,7 @@ class Chart(object):
         try: # not sure if really works with old tables which do not match updated model
             for deviceID in devices:
                 ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).order_by('-lW')
                 items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))))
         except Exception as e:
@@ -395,9 +395,9 @@ class Chart(object):
         try: # i'm a chicken
             for deviceID in devices:
                 ticks = SolarEntryDay.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
-                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}W".format(round(ticks["lW__sum"]),2)))
+                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
         except Exception as e:
             print "total energy calculation failed", e
 
