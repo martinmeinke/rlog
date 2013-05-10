@@ -154,9 +154,10 @@ def stats(request, timeframe_url):
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
-        graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples})
+        graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples, "bars" : {"order" : str(i)}})
 
     timeseries = json.dumps(graphs)
+    print timeseries
     plotsettings = json.dumps(chart.chartOptions())
 
     #TODO: the next couple of lines are pretty ugly

@@ -25,6 +25,12 @@ class StatsItem(object):
 class Chart(object):
     locale.setlocale( locale.LC_ALL, 'de_DE')
 
+    SECONDS_PER_MINUTE = 60
+    SECONDS_PER_HOUR = SECONDS_PER_MINUTE * 60
+    SECONDS_PER_DAY = SECONDS_PER_HOUR * 24
+    SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
+    SECONDS_PER_YEAR = SECONDS_PER_MONTH * 12
+
     def __init__(self,pStartDate,pEndDate,pPeriod):
         '''
         Constructor
@@ -167,61 +173,73 @@ class Chart(object):
 
         return 0
 
-        '''
-        cursor = self.__conn.cursor()
-        subselect = ("("
-            "SELECT value "
-            "FROM reward b "
-            "WHERE time <= a.time "
-            "   ORDER BY time DESC "
-            "   LIMIT 1"
-            ")")
+    # basically we want to use bar charts. This is not always possible since the get too
+    # small when theres too much of them
+    # this is not a very nice solution but at least it works.
+    # TODO: consider performing this kind of tasks on the client machine, 
+    # maybe giving the decision in the users hand.
+    def use_line_chart(self):
+        maximum_ticks = len(self.__rowarray_list[self.getDeviceIDList()[0]])
 
-        q_string = (
-            "SELECT time ,SUM(lW)/360,SUM(lW*"+str(subselect)+"/360)"
-            "FROM " + self.TABLE_BASE + " a "
-            "WHERE time BETWEEN "+ str(self.__startdate) + " AND " + str(self.__enddate) +""
-                " GROUP BY strftime('" + self._formatstring + "',datetime(time, 'utc'),'localtime') "
-                " ORDER BY time ASC")
-        
-        self.__rowarray_list.update({deviceID : []})
+        #compute based on period + timeframe
+        delta = self.__enddate - self.__startdate
+        seconds = (delta.seconds + delta.days*60*60*24)
+        if self.__period == "period_min":
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_MINUTE)
+        elif self.__period == "period_hrs":
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_HOUR)
+        elif self.__period == "period_day":
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_DAY)
+        elif self.__period == "period_mon":
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_MONTH)
+        elif self.__period == "period_yrs":
+            maximum_ticks = max(maximum_ticks, seconds / Chart.SECONDS_PER_YEAR)
 
-        for row in cursor.execute(q_string):
-            self.__totalSupply+=row[1]
-            self.__rewardTotal+=row[2]
-            t = (int(row[0]) * 1000, row[1])
-            self.__rowarray_list[deviceID].append(t)
-        '''
+        return True if maximum_ticks > 35 else False
 
     def chartOptions(self):
         settings = {}
         settings["series"] = {}
-        #if len(self.__rowarray_list) > 0:
-        settings["series"]["lines"] = {"show" : "true", "steps" : "true"}
-        #settings["series"]["points"] = {"show" : "true"}
-        #else:
-        #settings["series"]["bars"] = {
-        #                "show": "true",
-        #                "align": "center",
-        #                "barWidth": self.barWidth()*self.__bar_scale_factor,
-        #                "fill": "true",
-        #                "fillColor": "rgba(255, 255, 255, 0.2)"}
+
+        if self.use_line_chart():
+            settings["series"]["lines"] = {"show" : "true"}
+            settings["series"]["points"] = {"show" : "true"}
+        else:
+            settings["series"]["bars"] = {
+                "show": "true",
+                "align": "left",
+                "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
+                "fill": "true",
+                "lineWidth": 1}
         
         settings["xaxis"] = {
-                "mode" : "time",
-                "timezone" : "UTC",
-                "timeformat" : self.__flot_formatstring,
-                "min" : self.jsonPlotBoundaries()[0],
-                "max" : self.jsonPlotBoundaries()[1]
+            "mode" : "time",
+            "timezone" : "UTC",
+            "timeformat" : self.__flot_formatstring,
+            "min" : self.jsonPlotBoundaries()[0],
+            "max" : self.jsonPlotBoundaries()[1],
+            "axisLabelUseCanvas": "true",
+            "axisLabelFontSizePixels": 14,
+            "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+            "axisLabelPadding": 10
+        }
+
+        settings["yaxis"] = {
+            "axisLabel": 'Eingespeiste Leistung [W]',
+            "axisLabelUseCanvas": "true",
+            "axisLabelFontSizePixels": 14,
+            "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
+            "axisLabelPadding": 10
         }
 
         settings["crosshair"] = {
-                "mode" : "x",
-                "color": "rgba(0, 170, 0, 0.80)"
+            "mode" : "x",
+            "color": "rgba(0, 170, 0, 0.80)"
         }
         settings["grid"] = {
-                "hoverable" : "true",
-                "autoHighlight" : "false"
+            "hoverable" : "true",
+            "autoHighlight" : "false",
+            "borderWidth": 1
         }
         settings["legend"] = {
             "backgroundOpacity" : "0.5"
@@ -242,6 +260,15 @@ class Chart(object):
     def jsonPlotBoundaries(self):
         json = self.__lBoundary,self.__rBoundary
         return json
+
+    #currently not used!
+    @staticmethod
+    def build_tick_array(self):
+        ticks = []
+        for i in self.__rowarray_list[self.getDeviceIDList()[0]]:
+            print i
+            ticks.append((i[0], "date"))
+        return ticks
     
     def getTimeSeriesLiveView(self, deviceID):
         return self.__rowarray_list_live[deviceID]
@@ -350,11 +377,7 @@ class Chart(object):
         except:
             pass
         
-        devices = []
-        distinct_devices = Device.objects.distinct()
-        for device in distinct_devices:
-            devices.append(device.id)
-        
+        devices = self.getDeviceIDList()
         items = []
         
         # TODO find a way to put that HTML into template
