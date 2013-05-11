@@ -285,13 +285,13 @@ class Chart(object):
                 ticks = SolarEntryDay.objects.filter(
                     time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
-                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}W".format(round(ticks["lW__sum"]),2)))
+                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
         except Exception as e:
             print "total energy calculation failed", e
 
         items.append(StatsItem("Beginn Zeitraum: ", bz))
         items.append(StatsItem("Ende Zeitraum: ", ez))
-        items.append(StatsItem("Insgesamt eingespeist: ", kws))
+        items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
         items.append(StatsItem("Durchschnitt / Periode", avgsp))
         items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
         items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
