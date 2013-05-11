@@ -403,7 +403,7 @@ class Chart(object):
 
         items.append(StatsItem("Beginn Zeitraum: ", bz))
         items.append(StatsItem("Ende Zeitraum: ", ez))
-        items.append(StatsItem("Insgesamt eingespeist: ", kws))
+        items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
         items.append(StatsItem("Durchschnitt / Periode", avgsp))
         items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
         items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
