@@ -387,7 +387,7 @@ class Chart(object):
                 ticks = SolarDailyMaxima.objects.filter(
                     time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).order_by('-lW')
-                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))))
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
         except Exception as e:
             print "maxima calculation failed", e
             
