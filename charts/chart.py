@@ -131,14 +131,8 @@ class Chart(object):
         for tick in ticks:
             self.__totalSupply += tick.lW
             self.__rewardTotal += self.get_reward_for_tick(tick)
-            t = None
-            if self.__period == "period_min" or self.__period == "period_hrs":
-                t = (calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW))
-            else:
-                t = (time.mktime(tick.time.timetuple()) * 1000, float(tick.lW))
-            self.__rowarray_list[deviceID].append(t)
-           # print t
-           # print vars(tick)
+            self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
+
         print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
 
         return 0
@@ -212,7 +206,8 @@ class Chart(object):
             "borderWidth": 1
         }
         settings["legend"] = {
-            "backgroundOpacity" : "0.5"
+            "backgroundOpacity" : "0.5",
+            "position" : "nw"
         }
 
         #some hacking, should be done a little bit nicer
@@ -273,9 +268,9 @@ class Chart(object):
         try: # not sure if really works with old tables which do not match updated model
             for deviceID in devices:
                 ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).order_by('-lW')
-                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))))
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
         except Exception as e:
             print "maxima calculation failed", e
             
@@ -283,7 +278,7 @@ class Chart(object):
         try: # i'm a chicken
             for deviceID in devices:
                 ticks = SolarEntryDay.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
+                    time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
                 items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
         except Exception as e:
