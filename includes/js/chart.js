@@ -112,11 +112,6 @@ function autoUpdateInitial(minutes)
 
 		if(!oneTimeStuffDone){
 		  oneTimeStuffDone = true;
-		  dataset = plot.getData();
-
-		  for(i = 0; i < dataset.length; i++){
-		    $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
-		  }
 
 	    $(".chart").bind("plothover",  function (event, pos, item) {
 	      latestPosition = pos;
@@ -257,9 +252,9 @@ function updateLegend() {
              newtimestamp += " Uhr";
 
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $("#crosshairdata").children()[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
+         $(".legendLabel")[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
-         $("#crosshairdata").children()[i].innerHTML = "Keine Daten vorhanden";
+         $(".legendLabel")[i].innerHTML = dataset[i].label + "Keine Daten vorhanden";
     }
     last_time_rendered = new Date().getTime();
 }
