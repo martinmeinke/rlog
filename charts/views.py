@@ -128,7 +128,7 @@ def stats(request, timeframe_url):
                 end = datetime.datetime.today()
                 period = 'period_min'
             elif timeframe == "timeframe_day":
-                start = datetime.datetime.today()+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.today()-relativedelta(hour=0, minute=0, second=0, microsecond=0)
                 end = start + relativedelta(hour = 23, minute = 59)
                 period = 'period_hrs'
             elif timeframe == "timeframe_mon":
@@ -151,13 +151,20 @@ def stats(request, timeframe_url):
     chart = Chart(start, end, period)
     graphs = []
 
+    #custom bar
+    #colors = ["","#FF0000", "#00FF00", "#0000FF"]
+    #"color":""+colors[i],
+
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
         graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples, "bars" : {"order" : str(i)}})
 
+    #sets the boundaries for plotting
+    chart.setChartBoundaries()
     timeseries = json.dumps(graphs)
-    print timeseries
+
+    #print timeseries
     plotsettings = json.dumps(chart.chartOptions())
 
     #TODO: the next couple of lines are pretty ugly

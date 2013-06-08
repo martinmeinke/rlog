@@ -28,7 +28,7 @@ BEGIN
 			FROM charts_solardailymaxima 	
 			WHERE device_id = new.device_id
 				AND lW >= new.lW
-            	AND time = strftime('%Y-%m-%d', new.time)), datetime('now'))
+            	AND time = strftime('%Y-%m-%d', new.time)), datetime('now', 'localtime'))
     );
 END;
 

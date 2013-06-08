@@ -70,20 +70,27 @@ class Chart(object):
             self._formatstring = "%Y"
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
-
-        lft = self.__startdate
-        rht = self.__enddate
-
-        print ""+str(lft)+" "+str(rht)
-
-#        self.__lBoundary = "new Date("+str(lft.year)+","+str(lft.month-1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second)+").getTime()"
-#        self.__lBoundary = "(new timezoneJS.Date(" + str(lft.year)+","+str(lft.month - 1)+","+str(lft.day)+","+str(lft.hour)+","+str(lft.minute)+","+str(lft.second) + ", 'Europe/Berlin')).getTime()"
-        self.__lBoundary = calendar.timegm(lft.timetuple()) * 1000
-#        self.__rBoundary = "new Date("+str(rht.year)+","+str(rht.month-1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second)+").getTime()"
-#        self.__rBoundary = "(new timezoneJS.Date(" +str(rht.year)+","+str(rht.month - 1)+","+str(rht.day)+","+str(rht.hour)+","+str(rht.minute)+","+str(rht.second) + ", 'Europe/Berlin')).getTime()"
-        self.__rBoundary = calendar.timegm(rht.timetuple()) * 1000
       
         print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
+
+    def setChartBoundaries(self):
+        shift_seconds = 0
+        if (not self.use_line_chart()):
+            num_vals = len(self.__rowarray_list[self.getDeviceIDList()[0]])
+            if self.__period == "period_min":
+                shift_seconds = self.SECONDS_PER_MINUTE / 2
+            elif self.__period == "period_hrs":
+                shift_seconds = self.SECONDS_PER_HOUR / 2
+            elif self.__period == "period_day":
+                shift_seconds = self.SECONDS_PER_DAY / 2
+            elif self.__period == "period_mon":
+                shift_seconds = self.SECONDS_PER_MONTH / 2
+            elif self.__period == "period_yrs":
+                shift_seconds = self.SECONDS_PER_YEAR / 2
+
+        self.__lBoundary = calendar.timegm(self.__startdate.timetuple()) * 1000 - shift_seconds * 1000
+        self.__rBoundary = calendar.timegm(self.__enddate.timetuple()) * 1000
+
 
     def getFeederReward(self, deviceID):
         ticks = SolarEntryTick.objects.extra(
@@ -189,7 +196,7 @@ class Chart(object):
         }
 
         settings["yaxis"] = {
-            "axisLabel": 'Eingespeiste Leistung [W]',
+            "axisLabel": 'Leistung [W]',
             "axisLabelUseCanvas": "true",
             "axisLabelFontSizePixels": 14,
             "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
@@ -231,7 +238,6 @@ class Chart(object):
     def build_tick_array(self):
         ticks = []
         for i in self.__rowarray_list[self.getDeviceIDList()[0]]:
-            print i
             ticks.append((i[0], "date"))
         return ticks
     
