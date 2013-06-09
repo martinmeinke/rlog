@@ -111,9 +111,12 @@ class mqtt():
     
     def loop(self):
         while self._client.loop(10) == 0:
-            if self.__publishQueue: # if publish queue is not empty
-                (topic, message, QoS, retain) = self.__publishQueue.pop(0)
-                self._client.publish(topic, message, QoS, retain)
+            if self.__connected:
+                if self.__publishQueue: # if publish queue is not empty
+                    (topic, message, QoS, retain) = self.__publishQueue.pop(0)
+                    self._client.publish(topic, message, QoS, retain)
+            else:
+                self._client.connect(self.__broker, self.__port, 60, True)
     
     def startMQTT(self):
         self._client = mosquitto.Mosquitto(self.clientID)
