@@ -11,6 +11,7 @@ class mqtt():
         self.__pendingUnsubscriptionsList = []
         self.__publishQueue = []
         self.__connected = False
+        self.__tryToConnect = False
         self.clientID = clientID
         if self.clientID == None:
             self.clientID = "PythonMQTTClient" + str(random.randint(0, 1000))
@@ -66,7 +67,8 @@ class mqtt():
         #rc 0 successful connect
         if rc == 0:
             print "MQTT Connected"
-            self.__connected = True;
+            self.__connected = True
+            self.__tryToConnect = False
             while(len(self.__pendingSubscriptionsList) != 0):
                 (topic, QoS) = self.__pendingSubscriptionsList.pop()
                 print "executing pending subscription to " + topic + " with QoS " + str(QoS)
@@ -115,8 +117,9 @@ class mqtt():
                 if self.__publishQueue: # if publish queue is not empty
                     (topic, message, QoS, retain) = self.__publishQueue.pop(0)
                     self._client.publish(topic, message, QoS, retain)
-            else:
+            elif not self.__tryToConnect:
                 self._client.connect(self.__broker, self.__port, 60, True)
+                self.__tryToConnect = True
     
     def startMQTT(self):
         self._client = mosquitto.Mosquitto(self.clientID)
@@ -129,6 +132,7 @@ class mqtt():
         self._client.on_message = self.__on_message
 
         #connect to broker
+        self.__tryToConnect = True
         if(self._client.connect(self.__broker, self.__port, 60, True) != 0):
             raise Exception("Can't connect to broker")
           
