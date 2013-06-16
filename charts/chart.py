@@ -136,11 +136,10 @@ class Chart(object):
         #print ticks
         
         for tick in ticks:
-            self.__totalSupply += tick.lW
             self.__rewardTotal += self.get_reward_for_tick(tick)
             self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
 
-        print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
+#        print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
 
         return 0
 
@@ -251,21 +250,6 @@ class Chart(object):
         bz = self.__startdate.strftime(self._formatstring)
         ez = self.__enddate.strftime(self._formatstring)
         
-        kws = round(self.__totalSupply,2)
-        avgsp = None
-        try:
-            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
-        except:
-            pass
-        
-        rwrdtotal = locale.currency(self.__rewardTotal/100)
-
-        avgrwrd = None
-        try:
-            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
-        except:
-            pass
-        
         devices = self.getDeviceIDList()
         items = []
         
@@ -287,8 +271,25 @@ class Chart(object):
                     time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
                 items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
+                self.__totalSupply += ticks["lW__sum"]
         except Exception as e:
             print "total energy calculation failed", e
+        
+        kws = round(self.__totalSupply, 2)
+        
+        avgsp = None
+        try:
+            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+        except:
+            pass
+        
+        rwrdtotal = locale.currency(self.__rewardTotal/100)
+
+        avgrwrd = None
+        try:
+            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
+        except:
+            pass
 
         items.append(StatsItem("Beginn Zeitraum: ", bz))
         items.append(StatsItem("Ende Zeitraum: ", ez))
