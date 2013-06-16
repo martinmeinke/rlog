@@ -1,26 +1,16 @@
 {% extends "charts/newframe.html" %}
+
+{% load static %}
+
+{% block scripts %}
+<script type="text/javascript" src="{% get_static_prefix %}js/paho.js"></script>
+<script type="text/javascript" src="{% get_static_prefix %}js/map.js"></script>
+{% endblock scripts %}
+    
+    
 {% block content %}
 <div class="container marketing">
-
-<!-- Three columns of text below the carousel -->
-<div class="row">
-  <div class="span4">
-    <img class="img-circle" data-src="holder.js/140x140">
-    <h2>Sollen</h2>
-    <p>So eine Art Übersichts seite machen?.</p>
-    <p><a class="btn" href="#">View details &raquo;</a></p>
-  </div><!-- /.span4 -->
-  <div class="span4">
-    <img class="img-circle" data-src="holder.js/140x140">
-    <h2>Wir</h2>
-    <p>So eine Art Solar Cockpit?.</p>
-    <p><a class="btn" href="#">View details &raquo;</a></p>
-  </div><!-- /.span4 -->
-  <div class="span4">
-    <img class="img-circle" data-src="holder.js/140x140">
-    <h2>Hier</h2>
-    <p>Mit wichtigen Daten auf einen Blick und links zu bestimmten Komponenten.</p>
-    <p><a class="btn" href="#">View details &raquo;</a></p>
-  </div><!-- /.span4 -->
-</div><!-- /.row -->
-{% endblock %}
+    <h2>All RLogs in the world</h2>
+    <div id="map" class="map"></div>
+</div>
+{% endblock content%}
