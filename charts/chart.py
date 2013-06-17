@@ -132,16 +132,18 @@ class Chart(object):
         
         self.__rowarray_list.update({deviceID : []})
 
-        #print ticks.query
-        #print ticks
-        
         for tick in ticks:
-            self.__rewardTotal += self.get_reward_for_tick(tick)
             self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
 
-#        print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
-
         return 0
+
+    def calc_total_reward(self):
+        self.__rewardTotal = 0
+        days = SolarEntryDay.objects.filter(
+                time__range=(self.__startdate, self.__enddate))
+
+        for day in days:
+            self.__rewardTotal += self.get_reward_for_tick(day)
 
     # basically we want to use bar charts. This is not always possible since the get too
     # small when theres too much of them
@@ -283,6 +285,7 @@ class Chart(object):
         except:
             pass
         
+        self.calc_total_reward()
         rwrdtotal = locale.currency(self.__rewardTotal/100)
 
         avgrwrd = None
