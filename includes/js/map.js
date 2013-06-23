@@ -1,9 +1,5 @@
 function RlogInstance(){
-    this.locationX = 0;
-    this.locationY = 0;
-    this.instanceName = "RLog";
-    this.ticks = [];
-    this.type = null;
+    this.controls = {};
 }; 
  
 /* BASE APPLICATION LOGIC & MQTT EVENT HANDLING */
@@ -17,7 +13,7 @@ function Map(){
       self.connect(); 
     };
     this.connect = function(){
-      self.mqttClient = new Messaging.Client("192.168.8.34", 1337, "rlog-web-"+Math.random().toString(36).substring(6));
+      self.mqttClient = new Messaging.Client("localhost", 18883, "rlog-web-"+Math.random().toString(36).substring(6));
       self.mqttClient.onConnectionLost = self.connectionLost;
       self.mqttClient.onMessageArrived = self.messageArrived;
       self.mqttClient.connect({onSuccess:self.connected});
@@ -50,22 +46,25 @@ function Map(){
       var topic = message.destinationName.split("/");
       console.log("-----------RECEIVED-----------\nReceived: "+topic+":"+payload);
       var instance = self.RlogInstances[topic[2]];
-      if (!instance)
+      if (!instance){
         instance = new RlogInstance();
         console.log("made new instance");
+      }
       if(topic[3] == "controls") {
+        // Control value
         if (topic[4] && !topic[5]) {
-            instance.ticks.push([topic[4], payload]);             // Control value
+            !instance.controls[topic[4]] ? instance.controls[topic[4]] = {"value" : payload} : instance.controls[topic[4]].value = payload;
             self.RlogInstances[topic[2]] = instance; 
         }
-        if(topic[5] == "meta" && topic[6] == "type"){                  
-          instance.type = payload;                                // Control type
+        // Control meta
+        if(topic[5] == "meta"){       
+          !instance.controls[topic[4]] ? instance.controls[topic[4]] = {} : instance.controls[topic[4]][topic[6]] = payload;
+          instance.controls[topic[4]][topic[6]] = payload;           
           self.RlogInstances[topic[2]] = instance;
         }
-      } else if(topic[3] == "meta" ) { 
-          if(topic[4] == "name")                                  // Device name
-          instance.instanceName =  payload;
-          self.RlogInstances[topic[2]] = instance;
+      // Device meta
+      } else if(topic[3] == "meta"){                                 
+        instance[topic[4]] = payload;
       }
     };
 };
