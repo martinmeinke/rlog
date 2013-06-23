@@ -1,5 +1,5 @@
 {% extends "charts/newframe.html" %}
-
+{% load i18n %}
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
@@ -12,11 +12,11 @@ $(document).ready(function() {
   {% csrf_token %}
 	<select name="live_timeframe" id="live_timeframe" 
   onchange="autoUpdateInitial(this.options[this.selectedIndex].value)" class="selectpicker">
-      <option value="5">5 Minutes</option>
-      <option selected=selected value="15">15 Minutes</option>
-      <option value="30">30 Minutes</option>
-      <option value="60">1 Hour</option>
-      <option value="1440">Heute</option>
+      <option value="5">{% trans "5 Minutes" %}</option>
+      <option selected=selected value="15">{% trans "15 Minutes" %}</option>
+      <option value="30">{% trans "30 Minutes" %}</option>
+      <option value="60">{% trans "1 Hour" %}</option>
+      <option value="1440">{% trans "Heute" %}</option>
     </select>
   </div>
 </form>
