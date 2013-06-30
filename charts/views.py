@@ -13,6 +13,7 @@ from django.template import RequestContext
 from charts.models import Device
 from charts.models import SolarEntryTick
 import calendar
+from django.utils.translation import ugettext as _
 
 def index(request):
     return live(request)
@@ -161,7 +162,7 @@ def stats(request, timeframe_url):
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
-        graphs.append({"label":"Einspeisung WR"+str(i), "data":timetuples, "bars" : {"order" : str(i)}})
+        graphs.append({"label":_("Einspeisung WR"+str(i)), "data":timetuples, "bars" : {"order" : str(i)}})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()
@@ -172,8 +173,8 @@ def stats(request, timeframe_url):
 
     #TODO: the next couple of lines are pretty ugly
     stat_items = chart.getStatItems()
-    ui_begin ="Beginn: "+start.strftime(chart._formatstring)
-    ui_end = "Ende: "+end.strftime(chart._formatstring)
+    ui_begin = _("Begin: "+start.strftime(chart._formatstring))
+    ui_end = _("End: "+end.strftime(chart._formatstring))
     
     return render_to_response('charts/stats.html', vars(), RequestContext(request))
 

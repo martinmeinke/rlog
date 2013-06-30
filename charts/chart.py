@@ -54,26 +54,18 @@ class Chart(object):
             self._formatstring = "%d.%m.%Y %H:%M"
             self.__flot_formatstring = "%H:%M"
             self.__barwidth = 1000*60
-            lft = self.__startdate+datetime.timedelta(minutes=-1)
-            rht = self.__enddate+datetime.timedelta(minutes=1)
         elif self.__period == "period_hrs":
             self._formatstring = "%d.%m.%Y %H Uhr"
             self.__flot_formatstring = "%H Uhr"
             self.__barwidth = 1000*60*60
-            lft = self.__startdate+datetime.timedelta(hours=-1)
-            rht = self.__enddate+datetime.timedelta(hours=1)
         elif self.__period == "period_day":
             self._formatstring = "%d.%m.%Y"
             self.__flot_formatstring = "%d.%m"
             self.__barwidth = 1000*60*60*24
-            lft = self.__startdate+datetime.timedelta(days=-1)
-            rht = self.__enddate+datetime.timedelta(days=1)
         elif self.__period == "period_mon":
             self._formatstring = "%m/%Y"
             self.__flot_formatstring = "%m/%Y"
             self.__barwidth = 1000*60*60*24*30
-            lft = self.__startdate+relativedelta(months=-1)
-            rht = self.__enddate+relativedelta(months=1)
         elif self.__period == "period_yrs":
             self._formatstring = "%Y"
             self.__flot_formatstring = "%Y"
@@ -137,41 +129,21 @@ class Chart(object):
             ticks = SolarEntryYear.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
                 device = str(deviceID))
-
-        #ticks = SolarEntryTick.objects.extra(
-        #    select={
-        #        "groupkey":"strftime('" + self._formatstring + "', datetime(time, 'utc'),'localtime')",
-        #    }
-        #).filter(
-        #    time__range=(self.__startdate, self.__enddate), 
-        #    device = str(deviceID)
-        #)
-
-        #tick_groups = {}
-
-        #groups = groupby(ticks, lambda x: x.groupkey)
-        #for key, group in groups: 
-        #    tick_groups[key] = TickGroup(key, group)
-        #    tick_groups[key]["lW"] = 0
-        #    for tick in group:
-        #        print "A %s is in %s." % (tick.groupkey, key)
-        #        tick_groups[key]["lW"] += tick.lW
-        #    print " "
         
         self.__rowarray_list.update({deviceID : []})
 
-        #print ticks.query
-        #print ticks
-
-        #import pdb; pdb.set_trace()
-        
         for tick in ticks:
-            self.__rewardTotal += self.get_reward_for_tick(tick)
             self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
 
-#        print "start", self.__startdate, calendar.timegm(self.__startdate.timetuple()) * 1000, "end", self.__enddate, calendar.timegm(self.__enddate.timetuple()) * 1000
-
         return 0
+
+    def calc_total_reward(self):
+        self.__rewardTotal = 0
+        days = SolarEntryDay.objects.filter(
+                time__range=(self.__startdate, self.__enddate))
+
+        for day in days:
+            self.__rewardTotal += self.get_reward_for_tick(day)
 
     # basically we want to use bar charts. This is not always possible since the get too
     # small when theres too much of them
@@ -276,88 +248,6 @@ class Chart(object):
     def getTimeSeries(self, deviceID):
         return self.__rowarray_list[deviceID]
 
-    def getStatTable(self):
-        bz = self.__startdate.strftime(self._formatstring)
-        ez = self.__enddate.strftime(self._formatstring)
-        
-        kws = round(self.__totalSupply,2)
-        avgsp = None
-        try:
-            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
-        except:
-            pass
-        
-        rwrdtotal = locale.currency(self.__rewardTotal/100)
-
-        avgrwrd = None
-        try:
-            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
-        except:
-            pass
-        
-        devices = []
-        distinct_devices = Device.objects.distinct()
-        for device in distinct_devices:
-            devices.append(device.id)
-        
-        # TODO find a way to put that HTML into template
-        maximaHTML = ""
-        try: # not sure if really works with old tables which do not match updated model
-            for deviceID in devices:
-                ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
-                    device = deviceID).order_by('-lW')
-                maximaHTML += """<tr>
-                        <td><strong>Maximum WR {0}:</strong></td>
-                        <td>{1}W ({2})</td>
-                    </tr>""".format(deviceID, ticks[0].lW, datetime.datetime.fromtimestamp(calendar.timegm(ticks[0].exacttime.timetuple())))
-        except Exception as e:
-            print "maxima calculation failed", e
-            
-        single = ""
-        try: # i'm a chicken
-            for deviceID in devices:
-                ticks = SolarEntryDay.objects.filter(
-                    time__range=(datetime.datetime.fromtimestamp(calendar.timegm(self.__startdate.timetuple())), self.__enddate), 
-                    device = deviceID).aggregate(Sum('lW'))
-                single += """<tr>
-                        <td><strong>Einspeisung WR {0}:</strong></td>
-                        <td>{1}Wh</td>
-                    </tr>""".format(deviceID, round(ticks["lW__sum"], 2))
-        except Exception as e:
-            print "total energy calculation failed", e
-        
-        #TODO: split this up in several methods and move HTML to template
-        table = """<table class="table table-striped">
-                <tr>
-                    <td><strong>Beginn Zeitraum:</strong></td>
-                    <td>%(bz)s</td>
-                </tr>
-                <tr>
-                    <td><strong>Ende Zeitraum:</strong></td>
-                    <td>%(ez)s</td>
-                </tr>
-                %(single)s
-                <tr>
-                    <td><strong>insgesamt eingespeist:</strong></td>
-                    <td>%(kws)sWh</td>
-                </tr>
-                <tr>
-                    <td><strong>Durchschnitt / Periode</strong></td>
-                    <td>%(avgsp)sW</td>
-                </tr>
-                %(maximaHTML)s
-                <tr>
-                    <td><strong>Einspeiseverguetung</strong></td>
-                    <td>%(rwrdtotal)s</td>
-                </tr>
-                <tr>
-                    <td><strong>Durchschnittleiche Einspeisevergütung</strong></td>
-                    <td>%(avgrwrd)s</td>
-                </tr>
-            </table>""" % vars()
-        return table
-
     def getStatItems(self):
         bz = self.__startdate.strftime(self._formatstring)
         ez = self.__enddate.strftime(self._formatstring)
@@ -395,6 +285,7 @@ class Chart(object):
         except:
             pass
         
+        self.calc_total_reward()
         rwrdtotal = locale.currency(self.__rewardTotal/100)
 
         avgrwrd = None

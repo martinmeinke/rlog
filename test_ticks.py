@@ -5,7 +5,7 @@ import mqtt
 
 db_connection = sqlite3.connect("sensor.db")
 db_cursor  = db_connection.cursor()
-MQTT_HOST = "localhost"
+MQTT_HOST = "192.168.8.157"
 
 print "starting MQTT"
 try:
@@ -34,4 +34,4 @@ while True:
         except sqlite3.OperationalError as ex:
             print "Database is locked or some other DB error!"
             print str(type(ex))+str(ex)
-	time.sleep(10)
+	time.sleep(5)
