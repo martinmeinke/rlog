@@ -213,7 +213,14 @@ body {
   letter-spacing: -1px;
 }
 
+#mapDiv{
+    width: 100%;
+    height: 600px;
+}
 
+#mapContainer{    
+    margin-bottom: 20px;
+}
 
 /* RESPONSIVE CSS
 -------------------------------------------------- */
@@ -294,5 +301,4 @@ body {
     font-size: 18px;
     line-height: 1.5;
   }
-
 }
