@@ -8,11 +8,11 @@ function Map(containerName){
     this.mqttClient = undefined;
     this.RlogInstances = {};
     this.openlayersMap = undefined;
+    var vectorLayer = undefined;
     this.initOpenLayersMap = function(containerName){
         OpenLayers.ImgPath = "/static/img/OpenLayers/";
         this.openlayersMap = new OpenLayers.Map(document.getElementById(containerName), {allOverlays: true, theme: "/static/css/OpenLayers/style.css"});
-        this.openlayersMap.addControl(new OpenLayers.Control.LayerSwitcher());
-        
+             
         // the SATELLITE layer has all 22 zoom level, so we add it first to
         // become the internal base layer that determines the zoom levels of the
         // map.
@@ -41,7 +41,52 @@ function Map(containerName){
                                     .transform(new OpenLayers.Projection("EPSG:4326"), 
                                                this.openlayersMap.getProjectionObject())
                                 , 5);
+                                
+        this.vectorLayer = new OpenLayers.Layer.Vector("Overlay");
+    
+               
+        this.openlayersMap.addLayer(this.vectorLayer);
+     
+            //Add a selector control to the vectorLayer with popup functions
+            var controls = {
+                layerSwitcher: new OpenLayers.Control.LayerSwitcher(),
+                selector: new OpenLayers.Control.SelectFeature(self.vectorLayer, { onSelect: createPopup, onUnselect: destroyPopup })
+            };
+        
+
+        function createPopup(feature) {
+          feature.popup = new OpenLayers.Popup.FramedCloud("pop",
+              feature.geometry.getBounds().getCenterLonLat(),
+              null,
+              self.generatePopupText(feature.attributes.rlog),
+              null,
+              true,
+              function() { controls['selector'].unselectAll(); }
+          );
+          //feature.popup.closeOnMove = true;
+          self.openlayersMap.addPopup(feature.popup);
+        }
+
+        function destroyPopup(feature) {
+          feature.popup.destroy();
+          feature.popup = null;
+        }
+    
+        this.openlayersMap.addControl(controls['selector']);
+        this.openlayersMap.addControl(controls['layerSwitcher']);
+        controls['selector'].activate();
+        controls['layerSwitcher'].activate();
     };
+    
+    
+    this.generatePopupText = function(rlog){
+      var text = '<div class="markerContent"><h2>' + rlog.name + "</h2><p>";
+      for(var control in rlog.controls)
+        text += control + " : " + rlog.controls[control].value + "W<br>";
+      text += "</p></div>";
+      return text;
+    };
+    
     this.reconnect = function(){
       console.log("Reconnecting");
       self.disconnect();
@@ -79,11 +124,10 @@ function Map(containerName){
 
       var payload = message.payloadString;
       var topic = message.destinationName.split("/");
-      console.log("-----------RECEIVED-----------\nReceived: "+topic+":"+payload);
+//      console.log("-----------RECEIVED-----------\nReceived: "+topic+":"+payload);
       var instance = self.RlogInstances[topic[2]];
       if (!instance){
-        instance = new RlogInstance();
-        console.log("made new instance");
+        instance = new RlogInstance();        
       }
       if(topic[3] == "controls") {
         // Control value
@@ -101,7 +145,18 @@ function Map(containerName){
       } else if(topic[3] == "meta"){                                 
         instance[topic[4]] = payload;
       }
-      console.log("this is the new / updated one:", instance);
+      if(instance.locationX && instance.locationY){
+        if(!instance.openLayersFeature){
+            instance.openLayersFeature = new OpenLayers.Feature.Vector(
+                new OpenLayers.Geometry.Point(parseFloat(instance.locationX), parseFloat(instance.locationY)).transform(new OpenLayers.Projection("EPSG:4326"), self.openlayersMap.getProjectionObject()),
+                {rlog: instance} ,
+                {externalGraphic: '/static/img/OpenLayers/marker.png', graphicHeight: 25, graphicWidth: 21, graphicXOffset:-12, graphicYOffset:-25  }
+            );    
+            self.vectorLayer.addFeatures(instance.openLayersFeature);
+         } else if(instance.openLayersFeature.popup){
+            instance.openLayersFeature.popup.setContentHTML(self.generatePopupText(instance));
+         }
+      }
     };
     this.initOpenLayersMap(containerName);
 };

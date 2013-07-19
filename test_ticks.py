@@ -11,9 +11,9 @@ print "starting MQTT"
 try:
     mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
     mqttPublisher.startMQTT()
-    mqttPublisher.publish("/devices/RLog/meta/name", "Rlog", 0, True)
-    mqttPublisher.publish("/devices/RLog/meta/locationX", "12.743216", 0, True)
-    mqttPublisher.publish("/devices/RLog/meta/locationY", "52.364521", 0, True)
+    mqttPublisher.publish("/devices/RlogDummy/meta/name", "RlogDummy", 0, True)
+    mqttPublisher.publish("/devices/RlogDummy/meta/locationX", "9.226256", 0, True)
+    mqttPublisher.publish("/devices/RlogDummy/meta/locationY", "48.80254", 0, True)
 except Exception as e:
     print "mqtt start problem:" + str(e)
 
@@ -23,8 +23,8 @@ while True:
         rand = random.randint(80, 120) * dId
         statements.append([dId, 1, 1, 1, 1, 1, rand, 10, 500])
         try:
-            mqttPublisher.publish("/devices/RLog/controls/WR (" + str(dId) + ")/meta/type", "text", 0, True)
-            mqttPublisher.publish("/devices/RLog/controls/WR (" + str(dId) + ")", str(rand), 0, True)
+            mqttPublisher.publish("/devices/RlogDummy/controls/WR (" + str(dId) + ")/meta/type", "text", 0, True)
+            mqttPublisher.publish("/devices/RlogDummy/controls/WR (" + str(dId) + ")", str(rand), 0, True)
         except Exception as e:
             print "line 25", str(e)
     if statements:
