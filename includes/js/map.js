@@ -13,9 +13,7 @@ function Map(containerName){
         OpenLayers.ImgPath = "/static/img/OpenLayers/";
         this.openlayersMap = new OpenLayers.Map(document.getElementById(containerName), {allOverlays: true, theme: "/static/css/OpenLayers/style.css"});
              
-        // the SATELLITE layer has all 22 zoom level, so we add it first to
-        // become the internal base layer that determines the zoom levels of the
-        // map.
+
         var gsat = new OpenLayers.Layer.Google(
             "Google Satellite",
             {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 22, visibility: false}
@@ -47,11 +45,11 @@ function Map(containerName){
                
         this.openlayersMap.addLayer(this.vectorLayer);
      
-            //Add a selector control to the vectorLayer with popup functions
-            var controls = {
-                layerSwitcher: new OpenLayers.Control.LayerSwitcher(),
-                selector: new OpenLayers.Control.SelectFeature(self.vectorLayer, { onSelect: createPopup, onUnselect: destroyPopup })
-            };
+        //Add a selector control to the vectorLayer with popup functions
+        var controls = {
+            layerSwitcher: new OpenLayers.Control.LayerSwitcher(),
+            selector: new OpenLayers.Control.SelectFeature(self.vectorLayer, { onSelect: createPopup, onUnselect: destroyPopup })
+        };
         
 
         function createPopup(feature) {
