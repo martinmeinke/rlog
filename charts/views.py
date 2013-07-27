@@ -64,7 +64,7 @@ def liveData(request):
         for device in Device.objects.distinct():
             chart.fetchTimeSeriesLiveView(device.id, ticks)
             timetuples = chart.getTimeSeriesLiveView(device.id)
-            label = "Einspeisung WR %s (ID: %s)" % (device.model, device.id)
+            label = "Erzeugung WR %s (ID: %s)" % (device.model, device.id)
             graphs.append({"label": label, "data":timetuples})
 
         timeseries = json.dumps(graphs)
@@ -162,7 +162,7 @@ def stats(request, timeframe_url):
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
-        graphs.append({"label":_("Einspeisung WR"+str(i)), "data":timetuples, "bars" : {"order" : str(i)}})
+        graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "bars" : {"order" : str(i)}})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()

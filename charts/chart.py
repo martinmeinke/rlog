@@ -197,7 +197,7 @@ class Chart(object):
         }
 
         settings["yaxis"] = {
-            "axisLabel": 'Leistung [W]',
+            "axisLabel": 'Energie [Wh]',
             "axisLabelUseCanvas": "true",
             "axisLabelFontSizePixels": 14,
             "axisLabelFontFamily": 'Verdana, Arial, Helvetica, Tahoma, sans-serif',
@@ -272,7 +272,7 @@ class Chart(object):
                 ticks = SolarEntryDay.objects.filter(
                     time__range=(self.__startdate, self.__enddate), 
                     device = deviceID).aggregate(Sum('lW'))
-                items.append(StatsItem("Einspeisung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
+                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
                 self.__totalSupply += ticks["lW__sum"]
         except Exception as e:
             print "total energy calculation failed", e
