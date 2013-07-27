@@ -22,7 +22,7 @@ PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
 DEBUG_SERIAL_PORT = "/dev/pts/7"
-MQTT_HOST = "192.168.8.34"
+MQTT_HOST = "192.168.8.157"
 
 def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))

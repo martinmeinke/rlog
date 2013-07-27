@@ -38,7 +38,7 @@ class mqtt():
         self.__publishQueue.append((topic, message, QoS, retain));
     
     # override this methods to add your functionality
-    def on_connect(self, rc):
+    def on_connect(self, user_data, rc):
 #        print "on_connect", rc
         pass
     
@@ -54,7 +54,7 @@ class mqtt():
 #        print "on_unsubscribe", mid
         pass
     
-    def on_publish(self, mid):
+    def on_publish(self, stuff, mid):
 #        print "on_publish", mid
         pass
             
@@ -63,7 +63,7 @@ class mqtt():
         pass
 
     # actual MQTT callbacks
-    def __on_connect(self, mosquitto_instance, rc):
+    def __on_connect(self, mosquitto_instance, user_data, rc):
         #rc 0 successful connect
         if rc == 0:
             print "MQTT Connected"
@@ -77,7 +77,7 @@ class mqtt():
                 topic = self.__pendingUnsubscriptionsList.pop()
                 print "executing pending unsubscription from " + topic
                 self.unsubscribe(topic)
-            self.on_connect(rc)
+            self.on_connect(user_data, rc)
         else:
             print "We have an error here.\nERROR CODE IS " + rc + "\nCleaning up ..."
             self.__cleanup()
@@ -93,8 +93,8 @@ class mqtt():
     def __on_unsubscribe(self,mosquitto_instance, mid):
         self.on_unsubscribe(mid)
     
-    def __on_publish(self, mosquitto_instance, mid):
-        self.on_publish(mid)
+    def __on_publish(self, mosquitto_instance, stuff, mid):
+        self.on_publish(stuff, mid)
     
     def __on_message(self, mosquitto_instance, message):
         self.on_message(message)
