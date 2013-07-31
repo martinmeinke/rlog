@@ -111,7 +111,7 @@ class mqtt():
     def loop(self):
         print "starting mqtt loop"
         while self._client.loop(10) == 0:
-                if self.__publishQueue: # if publish queue is not empty
+                while self.__publishQueue: # if publish queue is not empty
                     (topic, message, QoS, retain) = self.__publishQueue.pop(0)
                     self._client.publish(topic, message, QoS, retain)
         print "connection lost. try to restart"

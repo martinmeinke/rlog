@@ -38,32 +38,32 @@ class mqtt():
         self.__publishQueue.append((topic, message, QoS, retain));
     
     # override this methods to add your functionality
-    def on_connect(self, rc):
-#        print "on_connect", rc
+    def on_connect(self, obj, rc):
+#        print "on_connect",obj, rc
         pass
     
-    def on_disconnect(rc):
+    def on_disconnect(self, obj, rc):
 #        print "on_disconnect"
         pass
             
-    def on_subscribe(self, mid, qos_list):
+    def on_subscribe(self, obj, mid, qos_list):
 #        print "on_subscribe", mid, qos_list
         pass
         
-    def on_unsubscribe(self, mid):
+    def on_unsubscribe(self, obj, mid):
 #        print "on_unsubscribe", mid
         pass
     
-    def on_publish(self, mid):
+    def on_publish(self, obj, mid):
 #        print "on_publish", mid
         pass
             
-    def on_message(self, msg):
+    def on_message(self, obj, msg):
 #        print "Message received on topic " + msg.topic + " with QoS " + str(msg.qos) + " and payload " + msg.payload
         pass
 
     # actual MQTT callbacks
-    def __on_connect(self, mosquitto_instance, rc):
+    def __on_connect(self, mosquitto_instance, obj, rc):
         #rc 0 successful connect
         if rc == 0:
             print "MQTT Connected"
@@ -77,27 +77,27 @@ class mqtt():
                 topic = self.__pendingUnsubscriptionsList.pop()
                 print "executing pending unsubscription from " + topic
                 self.unsubscribe(topic)
-            self.on_connect(rc)
+            self.on_connect(obj, rc)
         else:
             print "We have an error here.\nERROR CODE IS " + rc + "\nCleaning up ..."
             self.__cleanup()
                   
-    def __on_disconnect(self, mosquitto_instance, rc):
+    def __on_disconnect(self, mosquitto_instance, obj, rc):
         self.__connected = False
         print "Disconnected successfully. Return Code:", rc
-        self.on_disconnect(rc)
+        self.on_disconnect(obj, rc)
             
-    def __on_subscribe(self, mosquitto_instance, mid, qos_list):
-        self.on_subscribe(mid, qos_list)
+    def __on_subscribe(self, mosquitto_instance, obj, mid, qos_list):
+        self.on_subscribe(obj, mid, qos_list)
     
     def __on_unsubscribe(self,mosquitto_instance, mid):
-        self.on_unsubscribe(mid)
+        self.on_unsubscribe(obj, mid)
     
-    def __on_publish(self, mosquitto_instance, mid):
-        self.on_publish(mid)
+    def __on_publish(self, mosquitto_instance, obj, mid):
+        self.on_publish(obj, mid)
     
-    def __on_message(self, mosquitto_instance, message):
-        self.on_message(message)
+    def __on_message(self, mosquitto_instance, obj, message):
+        self.on_message(obj, message)
 
     #called on exit
     # disconnect MQTT and clean up subscriptions
