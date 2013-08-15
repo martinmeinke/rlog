@@ -223,7 +223,7 @@ class RLogDaemon(Daemon):
             self._serial_port.flush()
             daten = self.read_line()
             if len(daten) != 66: # so lang sind meine daten normalerweise
-              log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
+              # log("read data with invalid length (" + str(len(daten)) + ") from WR " + str(device_id_raw) + " (" + daten + ")")
               return None
             else:
               return daten
@@ -298,7 +298,7 @@ class RLogDaemon(Daemon):
                 try:
                     self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device_id) + ")", tmp[-3], 0, True)
                 except Exception as e:
-                    log("mqtt 298:" + str(e) + tmp[-3])
+                    log("mqtt 301:" + str(e) + tmp[-3])
                 i = i + 1
                 if DEBUG_ENABLED:
                   log("adding: "+ ", ".join(tmp) + " to transaction")
