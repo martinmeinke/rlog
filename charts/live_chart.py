@@ -25,8 +25,8 @@ class LiveChart(object):
         '''
         Constructor
         '''
-        LiveChart.log = logging.getLogger("test")
-        LiveChart.log.info("""Start: %s\nEnd: %s\n Period:ticks""" % (pStartDate,pEndDate))
+        #LiveChart.log = logging.getLogger("test")
+        #LiveChart.log.info("""Start: %s\nEnd: %s\n Period:ticks""" % (pStartDate,pEndDate))
 
         self.__conn = sqlite3.connect(settings.DATABASES['default']['NAME'])
         self.__rowarray_list_live = {}
@@ -37,7 +37,7 @@ class LiveChart(object):
         self.__rht = pEndDate
 
     def fetchTimeSeriesLiveView(self, deviceID, ticks):
-        print self.__lft, self.__rht
+        #print self.__lft, self.__rht
         #ticks = SolarEntryTick.objects.filter(time__range=(self.__lft, self.__rht), device = str(deviceID)).order_by('-time')
         self.__rowarray_list_live.update({deviceID : []})
 

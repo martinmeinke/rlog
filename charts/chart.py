@@ -71,7 +71,7 @@ class Chart(object):
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
       
-        print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
+        # print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
 
     def setChartBoundaries(self):
         shift_seconds = 0
