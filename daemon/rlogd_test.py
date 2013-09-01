@@ -15,7 +15,6 @@ import sys, time, datetime
 import string
 from daemon import Daemon
 import argparse
-from sets import Set
 
 DEBUG_ENABLED = True
 DEBUG_SERIAL = False
@@ -63,7 +62,7 @@ class RLogDaemon(Daemon):
     def __init__(self,pidfile):
         super(RLogDaemon, self).__init__(pidfile)
         self._serial_port = None
-        self._slaves = Set()
+        self._slaves = []
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
         self._current_discovery_id = 0
@@ -271,24 +270,28 @@ class RLogDaemon(Daemon):
             log("Device %d answered %s " % (device_id, typ))
 
             new_wr = {"device_id" : device_id, "type" : typ.split()[1]}
-            self._slaves.add(new_wr) 
+
+            if not device_id in [x["device_id"] for x in self._slaves]:
+                self._slaves.append(new_wr) 
 
             if DEBUG_ENABLED:           
                 log(new_wr)
 
             time.sleep(0.33)
         else: # if it didn't answer on type request it gets another chance and is asked for data this time ...
-           data = self.request_data_from_device(device_id)
-           if data != None and self.check_daten(data):
-               log("Device %d answered %s " % (device_id, data))
+            data = self.request_data_from_device(device_id)
+            if data != None and self.check_daten(data):
+                log("Device %d answered %s " % (device_id, data))
 
-               new_wr = {"device_id" : device_id, "type" : data.split()[-1]}
-               self._slaves.add(new_wr)
+                new_wr = {"device_id" : device_id, "type" : data.split()[-1]}
 
-               if DEBUG_ENABLED:           
-                  log(new_wr)
+                if not device_id in [x["device_id"] for x in self._slaves]:
+                    self._slaves.append(new_wr)
 
-               time.sleep(0.33)
+                if DEBUG_ENABLED:           
+                    log(new_wr)
+
+                time.sleep(0.33)
 
         if new_wr != None:
             try:
