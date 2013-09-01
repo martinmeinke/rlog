@@ -16,7 +16,7 @@ import string
 from daemon import Daemon
 import argparse
 
-DEBUG_ENABLED = True
+DEBUG_ENABLED = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
