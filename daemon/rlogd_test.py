@@ -115,16 +115,24 @@ class RLogDaemon(Daemon):
             while True:
                 t1 = time.time()
                 self.poll_devices()
+                t15 = time.time()
                 self.run_discovery_if_required()
                 t2 = time.time()
+                
+                if DEBUG_ENABLED:
+                    log("befor poll: {0}\nafter poll: {1}\n after discovery: {2}".format(t1, t15, t2))
+
                 self.sleep_to_delay(t1, t2)
 
-            self._serial_port.close();
         else:
             sys.exit(1)
     
     def run_discovery_if_required(self):
         self._discovery_credit -= 1
+
+        if DEBUG_ENABLED:
+            log("Discovery credit is now: "+str(self._discovery_credit))
+
         if self._discovery_credit <= 0:
             self.findWR(self._current_discovery_id)
             self._current_discovery_id += 1
@@ -132,10 +140,14 @@ class RLogDaemon(Daemon):
             self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
 
     def sleep_to_delay(self, t1, t2):
+        if DEBUG_ENABLED:
+            log("poll delay is : "+str(RLogDaemon.DELAY))
+
         sleepduration = RLogDaemon.DELAY-(t2-t1)
-        if sleepduration < 0:
+
+        if sleepduration <= 0:
           log("Timing problem (discovery?): %f" % sleepduration)
-        if sleepduration > 0:
+        else:
           time.sleep(sleepduration)
 
     #assume the first device starting with DEVICE_NAME_BASE is the rs485 adapter
