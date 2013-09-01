@@ -24,24 +24,24 @@ CREATE TRIGGER update_minutely AFTER INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryminute (time, exacttime, device_id, lW) 
 	VALUES (
-		strftime('%Y-%m-%d %H:%M:00', 'now'), 		
-		strftime('%Y-%m-%d %H:%M:%S', 'now'), 
+		strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'), 		
+		strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), 
 		new.device_id,
 		COALESCE(
 	            (select lW 
 	                * (select CAST(strftime('%S', exacttime) AS FLOAT)/60
 	                    from charts_solarentryminute 
 	                    where device_id = new.device_id 
-	                        AND time = strftime('%Y-%m-%d %H:%M:00', 'now'))
+	                        AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
 	                        
 	                + (select (60 - CAST(strftime('%S', exacttime) AS FLOAT))/60 * (new.lW/60)
                         from charts_solarentryminute 
                         where device_id = new.device_id 
-                            AND time = strftime('%Y-%m-%d %H:%M:00', 'now'))
+                            AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
                             
 		            from charts_solarentryminute 
 		            where device_id = new.device_id 
-		                AND time = strftime('%Y-%m-%d %H:%M:00', 'now')
+		                AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime')
 		        )
 		    ,
 		    new.lW/60.0) -- no data for this minute yet available
@@ -66,7 +66,7 @@ BEGIN
 			FROM charts_solardailymaxima 	
 			WHERE device_id = new.device_id
 				AND lW >= new.lW
-            	AND time = strftime('%Y-%m-%d', new.time)), datetime('now'))
+            	AND time = strftime('%Y-%m-%d', new.time)), datetime('now', 'localtime'))
     );
 END;
 
@@ -74,12 +74,12 @@ CREATE TRIGGER update_hourly AFTER INSERT ON charts_solarentryminute
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryhour (time, device_id, lW) 
 	VALUES (
-		strftime('%Y-%m-%d %H:00:00', 'now') , 
+		strftime('%Y-%m-%d %H:00:00', 'now', 'local') , 
 		new.device_id,
 		(select SUM(lW) 
 			from charts_solarentryminute 
 			where device_id = new.device_id 
-				AND strftime('%Y-%m-%d %H:00:00', time) = strftime('%Y-%m-%d %H:00:00', 'now'))
+				AND strftime('%Y-%m-%d %H:00:00', time) = strftime('%Y-%m-%d %H:00:00', 'now', 'local'))
     );
 END;
 
@@ -87,7 +87,7 @@ CREATE TRIGGER update_daily AFTER INSERT ON charts_solarentrytick
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryday (time, device_id, lW) 
 	VALUES (
-		strftime('%Y-%m-%d', 'now') , 
+		strftime('%Y-%m-%d', 'now', 'local') , 
 		new.device_id,
 		new.total
     );
@@ -97,12 +97,12 @@ CREATE TRIGGER update_monthly AFTER INSERT ON charts_solarentryday
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentrymonth (time, device_id, lW) 
 	VALUES (
-		strftime('%Y-%m-01', 'now') , 
+		strftime('%Y-%m-01', 'now', 'local') , 
 		new.device_id,
 		(select SUM(lW) 
 			FROM charts_solarentryday 
 			WHERE device_id = new.device_id 
-				AND strftime('%Y-%m-01',  time) = strftime('%Y-%m-01',  'now'))
+				AND strftime('%Y-%m-01',  time) = strftime('%Y-%m-01',  'now', 'local'))
     );
 END;
 
@@ -110,12 +110,12 @@ CREATE TRIGGER update_yearly AFTER INSERT ON charts_solarentrymonth
 BEGIN
 	INSERT OR REPLACE INTO charts_solarentryyear(time, device_id, lW) 
 	VALUES (
-		strftime('%Y-01-01', 'now') , 
+		strftime('%Y-01-01', 'now', 'local') , 
 		new.device_id,
 		(select SUM(lW) 
 			FROM charts_solarentryday 
 			WHERE device_id = new.device_id 
-				AND strftime('%Y-01-01',  time) =  strftime('%Y-01-01',  'now'))
+				AND strftime('%Y-01-01',  time) =  strftime('%Y-01-01',  'now', 'local'))
     );
 END;
 
