@@ -16,7 +16,8 @@ import string
 from daemon import Daemon
 import argparse
 
-DEBUG_ENABLED = False
+DEBUG_ENABLED = True
+DEBUG_SERIAL = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
@@ -101,7 +102,7 @@ class RLogDaemon(Daemon):
     SOUND: %s""" % (RLogDaemon.KWHPERRING, RLogDaemon.NEXTRING, RLogDaemon.SOUND))
 
         #determine the serial adapter to be used
-        if DEBUG_ENABLED:
+        if DEBUG_SERIAL:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self.discover_device()
@@ -165,7 +166,7 @@ class RLogDaemon(Daemon):
         for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
             summe += ord(data_string[i])
 
-        if DEBUG_ENABLED:
+        if DEBUG_SERIAL:
             return True
         else:
             if ord(data_string[-9]) != summe % 256:
@@ -194,7 +195,7 @@ class RLogDaemon(Daemon):
             break
       except SerialException as e:
         log("Serial breakdown. looking for serial device again")
-        if DEBUG_ENABLED:
+        if DEBUG_SERIAL:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self.discover_device()
@@ -215,7 +216,7 @@ class RLogDaemon(Daemon):
               return typ
         except serial.SerialException as e:
             log("Serial breakdown. looking for serial device again")
-            if DEBUG_ENABLED:
+            if DEBUG_SERIAL:
                 self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
             else:
                 self.discover_device()
@@ -239,7 +240,7 @@ class RLogDaemon(Daemon):
               return daten
         except serial.SerialException as e:
             log("Serial breakdown. looking for serial device again")
-            if DEBUG_ENABLED:
+            if DEBUG_SERIAL:
                 self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
             else:
                 self.discover_device()
