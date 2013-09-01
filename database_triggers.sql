@@ -27,24 +27,25 @@ BEGIN
 		strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'), 		
 		strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'), 
 		new.device_id,
-		COALESCE(
-	            (select lW 
-	                * (select CAST(strftime('%S', exacttime) AS FLOAT)/60
-	                    from charts_solarentryminute 
-	                    where device_id = new.device_id 
-	                        AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
-	                        
-	                + (select (60 - CAST(strftime('%S', exacttime) AS FLOAT))/60 * (new.lW/60)
-                        from charts_solarentryminute 
-                        where device_id = new.device_id 
-                            AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
-                            
-		            from charts_solarentryminute 
-		            where device_id = new.device_id 
-		                AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime')
-		        )
-		    ,
-		    new.lW/60.0) -- no data for this minute yet available
+--		COALESCE(
+--	            (select lW 
+--	                * (select CAST(strftime('%S', exacttime) AS FLOAT)/60
+--	                    from charts_solarentryminute 
+--	                    where device_id = new.device_id 
+--	                        AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
+--	                        
+--	                + (select (60 - CAST(strftime('%S', exacttime) AS FLOAT))/60 * (new.lW/60)
+--                        from charts_solarentryminute 
+--                        where device_id = new.device_id 
+--                            AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime'))
+--                            
+--		            from charts_solarentryminute 
+--		            where device_id = new.device_id 
+--		                AND time = strftime('%Y-%m-%d %H:%M:00', 'now', 'localtime')
+--		        )
+--		    ,
+		    new.lW/60.0
+--) -- no data for this minute yet available
     );
 END;
 
