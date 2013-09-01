@@ -4,3 +4,5 @@
 settings.py
 sensor.db
 wsgi.py
+FakeSerial/Debug/*
+FakeSerial/.*
