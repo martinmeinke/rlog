@@ -15,6 +15,7 @@ import sys, time, datetime
 import string
 from daemon import Daemon
 import argparse
+from sets import Set
 
 DEBUG_ENABLED = True
 DEBUG_SERIAL = False
@@ -62,7 +63,7 @@ class RLogDaemon(Daemon):
     def __init__(self,pidfile):
         super(RLogDaemon, self).__init__(pidfile)
         self._serial_port = None
-        self._slaves = []
+        self._slaves = Set()
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
         self._current_discovery_id = 0
@@ -270,7 +271,7 @@ class RLogDaemon(Daemon):
             log("Device %d answered %s " % (device_id, typ))
 
             new_wr = {"device_id" : device_id, "type" : typ.split()[1]}
-            self._slaves.append(new_wr) 
+            self._slaves.add(new_wr) 
 
             if DEBUG_ENABLED:           
                 log(new_wr)
@@ -282,7 +283,7 @@ class RLogDaemon(Daemon):
                log("Device %d answered %s " % (device_id, data))
 
                new_wr = {"device_id" : device_id, "type" : data.split()[-1]}
-               self._slaves.append(new_wr)
+               self._slaves.add(new_wr)
 
                if DEBUG_ENABLED:           
                   log(new_wr)
