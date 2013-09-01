@@ -1,5 +1,5 @@
 {% extends "charts/newframe.html" %}
-
+{% load i18n %}
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
@@ -7,16 +7,18 @@ $(document).ready(function() {
   window.setTimeout(autoUpdate, 5000);
 });
 </script>
-<h2 class="center">Live</h2>
-<form method="POST" class="form-inline" action="">
+<form method="POST" class="form-horizontal" action="">
+  <div class="well stats_form">
   {% csrf_token %}
 	<select name="live_timeframe" id="live_timeframe" 
   onchange="autoUpdateInitial(this.options[this.selectedIndex].value)" class="selectpicker">
-      <option value="5">5 Minutes</option>
-      <option selected=selected value="15">15 Minutes</option>
-      <option value="30">30 Minutes</option>
-      <option value="60">1 Hour</option>
+      <option value="5">{% trans "5 Minutes" %}</option>
+      <option selected=selected value="15">{% trans "15 Minutes" %}</option>
+      <option value="30">{% trans "30 Minutes" %}</option>
+      <option value="60">{% trans "1 Hour" %}</option>
+      <option value="1440">{% trans "Heute" %}</option>
     </select>
+  </div>
 </form>
 <div id="livechart" class="chart"></div>
 <ul id="crosshairdata"></ul>

@@ -43,7 +43,7 @@ class LiveChart(object):
 
         for tick in ticks:
             if tick.device_id == deviceID:
-                t = (calendar.timegm(tick.time.utctimetuple()) * 1000, int(tick.lW))
+                t = (calendar.timegm(tick.time.timetuple()) * 1000, int(tick.lW))
                 self.__rowarray_list_live[deviceID].append(t)
             
     def chartOptionsLiveView(self):
@@ -54,12 +54,12 @@ class LiveChart(object):
         
         settings["xaxis"] = {
                 "mode" : "time",
-                "timezone" : "Europe/Berlin",
+                "timezone" : "UTC",
                 "timeformat" : self.__flot_formatstring
         }
 
         #settings["xaxis"].update({"ticks" : 8})
-        settings["legend"] = {"backgroundOpacity" : "0.5"}
+        settings["legend"] = {"backgroundOpacity" : "0.5", "position" : "nw"}
         settings["crosshair"] = {"mode" : "x", "color": "rgba(0, 170, 0, 0.80)"}
         settings["grid"] = {"hoverable" : "true", "autoHighlight" : "false"}
         

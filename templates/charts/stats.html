@@ -13,17 +13,14 @@ function export_image()
 }
 
 $(document).ready(function() {
+    check_custom_timeframe(0, "{{ period }}");
     addPlot({{ timeseries|safe }});
     applySettings({{ plotsettings|safe }});
     plot = $.plot($(".chart")[0], data, options);
-		dataset = plot.getData();		
-    for(i = 0; i < dataset.length; i++){
-		  $("#crosshairdata").append('<li style="color:' + dataset[i].color + '">Keine Daten vorhanden</li>');
-		}
-	  $(".chart").bind("plothover",  function (event, pos, item) {
+	$(".chart").bind("plothover",  function (event, pos, item) {
 	    latestPosition = pos;
-      if(new Date().getTime() - last_time_rendered > 77)
-        updateLegend();
+        if(new Date().getTime() - last_time_rendered > 77)
+            updateLegend();
     });
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
     window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
@@ -32,42 +29,70 @@ $(document).ready(function() {
 $(window).unload( function () { $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">'); } );
 </script>
 
-<form class="form-inline" method="POST" action="">
-    {% csrf_token %}    
-    <div class="well">
-        {{ regular_form }} 
-        <div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
-        {{ custom_form }}
-        </div>
-        <input type="submit" name="regular_stats_form" class="btn" value="Berechnen"/>
+{% if preselect_period %}
+<script type="text/javascript">
+$(document).ready(function() {
+    check_custom_timeframe(1, 0);
+});
+</script>
+{% endif %}
 
-        <!--<div id="custom_date_area" style="{% if timeframe == 'timeframe_cus' %}display:block{% else %}display:none{% endif %}">
-            <hr>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Start date<a href="#" class="btn small" id="dp4" data-date-format="yyyy-mm-dd" data-date="2012-02-20">Change</a></th>
-                        <th>End date<a href="#" class="btn small" id="dp5" data-date-format="yyyy-mm-dd" data-date="2012-02-25">Change</a></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td id="startDate">2012-02-20</td>
-                        <td id="endDate">2012-02-25</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>-->
+<form class="form-horizontal" method="POST" action="">
+    <div class="well stats_form">
+        {% csrf_token %}    
+        <div class="control-group">
+            <label class="control-label" for="id_timeframe">{{ regular_form.timeframe.label }}</label>
+            <div class="controls">
+                {{ regular_form.timeframe }}
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label" for="id_period">{{ regular_form.period.label }}</label>
+            <div class="controls">
+                {{ regular_form.period }}
+            </div>
+        </div>
+        <div class="control-group custom_date_area">
+            <label class="control-label" for="id_startfrom">{{ custom_form.startfrom.label }}</label>
+            <div class="controls">
+                {{ custom_form.startfrom }}
+            </div>
+        </div>
+        <div class="control-group custom_date_area">
+            <label class="control-label" for="id_endby">{{ custom_form.endby.label }}</label>
+            <div class="controls">
+                {{ custom_form.endby }}
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="controls">
+                <input type="submit" name="regular_stats_form" class="btn" value="Berechnen"/>
+            </div>
+        </div>
     </div>
 </form>
 
-<h2 class="center">{{ hd }}</h2>
+{% if timeframe != "timeframe_cus" or ui_begin %}
+<hr>
+<h2 class="center" style="float:left;">{{ ui_begin }}</h2>
+<h2 class="center" style="float:right;">{{ ui_end }}</h2>
+<div style="clear:both;"></div>
+<hr>
 
 <div id="statschart" class="chart"></div>
 <ul id="crosshairdata"></ul>
 
-<!--<img id="canvasImg" alt="Right click to save me!">-->
 <div id="stat_table">
+    <table class="table table-striped">
+        {% for item in stat_items %}
+        <tr>
+            <td><strong>{{item.label}}</strong></td>
+            <td>{{item.value}}</td>
+        </tr>
+        {% endfor %}
+    </table>
     {{ stats|safe }}
 </div>
+{% endif %}
+
 {% endblock %}
