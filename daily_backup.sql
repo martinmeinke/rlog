@@ -4,6 +4,6 @@ DELETE FROM "charts_solarentrytick";
 END;
 
 BEGIN TRANSACTION;
-INSERT INTO "charts_solarentryminutebackup" ("time","exacttime","device","lW") SELECT "time","exacttime","device","lW" FROM "charts_solarentryminute";
+INSERT INTO "charts_solarentryminutebackup" ("time","exacttime","device_id","lW") SELECT "time","exacttime","device_id","lW" FROM "charts_solarentryminute";
 DELETE FROM "charts_solarentryminute";
 END;
