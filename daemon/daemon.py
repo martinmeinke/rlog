@@ -62,6 +62,7 @@ class Daemon(object):
                 file(self.pidfile,'w+').write("%s\n" % pid)
 
         def delpid(self):
+                sys.stdout.write("delpid")
                 os.remove(self.pidfile)
 
         def start(self):

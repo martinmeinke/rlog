@@ -15,13 +15,15 @@ import sys, time, datetime
 import string
 import mqtt
 from daemon import Daemon
+import argparse
 
-DEBUG_ENABLED = False
+DEBUG_ENABLED = True
+DEBUG_SERIAL = True
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
-DEBUG_SERIAL_PORT = "/dev/pts/7"
+DEBUG_SERIAL_PORT = "/dev/pts/5"
 MQTT_HOST = "localhost"
 
 def log(msg):
@@ -43,7 +45,7 @@ def update_bell_counter(val):
 def ring_bell():
     #add check if sound is correctly setup (tutorial in adafruit sound pdf)
     #test=os.system("mpg321 -q "+SOUND)
-    test=os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
+    test = os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
     log(test)
     return
 
@@ -54,8 +56,10 @@ class RLogDaemon(Daemon):
     KWHPERRING = None
     NEXTRING = None
     SOUND = None
-    DELAY = 10
+    DELAY = None
     BELLCOUNTER = 0
+    MAX_BUS_PARTICIPANTS = 32
+    DISCOVERY_COUNT = None
 
     def __init__(self,pidfile):
         super(RLogDaemon, self).__init__(pidfile)
@@ -65,6 +69,8 @@ class RLogDaemon(Daemon):
         self.mqttPublisher = None
         self._db_connection = sqlite3.connect(DATABASE)
         self._db_cursor = self._db_connection.cursor()
+        self._current_discovery_id = 0
+        self._discovery_credit = 0
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
 
@@ -89,19 +95,20 @@ class RLogDaemon(Daemon):
             RLogDaemon.NEXTRING = sets[2]
             RLogDaemon.SOUND = sets[3]
         except Exception as ex:
-            print str(type(ex))+str(ex)
+            log(str(type(ex))+str(ex))
             RLogDaemon.KWHPERRING = 1
             RLogDaemon.NEXTRING = 1
             RLogDaemon.SOUND = "/home/pi/git/rlog/coin.mp3"
         except Error as err:
-            print type(err)
+            log(str(type(err)))
 
         log("""Using Parameters:
     KWHPERRING: %s
     NEXTRING: %s
-    SOUND: %s""" % (RLogDaemon.KWHPERRING,RLogDaemon.NEXTRING,RLogDaemon.SOUND))
+    SOUND: %s""" % (RLogDaemon.KWHPERRING, RLogDaemon.NEXTRING, RLogDaemon.SOUND))
 
-        if DEBUG_ENABLED:
+        #determine the serial adapter to be used
+        if DEBUG_SERIAL:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self.discover_device()
@@ -112,26 +119,55 @@ class RLogDaemon(Daemon):
             self.mqttPublisher.startMQTT()
         except Exception as e:
             log("mqtt start problem:" + str(e))
+            
+        if(self._serial_port != None):
+            log("looking for WR")
+            self.findWRs()
+            log("starting normal execution")
 
-        log("looking for WR")
-        self.findWR()
-        log("starting normal execution")
-        while True:
-            t1 = time.time()
-            self.poll_devices()
-            t2 = time.time()
-            sleepduration = RLogDaemon.DELAY-(t2-t1)
-            if sleepduration < 0:
-              log("Timing problem: %f" % sleepduration)
-            if sleepduration > 0:
-              time.sleep(sleepduration)
+            while True:
+                t1 = time.time()
+                self.poll_devices()
+                t15 = time.time()
+                self.run_discovery_if_required()
+                t2 = time.time()
+                
+                if DEBUG_ENABLED:
+                    log("befor poll: {0}\nafter poll: {1}\n after discovery: {2}".format(t1, t15, t2))
 
-        self._serial_port.close();
-        try:
-            self.mqttPublisher.stopMQTT()
-        except Exception as e:
-            log("mqtt stop problem:" + str(e))   
+                self.sleep_to_delay(t1, t2)
+
+        else:
+			try:
+				self.mqttPublisher.stopMQTT()
+			except Exception as e:
+				log("mqtt stop problem:" + str(e))
+			sys.exit(1)
     
+    def run_discovery_if_required(self):
+        self._discovery_credit -= 1
+
+        if DEBUG_ENABLED:
+            log("Discovery credit is now: "+str(self._discovery_credit))
+
+        if self._discovery_credit <= 0:
+            self.findWR(self._current_discovery_id)
+            self._current_discovery_id += 1
+            self._current_discovery_id %= RLogDaemon.MAX_BUS_PARTICIPANTS
+            self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
+
+    def sleep_to_delay(self, t1, t2):
+        if DEBUG_ENABLED:
+            log("poll delay is : "+str(RLogDaemon.DELAY))
+
+        sleepduration = RLogDaemon.DELAY-(t2-t1)
+
+        if sleepduration <= 0:
+          log("Timing problem (discovery?): %f" % sleepduration)
+        else:
+          time.sleep(sleepduration)
+
+    #assume the first device starting with DEVICE_NAME_BASE is the rs485 adapter
     def discover_device(self):
         for device_id in range(0,100):
             log("Checking if %s%d exists..." % (DEVICE_NAME_BASE, device_id))
@@ -155,14 +191,18 @@ class RLogDaemon(Daemon):
 
     # checks checksum in data message
     def check_daten(self, data_string):
-      summe = 0
-      for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
-        summe += ord(data_string[i])
-      if ord(data_string[-9]) != summe % 256:
-        log("Read invalid Data Message: " + data_string)
-        return False
-      else:
-        return True
+        summe = 0
+        for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
+            summe += ord(data_string[i])
+
+        if DEBUG_SERIAL:
+            return True
+        else:
+            if ord(data_string[-9]) != summe % 256:
+                log("Read invalid Data Message: " + data_string)
+                return False
+            else:
+                return True
 	    
     def read_line(self, timeout = 2):
       response = ''
@@ -184,7 +224,7 @@ class RLogDaemon(Daemon):
             break
       except SerialException as e:
         log("Serial breakdown. looking for serial device again")
-        if DEBUG_ENABLED:
+        if DEBUG_SERIAL:
             self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
         else:
             self.discover_device()
@@ -205,7 +245,7 @@ class RLogDaemon(Daemon):
               return typ
         except serial.SerialException as e:
             log("Serial breakdown. looking for serial device again")
-            if DEBUG_ENABLED:
+            if DEBUG_SERIAL:
                 self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
             else:
                 self.discover_device()
@@ -229,7 +269,7 @@ class RLogDaemon(Daemon):
               return daten
         except serial.SerialException as e:
             log("Serial breakdown. looking for serial device again")
-            if DEBUG_ENABLED:
+            if DEBUG_SERIAL:
                 self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout=1)
             else:
                 self.discover_device()
@@ -238,51 +278,61 @@ class RLogDaemon(Daemon):
             log("Exception during data request %s" % e)
             return None
 
+    def findWR(self, device_id):
+        log("Running discovery on ID " + str(device_id))
+        typ = self.request_type_from_device(device_id)
+        new_wr = None
+
+        if typ != None and self.check_typ(typ):
+            log("Device %d answered %s " % (device_id, typ))
+
+            new_wr = {"device_id" : device_id, "type" : typ.split()[1]}
+
+            if not device_id in [x["device_id"] for x in self._slaves]:
+                self._slaves.append(new_wr) 
+
+            if DEBUG_ENABLED:           
+                log(new_wr)
+
+            time.sleep(0.33)
+        else: # if it didn't answer on type request it gets another chance and is asked for data this time ...
+            data = self.request_data_from_device(device_id)
+            if data != None and self.check_daten(data):
+                log("Device %d answered %s " % (device_id, data))
+
+                new_wr = {"device_id" : device_id, "type" : data.split()[-1]}
+
+                if not device_id in [x["device_id"] for x in self._slaves]:
+                    self._slaves.append(new_wr)
+
+                if DEBUG_ENABLED:           
+                    log(new_wr)
+
+                time.sleep(0.33)
+
     
     # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
-    def findWR(self):
+    def findWRs(self):
+        for deviceID in range(1, 33):
+            self.findWR(deviceID)
+
         statements = []
-        for deviceID in range(1, 4):
-            typ = self.request_type_from_device(deviceID)
-            if typ != None and self.check_typ(typ):
-                log("Device %d answered %s " % (deviceID, typ))
-                self._slaves.append(deviceID)
-                self._slave_names.append(typ.split()[1])
-                try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + typ.split()[1] + " (" + str(deviceID) + ")/meta/type", "text", 0, True)
-                except Exception as e:
-                    log("mqtt 252:" + str(e))
-                statements.append([str(deviceID), typ.split()[1]])
-                if DEBUG_ENABLED:           
-                    log("Adding " + typ.split()[1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
-                time.sleep(0.33)
-            else: # if it didn't answer on type request it gets another chance and is asked for data this time ...
-                data = self.request_data_from_device(deviceID)
-                if data != None and self.check_daten(data):
-                    log("Device %d answered %s " % (deviceID, data))
-                    self._slaves.append(deviceID)
-                    self._slave_names.append(data.split()[-1])
-                    try:
-                        self.mqttPublisher.publish("/devices/RLog/controls/" + data.split()[-1] + " (" + str(deviceID) + ")/meta/type", "text", 0, True)
-                    except Exception as e:
-                        log("mqtt 266:" + str(e))
-                    statements.append([str(deviceID), data.split()[-1]])
-                    if DEBUG_ENABLED:           
-                        log("Adding " + data.split()[-1] + " with device ID " + str(deviceID) + " to transaction for charts_device table")
-                    time.sleep(0.33)
-        if statements:
+        for nwr in self._slaves:
+            statements.append([str(nwr["device_id"]), nwr["type"]])
+
+        if len(statements) > 0:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
-                print str(type(ex))+str(ex)
+                log(str(type(ex))+str(ex))
 
     def poll_devices(self):
         statements = []
         i = 0;
-        for device_id in self._slaves:
-            new_row = self.request_data_from_device(device_id)
+        for device in self._slaves:
+            new_row = self.request_data_from_device(device["device_id"])
             if DEBUG_ENABLED:
                 log("Read row %s" % new_row)
             if new_row != None and self.check_daten(new_row):
@@ -291,12 +341,12 @@ class RLogDaemon(Daemon):
                   line_power = cols[7]
                   update_bell_counter(line_power)
                 except Exception as e:
-                  print e
-                tmp = [str(device_id)]
+                  log(str(e))
+                tmp = [str(device["device_id"])]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 try:
-                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device_id) + ")", tmp[-3], 0, True)
+                    self.mqttPublisher.publish("/devices/RLog/controls/" + self._slave_names[i] + " (" + str(device) + ")", tmp[-3], 0, True)
                 except Exception as e:
                     log("mqtt 301:" + str(e) + tmp[-3])
                 i = i + 1
@@ -309,26 +359,39 @@ class RLogDaemon(Daemon):
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
-                print str(type(ex))+str(ex)
+                log(str(type(ex))+str(ex))
 
+# calling this script directly...
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='The RLog daemon handles the communication among the KACO inverters and the Sqlite database.')
+
+    parser.add_argument('--querydelay', default=10, type=int, help='Delay in seconds between two queries')
+    parser.add_argument('--discoverytimer', default=10, type=int, help='Every X iterations the device discovery will run on the next sequential id')
+    parser.add_argument('mode', choices=['start', 'stop', 'restart'], help='What should the daemon do?')
+    args = parser.parse_args()
+
     if os.geteuid() != 0:
         print "You must be root to run this script."
         sys.exit(1)
 
-    daemon = RLogDaemon('/tmp/daemon-example.pid')
-    if len(sys.argv) == 2:
-        if 'start' == sys.argv[1]:
-            daemon.start()
-        elif 'stop' == sys.argv[1]:
-            daemon.stop()
-        elif 'restart' == sys.argv[1]:
-            daemon.restart()
-        else:
-            print "Unknown command"
-            sys.exit(2)
+    daemon = RLogDaemon('/tmp/rlogd.pid')
+    RLogDaemon.DELAY = args.querydelay
+    RLogDaemon.DISCOVERY_COUNT = args.discoverytimer
+    daemon._discovery_credit = RLogDaemon.DISCOVERY_COUNT
 
-        sys.exit(0)
+    if 'start' == args.mode:
+        log("Starting RLog daemon")
+        daemon.start()
+        log("RLog daemon started")
+    elif 'stop' == args.mode:
+        log("Stopping RLog daemon")
+        daemon.stop()            
+        log("RLog daemon stopped")
+    elif 'restart' == args.mode:            
+        log("Restarting RLog daemon")
+        daemon.restart()
+        log("RLog daemon restarted")
     else:
-        print "usage: %s start|stop|restart" % sys.argv[0]
+        print "Unknown mode command"
         sys.exit(2)

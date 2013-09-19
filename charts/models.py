@@ -32,6 +32,16 @@ class SolarEntryTickBackup(models.Model):
 
 class SolarEntryMinute(models.Model):
     time = models.DateTimeField()
+    exacttime = models.DateTimeField()
+    device = models.ForeignKey(Device)
+    lW = models.DecimalField(max_digits=9, decimal_places=3)
+
+    class Meta:
+        unique_together = (("time", "device"))
+
+class SolarEntryMinuteBackup(models.Model):
+    time = models.DateTimeField()
+    exacttime = models.DateTimeField()
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
 
