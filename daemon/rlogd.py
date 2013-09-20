@@ -258,7 +258,7 @@ class RLogDaemon(Daemon):
                 except Exception as e:
                     log("Exception while doing MQTT stuff: " + str(e))
             if missing_wrs:
-                if index(self._current_discovery_id) = len(missing_wrs) - 1: # if we looked for the last one
+                if index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
                     self._current_discovery_id = missing_wrs[0]
                 else:
                     self._current_discovery_id = missing_wrs[index(self._current_discovery_id) + 1]
