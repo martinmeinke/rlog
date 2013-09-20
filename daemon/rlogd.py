@@ -258,10 +258,10 @@ class RLogDaemon(Daemon):
                 except Exception as e:
                     log("Exception while doing MQTT stuff: " + str(e))
             if missing_wrs:
-                if index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
+                if missing_wrs.index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
                     self._current_discovery_id = missing_wrs[0]
                 else:
-                    self._current_discovery_id = missing_wrs[index(self._current_discovery_id) + 1]
+                    self._current_discovery_id = missing_wrs[missing_wrs.index(self._current_discovery_id) + 1]
             else:
                 self._current_discovery_id = None
             self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
@@ -305,10 +305,10 @@ class RLogDaemon(Daemon):
         remaining_wr = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
         if len(remaining_wr) == 0: # all WR have been found
             self._current_discovery_id = None
-            if DEBUG_ENABLED:
-                log(str(len(remaining_wr)) + " WR have not yet been discovered")
         else:
             self._current_discovery_id = remaining_wr[0]
+            if DEBUG_ENABLED:
+                log(str(len(remaining_wr)) + " WR have not yet been discovered")
         if len(statements) > 0:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
