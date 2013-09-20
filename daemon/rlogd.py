@@ -161,7 +161,7 @@ class RLogDaemon(Daemon):
     def __init__(self,pidfile):
         super(RLogDaemon, self).__init__(pidfile)
         self._serial_port = None
-        self._slaves = []
+        self._slaves = {}
         self._slave_names = []
         self._mqttPublisher = None
         self._db_connection = sqlite3.connect(DATABASE)
@@ -234,16 +234,19 @@ class RLogDaemon(Daemon):
             sys.exit(1)
     
     def run_discovery_if_required(self):
+        if self._current_discovery_id == None:
+            return
+            
         self._discovery_credit -= 1
 
         if DEBUG_ENABLED:
-            log("Discovery credit is now: "+str(self._discovery_credit))
+            log("Discovery credit is now: " + str(self._discovery_credit))
 
         if self._discovery_credit <= 0:
+            missing_wrs = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
             candidate = WR(self._current_discovery_id, self._serial_port)
             if candidate.does_exist():
-                self._slaves.append(candidate)
-                self.slaves.sort(key = lambda x: x.bus_id)
+                self._slaves[self._current_discovery_id] = candidate
                 try:
                     self._db_cursor.execute("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", (candidate.bus_id, candidate.model))
                     self._db_connection.commit()
@@ -254,7 +257,13 @@ class RLogDaemon(Daemon):
                     self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
                 except Exception as e:
                     log("Exception while doing MQTT stuff: " + str(e))
-            self._current_discovery_id = (self._current_discovery_id % RLogDaemon.MAX_BUS_PARTICIPANTS) + 1
+            if missing_wrs:
+                if index(self._current_discovery_id) = len(missing_wrs) - 1: # if we looked for the last one
+                    self._current_discovery_id = missing_wrs[0]
+                else:
+                    self._current_discovery_id = missing_wrs[index(self._current_discovery_id) + 1]
+            else:
+                self._current_discovery_id = None
             self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
 
     def sleep_to_delay(self, t1, t2):
@@ -280,20 +289,26 @@ class RLogDaemon(Daemon):
     
     # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
     def findWRs(self):
-        self._slaves = []
         statements = []
         for bus_id in range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1):
             candidate = WR(bus_id, self._serial_port)
             if candidate.does_exist():
                 if DEBUG_ENABLED:
                     log("found WR: " + candidate.model + " with bus id " + str(candidate.bus_id))
-                self._slaves.append(candidate)
+                self._slaves[bus_id] = candidate
                 try:
                     self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
                 except Exception as e:
                     log("Exception while doing MQTT stuff: " + str(e))
                 statements.append((candidate.bus_id, candidate.model))
             time.sleep(0.33)
+        remaining_wr = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
+        if len(remaining_wr) == 0: # all WR have been found
+            self._current_discovery_id = None
+            if DEBUG_ENABLED:
+                log(str(len(remaining_wr)) + " WR have not yet been discovered")
+        else:
+            self._current_discovery_id = remaining_wr[0]
         if len(statements) > 0:
             try:
                 self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
@@ -304,7 +319,7 @@ class RLogDaemon(Daemon):
 
     def poll_devices(self):
         statements = []
-        for wr in self._slaves:
+        for (bus_id, wr) in self._slaves.iteritems():
             data = wr.request_data()
             if DEBUG_ENABLED:
                 log("Read row %s" % data)
