@@ -112,23 +112,23 @@ class Chart(object):
         if self.__period == "period_min":
             ticks = SolarEntryMinute.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID))
+                device = str(deviceID)).order_by("time")
         elif self.__period == "period_hrs":
             ticks = SolarEntryHour.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID))
+                device = str(deviceID)).order_by("time")
         elif self.__period == "period_day":
             ticks = SolarEntryDay.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID))
+                device = str(deviceID)).order_by("time")
         elif self.__period == "period_mon":
             ticks = SolarEntryMonth.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID))
+                device = str(deviceID)).order_by("time")
         elif self.__period == "period_yrs":
             ticks = SolarEntryYear.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID))
+                device = str(deviceID)).order_by("time")
         
         self.__rowarray_list.update({deviceID : []})
 

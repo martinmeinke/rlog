@@ -17,7 +17,7 @@ import mqtt
 from daemon import Daemon
 import argparse
 
-DEBUG_ENABLED = True
+DEBUG_ENABLED = False
 DEBUG_SERIAL = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -347,6 +347,8 @@ class RLogDaemon(Daemon):
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
                 log(str(type(ex))+str(ex))
+            except sqlite3.IntegrityError as e:
+                log("sqlite trigger shit is going on\n" + str(e))
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
