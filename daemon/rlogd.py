@@ -26,6 +26,9 @@ DEVICE_NAME_BASE = "/dev/ttyUSB"
 DEBUG_SERIAL_PORT = "/dev/pts/5"
 MQTT_HOST = "localhost"
 
+LOCATIONX = "14.122994"
+LOCATIONY = "52.508519"
+
 def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))
     print "[%s]: %s" % (str(datetime.datetime.today()), stripped)
@@ -209,6 +212,8 @@ class RLogDaemon(Daemon):
             self._mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
             self._mqttPublisher.startMQTT()
             self._mqttPublisher.publish("/devices/RLog/meta/name", "Rlog", 0, True)
+            self._mqttPublisher.publish("devices/RLog/meta/locationX", LOCATIONX, 0, True)
+            self._mqttPublisher.publish("devices/RLog/meta/locationY", LOCATIONY, 0, True)   
         except Exception as e:
             log("mqtt start problem:" + str(e))
             
