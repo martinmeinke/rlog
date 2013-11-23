@@ -212,8 +212,8 @@ class RLogDaemon(Daemon):
             self._mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
             self._mqttPublisher.startMQTT()
             self._mqttPublisher.publish("/devices/RLog/meta/name", "Rlog", 0, True)
-            self._mqttPublisher.publish("devices/RLog/meta/locationX", LOCATIONX, 0, True)
-            self._mqttPublisher.publish("devices/RLog/meta/locationY", LOCATIONY, 0, True)   
+            self._mqttPublisher.publish("/devices/RLog/meta/locationX", LOCATIONX, 0, True)
+            self._mqttPublisher.publish("/devices/RLog/meta/locationY", LOCATIONY, 0, True)   
         except Exception as e:
             log("mqtt start problem:" + str(e))
             
