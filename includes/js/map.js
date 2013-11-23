@@ -91,7 +91,7 @@ function Map(containerName){
       self.connect(); 
     };
     this.connect = function(){
-      self.mqttClient = new Messaging.Client("192.168.11.31", 18883, "rlog-web-"+Math.random().toString(36).substring(6));
+      self.mqttClient = new Messaging.Client("192.168.11.42", 18883, "rlog-web-"+Math.random().toString(36).substring(6));
       self.mqttClient.onConnectionLost = self.connectionLost;
       self.mqttClient.onMessageArrived = self.messageArrived;
       self.mqttClient.connect({onSuccess:self.connected});
