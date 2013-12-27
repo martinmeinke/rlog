@@ -17,13 +17,13 @@ import mqtt
 from daemon import Daemon
 import argparse
 
-DEBUG_ENABLED = False
+DEBUG_ENABLED = True
 DEBUG_SERIAL = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
-DEBUG_SERIAL_PORT = "/dev/pts/5"
+DEBUG_SERIAL_PORT = "/dev/pts/4"
 MQTT_HOST = "localhost"
 
 LOCATIONX = "14.122994"
@@ -37,7 +37,10 @@ class WR():
     def __init__(self, bus_id, serial_port):
         self.__serial_port = serial_port
         self.__bus_id = bus_id
-        self.__model = ''
+        self.__model = ""
+        self.__bytesize = serial.EIGHTBITS
+        self.__parity = serial.PARITY_NONE
+        self.__timeout = 1
     
     # getters for member variables
     @property
@@ -47,6 +50,13 @@ class WR():
     @property
     def model(self):
         return self.__model
+        
+    def setup_serial_port(self):
+        self.__serial_port.flushInput()
+        self.__serial_port.flushOutput()
+        self.__serial_port.bytesize = self.__bytesize
+        self.__serial_port.parity = self.__parity
+        self.__serial_port.timeout = self.__timeout
     
     # reads the answer of the WR after request has been issued
     def read_line(self, timeout = 2):
@@ -106,8 +116,7 @@ class WR():
     # returns the type message or None
     def request_type(self):
         try:
-            self.__serial_port.flushInput()
-            self.__serial_port.flushOutput()
+            self.setup_serial_port()
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "9\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
@@ -120,13 +129,11 @@ class WR():
     # returns the data message or None
     def request_data(self):
         try:
-            self.__serial_port.flushInput()
-            self.__serial_port.flushOutput()
+            self.setup_serial_port()
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
             log("RS45 problem while requesting WR data") 
-        
         daten = self.read_line()
         if self.data_valid(daten):
             return daten
@@ -150,6 +157,89 @@ class WR():
             self.__model = data.split()[-1]
             return True
         return False
+        
+        
+        
+class SmartMeter():
+    def __init__(self, serial_port):
+        self.__serial_port = serial_port
+        self.__model = "VSM-102"
+        self.__bytesize = 7
+        self.__parity = serial.PARITY_EVEN
+        self.__timeout = 2
+    
+    # getters for member variables
+    
+    @property
+    def model(self):
+        return self.__model
+        
+    def setup_serial_port(self):
+        self.__serial_port.flushInput()
+        self.__serial_port.flushOutput()
+        self.__serial_port.bytesize = self.__bytesize
+        self.__serial_port.parity = self.__parity
+        self.__serial_port.timeout = self.__timeout
+    
+    # reads the answer of the WR after request has been issued
+    def read_line(self, timeout = 2):
+        response = ''
+#        start_zeit = time.time()
+        try:
+            # skip everything until line feed
+#            while(True):
+#                response = self.__serial_port.read()
+#                if response and response[0] == '\n':
+#                    break
+#                if time.time() - start_zeit > timeout:
+#                    return response
+            # read until return character
+#            while(True):
+#                response += self.__serial_port.read()
+#                if response and response[-1] == '\r':
+#                    break
+#                if time.time() - start_zeit > timeout:
+#                    breaks.readline()
+            response = self.__serial_port.readline()
+        except serial.SerialException as e:
+            log("RS45 problem while reading from WR")
+        return response
+
+    # checks checksum in data message
+    def data_valid(self, data_string):
+        # very optimistic!
+        return True
+        
+    # returns the data message or None
+    def request_data(self):
+        try:
+            self.setup_serial_port()
+            log("selecting smart meter")
+            self.__serial_port.write("/?!\r\n")
+            self.__serial_port.flush()
+            response = self.__serial_port.readline()
+            log("Smart Meter answered " + response)
+            time.sleep(1)
+            self.__serial_port.write(chr(6) + "050\r\n")
+            self.__serial_port.flush()
+            response = self.__serial_port.readline()
+            if self.data_valid(response):
+                return response
+            else:
+                return None
+        except serial.SerialException as e:
+            log("RS45 problem while requesting WR data")
+            return None
+            
+    # returns True / False indicating whether that device exists on the bus (if it answered valid data)
+    def does_exist(self):
+        log("discovering smart meter")
+        data = self.request_data()
+        if data:
+            if DEBUG_ENABLED:
+                log("Device %d answered on data request %s " % (self.__bus_id, data))
+            return True
+        return False
 
 class RLogDaemon(Daemon):
     DEVICE_NAME = None
@@ -171,6 +261,9 @@ class RLogDaemon(Daemon):
         self._db_cursor = self._db_connection.cursor()
         self._current_discovery_id = 1
         self._discovery_credit = 0
+        self._smart_meter = None
+        self._smart_meter_enabled = False
+        self._smart_meter_found = False
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
 
@@ -220,6 +313,9 @@ class RLogDaemon(Daemon):
         if(self._serial_port != None):
             log("looking for WR")
             self.findWRs()
+            time.sleep(1)
+            if self._smart_meter_enabled == True:
+                self.findSmartMeter()
             log("starting normal execution")
 
             while True:
@@ -239,37 +335,63 @@ class RLogDaemon(Daemon):
             sys.exit(1)
     
     def run_discovery_if_required(self):
-        if self._current_discovery_id == None:
+        if self._current_discovery_id == None and (self._smart_meter_enabled == False or self._smart_meter_found == True): # there is nothing left to do
             return
             
         self._discovery_credit -= 1
-
         if DEBUG_ENABLED:
             log("Discovery credit is now: " + str(self._discovery_credit))
 
         if self._discovery_credit <= 0:
-            missing_wrs = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
-            candidate = WR(self._current_discovery_id, self._serial_port)
-            if candidate.does_exist():
-                self._slaves[self._current_discovery_id] = candidate
-                try:
-                    self._db_cursor.execute("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", (candidate.bus_id, candidate.model))
-                    self._db_connection.commit()
-                except sqlite3.OperationalError as ex:
-                    log("Database is locked or some other DB error!")
-                    log(str(type(ex))+str(ex))
-                try:
-                    self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
-                except Exception as e:
-                    log("Exception while doing MQTT stuff: " + str(e))
-            if missing_wrs:
-                if missing_wrs.index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
-                    self._current_discovery_id = missing_wrs[0]
+            # find the smart meter if necessary
+            if self._smart_meter_found == False and self._smart_meter_enabled == True:
+                candidate = SmartMeter(self._serial_port)
+                if candidate.does_exist():
+                    try:
+                        # fake 3 phases as new devices for the web interface
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model))
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model))
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model))
+                        self._db_connection.commit()
+                    except sqlite3.OperationalError as ex:
+                        log("Database is locked or some other DB error!")
+                        log(str(type(ex))+str(ex))
+                    try:
+                        # fake 3 phases as new devices for MQTT
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (1)/meta/type", "text", 0, True)
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (2)/meta/type", "text", 0, True)
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (3)/meta/type", "text", 0, True)
+                    except Exception as e:
+                        log("Exception while doing MQTT stuff: " + str(e))
+                    self._smart_meter_found = True
+                    self._smart_meter = candidate
+                time.sleep(1)          
+                            
+        
+            # find one missing WR
+            if self._current_discovery_id != None:
+                missing_wrs = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
+                candidate = WR(self._current_discovery_id, self._serial_port)
+                if candidate.does_exist():
+                    self._slaves[self._current_discovery_id] = candidate
+                    try:
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", (candidate.bus_id, candidate.model))
+                        self._db_connection.commit()
+                    except sqlite3.OperationalError as ex:
+                        log("Database is locked or some other DB error!")
+                        log(str(type(ex))+str(ex))
+                    try:
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
+                    except Exception as e:
+                        log("Exception while doing MQTT stuff: " + str(e))
+                if missing_wrs:
+                    if missing_wrs.index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
+                        self._current_discovery_id = missing_wrs[0]
+                    else:
+                        self._current_discovery_id = missing_wrs[missing_wrs.index(self._current_discovery_id) + 1]
                 else:
-                    self._current_discovery_id = missing_wrs[missing_wrs.index(self._current_discovery_id) + 1]
-            else:
-                self._current_discovery_id = None
-            self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
+                    self._current_discovery_id = None
+                self._discovery_credit = RLogDaemon.DISCOVERY_COUNT
 
     def sleep_to_delay(self, t1, t2):
         if DEBUG_ENABLED:
@@ -287,7 +409,7 @@ class RLogDaemon(Daemon):
             if os.path.exists("%s%d" % (DEVICE_NAME_BASE, device_id)):
                 RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE, device_id)
                 log("Using device: %s" % RLogDaemon.DEVICE_NAME)
-                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 1)
+                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate = 9600, stopbits = serial.STOPBITS_ONE)
                 return
         log("Unable to find serial port")
 
@@ -321,6 +443,31 @@ class RLogDaemon(Daemon):
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
                 log(str(type(ex))+str(ex))
+                
+    
+    # try to find the smart meter
+    def findSmartMeter(self):
+        candidate = SmartMeter(self._serial_port)
+        if candidate.does_exist():
+            try:
+                # fake 3 phases as new devices for the web interface
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model))
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model))
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model))
+                self._db_connection.commit()
+            except sqlite3.OperationalError as ex:
+                log("Database is locked or some other DB error!")
+                log(str(type(ex))+str(ex))
+            try:
+                # fake 3 phases as new devices for MQTT
+                self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (1)/meta/type", "text", 0, True)
+                self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (2)/meta/type", "text", 0, True)
+                self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (3)/meta/type", "text", 0, True)
+            except Exception as e:
+                log("Exception while doing MQTT stuff: " + str(e))
+            self._smart_meter_found = True
+            self._smart_meter = candidate
+        
 
     def poll_devices(self):
         statements = []
@@ -369,8 +516,9 @@ class RLogDaemon(Daemon):
     def ring_bell(self):
         #add check if sound is correctly setup (tutorial in adafruit sound pdf)
         #test=os.system("mpg321 -q "+SOUND)
-        test = os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
-        log(test)
+        #test = os.system("mpg321 -q /home/pi/rlog/sound/coin.mp3")
+        #log(test)
+        pass
 
 # calling this script directly...
 if __name__ == "__main__":
@@ -380,6 +528,7 @@ if __name__ == "__main__":
     parser.add_argument('--querydelay', default = 10, type = int, help = 'Delay in seconds between two queries')
     parser.add_argument('--participants', default = 32, type = int, help = 'Maximum ID of bus participant to discover')
     parser.add_argument('--discoverytimer', default = 10, type = int, help = 'Every X iterations the device discovery will run on the next sequential id')
+    parser.add_argument('--smartmeter', action='store_true', help = 'Flip this switch if you also want to read a VSM-102 smart meter on the same bus')
     parser.add_argument('mode', choices = ['start', 'stop', 'restart'], help = 'What should the daemon do?')
     args = parser.parse_args()
 
@@ -392,6 +541,7 @@ if __name__ == "__main__":
     RLogDaemon.DELAY = args.querydelay
     RLogDaemon.DISCOVERY_COUNT = args.discoverytimer
     daemon._discovery_credit = RLogDaemon.DISCOVERY_COUNT
+    daemon._smart_meter_enabled = args.smartmeter
 
     if 'start' == args.mode:
         log("Starting RLog daemon")

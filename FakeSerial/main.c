@@ -19,10 +19,8 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Slave device: %s\n", ptsname(pt));
 
 	while (1) {
-		write(pt,
-				"\n*030   4 355.9  2.92  1039 239.5  4.12   974  40   3229 « 5000xi\r",
-				66);
-		sleep(10);
+		write(pt, "\n*030   4 355.9  2.92  1039 239.5  4.12   974  40   3229 « 5000xi\r", 66);
+		sleep(1);
 	}
 
 	return 0;
