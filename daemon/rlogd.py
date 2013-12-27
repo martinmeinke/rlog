@@ -16,8 +16,9 @@ import string
 import mqtt
 from daemon import Daemon
 import argparse
+import re
 
-DEBUG_ENABLED = True
+DEBUG_ENABLED = False
 DEBUG_SERIAL = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -40,7 +41,6 @@ class WR():
         self.__model = ""
         self.__bytesize = serial.EIGHTBITS
         self.__parity = serial.PARITY_NONE
-        self.__timeout = 1
     
     # getters for member variables
     @property
@@ -56,7 +56,6 @@ class WR():
         self.__serial_port.flushOutput()
         self.__serial_port.bytesize = self.__bytesize
         self.__serial_port.parity = self.__parity
-        self.__serial_port.timeout = self.__timeout
     
     # reads the answer of the WR after request has been issued
     def read_line(self, timeout = 2):
@@ -76,7 +75,7 @@ class WR():
                 if response and response[-1] == '\r':
                     break
                 if time.time() - start_zeit > timeout:
-                    break
+                    return response
         except serial.SerialException as e:
             log("RS45 problem while reading from WR")
         return response
@@ -164,9 +163,10 @@ class SmartMeter():
     def __init__(self, serial_port):
         self.__serial_port = serial_port
         self.__model = "VSM-102"
-        self.__bytesize = 7
+        self.__bytesize = serial.SEVENBITS
         self.__parity = serial.PARITY_EVEN
-        self.__timeout = 2
+        self.__start_regex = re.compile("1-0:1\\.8\\.0\\*255")  # OBIS for total meter reading
+        self.__end_regex = re.compile("0-0:96\\.1\\.255\\*255") # OBIS for serial number
     
     # getters for member variables
     
@@ -179,57 +179,65 @@ class SmartMeter():
         self.__serial_port.flushOutput()
         self.__serial_port.bytesize = self.__bytesize
         self.__serial_port.parity = self.__parity
-        self.__serial_port.timeout = self.__timeout
     
-    # reads the answer of the WR after request has been issued
-    def read_line(self, timeout = 2):
-        response = ''
-#        start_zeit = time.time()
-        try:
-            # skip everything until line feed
-#            while(True):
-#                response = self.__serial_port.read()
-#                if response and response[0] == '\n':
-#                    break
-#                if time.time() - start_zeit > timeout:
-#                    return response
-            # read until return character
-#            while(True):
-#                response += self.__serial_port.read()
-#                if response and response[-1] == '\r':
-#                    break
-#                if time.time() - start_zeit > timeout:
-#                    breaks.readline()
-            response = self.__serial_port.readline()
-        except serial.SerialException as e:
-            log("RS45 problem while reading from WR")
-        return response
 
     # checks checksum in data message
     def data_valid(self, data_string):
-        # very optimistic!
+        # in my test there where 11 elements
+        if len(data_string.split("\n")) != 11:
+            if DEBUG_ENABLED:
+                log("Read smart meter datagram with invalid structure. datagram is: " + data_string + "number of elements (should be 11): " + len(data_string.split("\n")))
+            return False
         return True
+        
+    def read_datagram(self, timeout = 2):
+        data_buffer = ''
+        response = ''
+        start_zeit = time.time()
+        try:
+            # skip everything until 1-0:1.8.0*255 arrives the beginning of total meter reading)
+            while(True):
+                data_buffer += self.__serial_port.read()
+                match = self.__start_regex.search(data_buffer)
+                if match:
+                    response = match.group(0)
+                    break
+                if time.time() - start_zeit > timeout:
+                    return response
+            # read until 0-0:96.1.255*255 arrives (indicates the last line containing the serial number)
+            while(True):
+                response += self.__serial_port.read()
+                match = self.__end_regex.search(response)
+                if match:
+                    break
+                if time.time() - start_zeit > timeout:
+                    return response
+            # skip everything until line feed
+            while(True):
+                response += self.__serial_port.read()
+                if response[-1] == '\n':
+                    break
+                if time.time() - start_zeit > timeout:
+                    return response
+        except serial.SerialException as e:
+            log("RS45 problem while reading from WR")
+        return response
         
     # returns the data message or None
     def request_data(self):
         try:
             self.setup_serial_port()
-            log("selecting smart meter")
             self.__serial_port.write("/?!\r\n")
             self.__serial_port.flush()
-            response = self.__serial_port.readline()
-            log("Smart Meter answered " + response)
-            time.sleep(1)
+            time.sleep(0.2)
             self.__serial_port.write(chr(6) + "050\r\n")
             self.__serial_port.flush()
-            response = self.__serial_port.readline()
-            if self.data_valid(response):
-                return response
-            else:
-                return None
         except serial.SerialException as e:
-            log("RS45 problem while requesting WR data")
-            return None
+            log("RS45 problem while requesting smart meter data") 
+        daten = self.read_datagram()
+        if self.data_valid(daten):
+            return daten
+        return None
             
     # returns True / False indicating whether that device exists on the bus (if it answered valid data)
     def does_exist(self):
@@ -237,7 +245,7 @@ class SmartMeter():
         data = self.request_data()
         if data:
             if DEBUG_ENABLED:
-                log("Device %d answered on data request %s " % (self.__bus_id, data))
+                log("smart meter answered on data request %s " % (data))
             return True
         return False
 
@@ -264,6 +272,17 @@ class RLogDaemon(Daemon):
         self._smart_meter = None
         self._smart_meter_enabled = False
         self._smart_meter_found = False
+        
+        
+        self._total_regex = re.compile("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)")    # 1-0:1.8.0*255(00000.00*kWh)
+        # 1-0:2.1.7*255(00000.00*kWh)
+        # 1-0:4.1.7*255(00000.00*kWh)
+        # 1-0:6.1.7*255(00000.00*kWh)
+        # 1-0:21.7.255*255(0000.0000*kW)
+        # 1-0:41.7.255*255(0000.0000*kW)
+        # 1-0:61.7.255*255(0000.0000*kW)
+        # 1-0:1.7.255*255(0000.0000*kW)
+            
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
 
@@ -349,9 +368,9 @@ class RLogDaemon(Daemon):
                 if candidate.does_exist():
                     try:
                         # fake 3 phases as new devices for the web interface
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model))
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model))
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model))
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model + " Phase 1"))
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model + " Phase 2"))
+                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model + " Phase 3"))
                         self._db_connection.commit()
                     except sqlite3.OperationalError as ex:
                         log("Database is locked or some other DB error!")
@@ -409,7 +428,7 @@ class RLogDaemon(Daemon):
             if os.path.exists("%s%d" % (DEVICE_NAME_BASE, device_id)):
                 RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE, device_id)
                 log("Using device: %s" % RLogDaemon.DEVICE_NAME)
-                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate = 9600, stopbits = serial.STOPBITS_ONE)
+                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate = 9600, stopbits = serial.STOPBITS_ONE, timeout = 1)
                 return
         log("Unable to find serial port")
 
@@ -451,9 +470,9 @@ class RLogDaemon(Daemon):
         if candidate.does_exist():
             try:
                 # fake 3 phases as new devices for the web interface
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model))
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model))
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model))
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model + " Phase 1"))
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model + " Phase 2"))
+                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model + " Phase 3"))
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
                 log("Database is locked or some other DB error!")
@@ -470,6 +489,7 @@ class RLogDaemon(Daemon):
         
 
     def poll_devices(self):
+        # poll the WR
         statements = []
         for (bus_id, wr) in self._slaves.iteritems():
             data = wr.request_data()
@@ -501,6 +521,38 @@ class RLogDaemon(Daemon):
                 log(str(type(ex))+str(ex))
             except sqlite3.IntegrityError as e:
                 log("sqlite trigger shit is going on\n" + str(e))
+        # poll the smart meter
+        statements = []
+        datagram = self._smart_meter.request_data()
+        if datagram:
+            # looks like this:
+            
+            # 1-0:1.8.0*255(00000.00*kWh)
+            # 1-0:2.1.7*255(00000.00*kWh)
+            # 1-0:4.1.7*255(00000.00*kWh)
+            # 1-0:6.1.7*255(00000.00*kWh)
+            # 1-0:21.7.255*255(0000.0000*kW)
+            # 1-0:41.7.255*255(0000.0000*kW)
+            # 1-0:61.7.255*255(0000.0000*kW)
+            # 1-0:1.7.255*255(0000.0000*kW)
+            # 1-0:96.5.5*255(q)
+            # 0-0:96.1.255*255(11401476)
+            #  <-- yes, here are \r\n!
+            
+            if DEBUG_ENABLED:
+                log("Smart Meter datagram: %s" % datagram)
+            if data:
+                rows = data.split("\n")
+                tmp = [str(wr.bus_id)]
+                tmp.extend(cols[2:10])
+                statements.append(tmp)
+                try:
+                    self._mqttPublisher.publish("/devices/RLog/controls/" + wr.model + " (" + str(wr.bus_id) + ")", tmp[-3], 0, True)
+                except Exception as e:
+                    log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + tmp[-3])
+                if DEBUG_ENABLED:
+                    log("adding: "+ ", ".join(tmp) + " to transaction")
+                time.sleep(0.33)
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
