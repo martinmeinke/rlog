@@ -116,7 +116,7 @@ class mqtt():
                     		(topic, message, QoS, retain) = self.__publishQueue.pop(0)
                     		self._client.publish(topic, message, QoS, retain)
         except Exception as e:
-		print "connection lost. try to restart"
+		print "connection lost. try to restart", e
         self._client.connect(self.__broker, self.__port, 60)
         self.__tryToConnect = True
         thread.start_new_thread(self.loop, ())

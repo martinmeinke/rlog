@@ -273,15 +273,10 @@ class RLogDaemon(Daemon):
         self._smart_meter_enabled = False
         self._smart_meter_found = False
         
-        
-        self._total_regex = re.compile("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)")    # 1-0:1.8.0*255(00000.00*kWh)
-        # 1-0:2.1.7*255(00000.00*kWh)
-        # 1-0:4.1.7*255(00000.00*kWh)
-        # 1-0:6.1.7*255(00000.00*kWh)
-        # 1-0:21.7.255*255(0000.0000*kW)
-        # 1-0:41.7.255*255(0000.0000*kW)
-        # 1-0:61.7.255*255(0000.0000*kW)
-        # 1-0:1.7.255*255(0000.0000*kW)
+        self._reading_regex = re.compile("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)")          # 1-0:1.8.0*255(00000.00*kWh)
+        self._phase1_regex = re.compile("1-0:21\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)")       # 1-0:21.7.255*255(0000.0000*kW)
+        self._phase2_regex = re.compile("1-0:41\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)")       # 1-0:41.7.255*255(0000.0000*kW)
+        self._phase3_regex = re.compile("1-0:61\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)")       # 1-0:61.7.255*255(0000.0000*kW)
             
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
@@ -366,15 +361,6 @@ class RLogDaemon(Daemon):
             if self._smart_meter_found == False and self._smart_meter_enabled == True:
                 candidate = SmartMeter(self._serial_port)
                 if candidate.does_exist():
-                    try:
-                        # fake 3 phases as new devices for the web interface
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model + " Phase 1"))
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model + " Phase 2"))
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model + " Phase 3"))
-                        self._db_connection.commit()
-                    except sqlite3.OperationalError as ex:
-                        log("Database is locked or some other DB error!")
-                        log(str(type(ex))+str(ex))
                     try:
                         # fake 3 phases as new devices for MQTT
                         self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (1)/meta/type", "text", 0, True)
@@ -469,15 +455,6 @@ class RLogDaemon(Daemon):
         candidate = SmartMeter(self._serial_port)
         if candidate.does_exist():
             try:
-                # fake 3 phases as new devices for the web interface
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (1, candidate.model + " Phase 1"))
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (2, candidate.model + " Phase 2"))
-                self._db_cursor.execute("INSERT OR REPLACE INTO charts_smartmeter (id, model) VALUES (?, ?)", (3, candidate.model + " Phase 3"))
-                self._db_connection.commit()
-            except sqlite3.OperationalError as ex:
-                log("Database is locked or some other DB error!")
-                log(str(type(ex))+str(ex))
-            try:
                 # fake 3 phases as new devices for MQTT
                 self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (1)/meta/type", "text", 0, True)
                 self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (2)/meta/type", "text", 0, True)
@@ -517,42 +494,68 @@ class RLogDaemon(Daemon):
                 self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
-                log("Database is locked or some other DB error!")
+                log("WR: Database is locked or some other DB error!")
                 log(str(type(ex))+str(ex))
             except sqlite3.IntegrityError as e:
                 log("sqlite trigger shit is going on\n" + str(e))
-        # poll the smart meter
-        statements = []
-        datagram = self._smart_meter.request_data()
-        if datagram:
-            # looks like this:
-            
-            # 1-0:1.8.0*255(00000.00*kWh)
-            # 1-0:2.1.7*255(00000.00*kWh)
-            # 1-0:4.1.7*255(00000.00*kWh)
-            # 1-0:6.1.7*255(00000.00*kWh)
-            # 1-0:21.7.255*255(0000.0000*kW)
-            # 1-0:41.7.255*255(0000.0000*kW)
-            # 1-0:61.7.255*255(0000.0000*kW)
-            # 1-0:1.7.255*255(0000.0000*kW)
-            # 1-0:96.5.5*255(q)
-            # 0-0:96.1.255*255(11401476)
-            #  <-- yes, here are \r\n!
-            
-            if DEBUG_ENABLED:
-                log("Smart Meter datagram: %s" % datagram)
-            if data:
-                rows = data.split("\n")
-                tmp = [str(wr.bus_id)]
-                tmp.extend(cols[2:10])
-                statements.append(tmp)
-                try:
-                    self._mqttPublisher.publish("/devices/RLog/controls/" + wr.model + " (" + str(wr.bus_id) + ")", tmp[-3], 0, True)
-                except Exception as e:
-                    log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + tmp[-3])
+        # poll the smart meter (if it's there)
+        if self._smart_meter:
+            statements = []
+            datagram = self._smart_meter.request_data()
+            if datagram:
+                # looks like this:
+                
+                # 1-0:1.8.0*255(00000.00*kWh)
+                # 1-0:2.1.7*255(00000.00*kWh)
+                # 1-0:4.1.7*255(00000.00*kWh)
+                # 1-0:6.1.7*255(00000.00*kWh)
+                # 1-0:21.7.255*255(0000.0000*kW)
+                # 1-0:41.7.255*255(0000.0000*kW)
+                # 1-0:61.7.255*255(0000.0000*kW)
+                # 1-0:1.7.255*255(0000.0000*kW)
+                # 1-0:96.5.5*255(q)
+                # 0-0:96.1.255*255(11401476)
+                #  <-- yes, here are \r\n!
+                
                 if DEBUG_ENABLED:
-                    log("adding: "+ ", ".join(tmp) + " to transaction")
-                time.sleep(0.33)
+                    log("Smart Meter datagram: %s" % datagram)
+                values = []
+                match = self._reading_regex.search(datagram)
+                if match:
+                    values.append(float(match.group(1)))
+                match = self._phase1_regex.search(datagram)
+                if match:
+                    values.append(float(match.group(1)) * 1000)
+                    try:
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (1)", str(values[-1]), 0, True)
+                    except Exception as e:
+                        log("MQTT cause exception in poll_devices(): " + str(e))
+                match = self._phase2_regex.search(datagram)
+                if match:
+                    values.append(float(match.group(1)) * 1000)
+                    try:
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (2)", str(values[-1]), 0, True)
+                    except Exception as e:
+                        log("MQTT cause exception in poll_devices(): " + str(e))
+                match = self._phase3_regex.search(datagram)
+                if match:
+                    values.append(float(match.group(1)) * 1000)
+                    try:
+                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (3)", str(values[-1]), 0, True)
+                    except Exception as e:
+                        log("MQTT cause exception in poll_devices(): " + str(e))
+                if len(values) == 4:
+                    try:
+                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?)", values)
+                        self._db_connection.commit()
+                    except sqlite3.OperationalError as ex:
+                        log("Smart Meter: Database is locked or some other DB error!")
+                        log(str(type(ex))+str(ex))
+                    except sqlite3.IntegrityError as e:
+                        log("sqlite trigger shit is going on\n" + str(e))
+                else:
+                    log("Can't read all values from smart meter: " + str(values))
+                
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
