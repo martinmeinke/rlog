@@ -157,6 +157,12 @@ def stats(request, timeframe_url):
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
         graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "bars" : {"order" : str(i)}})
+    
+    ticksSM = chart.getSmartMeterTimeSeries()
+
+    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
+    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
+    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()

@@ -11,7 +11,7 @@ import time
 import locale
 import random
 import calendar
-from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward, SolarDailyMaxima
+from charts.models import * 
 from django.db.models import Sum
 
 class StatsItem(object):
@@ -49,6 +49,8 @@ class Chart(object):
 
         self.__rowarray_list = {}
         
+        self.__smartMeterData = None
+        
         
         if self.__period == "period_min":
             self._formatstring = "%d.%m.%Y %H:%M"
@@ -70,6 +72,24 @@ class Chart(object):
             self._formatstring = "%Y"
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
+            
+            
+        if self.__period == "period_min":
+            self.__smartMeterData = SmartMeterEntryMinute.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")
+        elif self.__period == "period_hrs":
+            self.__smartMeterData = SmartMeterEntryHour.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")
+        elif self.__period == "period_day":
+            self.__smartMeterData = SmartMeterEntryDay.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")
+        elif self.__period == "period_mon":
+            self.__smartMeterData = SmartMeterEntryMonth.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")
+        elif self.__period == "period_yrs":
+            self.__smartMeterData = SmartMeterEntryYear.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")
+            
       
         # print "Start date: %s\nEnd date: %s" % (self.__startdate, self.__enddate)
 
@@ -136,6 +156,9 @@ class Chart(object):
             self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
 
         return 0
+   
+    def getSmartMeterTimeSeries(self):
+        return self.__smartMeterData
 
     def calc_total_reward(self):
         self.__rewardTotal = 0
@@ -151,7 +174,7 @@ class Chart(object):
     # TODO: consider performing this kind of tasks on the client machine, 
     # maybe giving the decision in the users hand.
     def use_line_chart(self):
-        maximum_ticks = len(self.__rowarray_list[self.getDeviceIDList()[0]])
+        maximum_ticks = max(len(self.__rowarray_list[self.getDeviceIDList()[0]]), len(self.__smartMeterData))
 
         #compute based on period + timeframe
         delta = self.__enddate - self.__startdate
@@ -294,8 +317,8 @@ class Chart(object):
        
     
     def getNumPoints(self):
-        if len(self.__rowarray_list) > 0:
-            return len(self.__rowarray_list[self.getDeviceIDList()[0]])
+        if len(self.__rowarray_list) > 0 or len(self.__smartMeterData) > 0:
+            return max(len(self.__rowarray_list[self.getDeviceIDList()[0]]), len(self.__smartMeterData))
         else:
             return 1
 
