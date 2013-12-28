@@ -104,73 +104,73 @@ class SolarDailyMaxima(models.Model):
 
 class SmartMeterEntryTick(models.Model):
     time = models.DateTimeField()
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
     
     
 class SmartMeterEntryTickBackup(models.Model):
     time = models.DateTimeField()
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterEntryMinute(models.Model):
     time = models.DateTimeField(primary_key=True)
     exacttime = models.DateTimeField(null = True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 class SmartMeterEntryMinuteBackup(models.Model):
     time = models.DateTimeField(primary_key=True)
     exacttime = models.DateTimeField(null = True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
         
 
 class SmartMeterEntryHour(models.Model):
     time = models.DateTimeField(primary_key=True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterEntryDay(models.Model):
     time = models.DateField(primary_key=True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterEntryMonth(models.Model):
     time = models.DateField(primary_key=True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterEntryYear(models.Model):
     time = models.DateField(primary_key=True)
-    reading = models.DecimalField(max_digits=10, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=10, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=10, decimal_places=3)
+    reading = models.DecimalField(max_digits=9, decimal_places=3)
+    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterDailyMaxima(models.Model):
     time = models.DateField(primary_key=True)
     exacttime = models.DateTimeField()
-    maximum = models.DecimalField(max_digits=10, decimal_places=3)
+    maximum = models.DecimalField(max_digits=9, decimal_places=3)
                
                 
 ###############

@@ -1,7 +1,4 @@
 $(document).ready(function() {
-  		timezoneJS.timezone.zoneFileBasePath = '/static/timezones';
-	    timezoneJS.timezone.defaultZoneFile = 'europe';
-	    timezoneJS.timezone.init({async: false});
 	/*
 	 * $("#header").mouseover(function() { $("#header").animate({
 	 * "margin-top":"0px" }, 500 ); $("#header").clearQueue();

@@ -2,17 +2,14 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from chart import Chart
 from live_chart import LiveChart
-import sqlite3
-import cgi
 import datetime
-import time
+import calendar
 import json
 from charts.forms import StatsForm, CustomStatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
 from charts.models import Device
-from charts.models import SolarEntryTick
-import calendar
+from charts.models import SolarEntryTick, SmartMeterEntryTick
 from django.utils.translation import ugettext as _
 
 def index(request):
@@ -27,50 +24,47 @@ def liveData(request):
     #l = logging.getLogger('django.db.backends')
     #l.setLevel(logging.DEBUG)
     #l.addHandler(logging.StreamHandler())
+    
+    chart = LiveChart()
+    graphs = []
+    ticksWR = None
+    ticksSM = None
 
     if 'lastTick' in request.GET:
         last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
+        # WR data
+        ticksWR = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
+        for device in Device.objects.distinct():
+            graphs.append({"data": chart.fetchTimeSeriesLiveView(device.id, ticksWR)})
+        # smart meter data
+        ticksSM = SmartMeterEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
         
-        graphs = []
-
-        ticks = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
-        for device in Device.objects.distinct():
-            #ticks = LiveChart.fetch_and_get_ticks_since(int(device.id), last_tick_provided)
-            timetuples = {}
-            timetuples.update({device.id : []})
-
-            for tick in ticks:
-                if tick.device_id == device.id:
-                    t = (calendar.timegm(tick.time.utctimetuple()) * 1000, int(tick.lW))
-                    timetuples[device.id].append(t)
-            graphs.append({"data": timetuples[device.id]})
-
-        timeseries = json.dumps(graphs)
-        return HttpResponse("{\"timeseries\": %s}" % timeseries)
-
+        return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs))
+    
     else:
-        #perform the chart initialization
-        start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
-        end = datetime.datetime.today()
-
-        chart = LiveChart(start, end)
-        graphs = []
-        ticks = None
         if int(request.GET["timeframe"]) == 1440:
-            ticks = SolarEntryTick.objects.order_by('-time')
+            ticksWR = SolarEntryTick.objects.order_by('-time')
+            ticksSM = SmartMeterEntryTick.objects.order_by('-time')
         else:
-            ticks = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
-
+            start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+            end = datetime.datetime.today()
+            ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+            ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+        
         for device in Device.objects.distinct():
-            chart.fetchTimeSeriesLiveView(device.id, ticks)
-            timetuples = chart.getTimeSeriesLiveView(device.id)
+            timetuples = chart.fetchTimeSeriesLiveView(device.id, ticksWR)
             label = "Erzeugung WR %s (ID: %s)" % (device.model, device.id)
             graphs.append({"label": label, "data":timetuples})
+        
+        graphs.append({"label" : "Nutzung VSM-102 Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
+        graphs.append({"label" : "Nutzung VSM-102 Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
+        graphs.append({"label" : "Nutzung VSM-102 Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
 
         timeseries = json.dumps(graphs)
         plotsettings = json.dumps(chart.chartOptionsLiveView())
-        #print "{'settings': '%s', 'timeseries': '%s'}" % (plotsettings,timeseries)
-        
         return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
 def stats(request, timeframe_url):
