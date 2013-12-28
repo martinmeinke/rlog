@@ -8,10 +8,7 @@ from django.conf import settings
 from dateutil.relativedelta import relativedelta
 import datetime
 import time
-import sqlite3
 import locale
-import os
-import sys
 import random
 import calendar
 from charts.models import SolarEntryTick, SolarEntryMinute, SolarEntryHour, SolarEntryDay, SolarEntryMonth, SolarEntryYear, Settings, Device, Reward, SolarDailyMaxima
@@ -31,24 +28,27 @@ class Chart(object):
     SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
     SECONDS_PER_YEAR = SECONDS_PER_MONTH * 12
 
-    def __init__(self,pStartDate,pEndDate,pPeriod):
+    def __init__(self, pStartDate, pEndDate, pPeriod):
         '''
         Constructor
         '''
         self.__startdate = pStartDate
         self.__enddate = pEndDate
         self.__period = pPeriod
-        self.__rewards = []
+        self.__rewards = Reward.objects.order_by('-time')
+        
+        
+        self.__devices = []
+        distinct_devices = Device.objects.distinct()
+        for device in distinct_devices:
+            self.__devices.append(device.id)
 
         self.__bar_scale_factor = 0.9
-
-        self.__conn = sqlite3.connect(settings.DATABASES['default']['NAME'])
-
         self.__totalSupply = 0
         self.__rewardTotal = 0
 
         self.__rowarray_list = {}
-        self.__rowarray_list_live = {}
+        
         
         if self.__period == "period_min":
             self._formatstring = "%d.%m.%Y %H:%M"
@@ -234,17 +234,6 @@ class Chart(object):
         json = self.__lBoundary,self.__rBoundary
         return json
 
-    #currently not used!
-    @staticmethod
-    def build_tick_array(self):
-        ticks = []
-        for i in self.__rowarray_list[self.getDeviceIDList()[0]]:
-            ticks.append((i[0], "date"))
-        return ticks
-    
-    def getTimeSeriesLiveView(self, deviceID):
-        return self.__rowarray_list_live[deviceID]
-
     def getTimeSeries(self, deviceID):
         return self.__rowarray_list[deviceID]
 
@@ -261,7 +250,7 @@ class Chart(object):
             for deviceID in devices:
                 ticks = SolarDailyMaxima.objects.filter(
                     time__range=(self.__startdate, self.__enddate), 
-                    device = deviceID).order_by('-lW')
+                    device = deviceID).order_by('-lW')[:1]
                 items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
         except Exception as e:
             print "maxima calculation failed", e
@@ -310,22 +299,11 @@ class Chart(object):
         else:
             return 1
 
-    @staticmethod
-    def getDeviceIDList():
-        devices = []
-        
-        distinct_devices = Device.objects.distinct()
-
-        for device in distinct_devices:
-            devices.append(device.id)
-
-        return devices
+    def getDeviceIDList(self):
+        return self.__devices
 
     #doing it the lazy way now ;)
-    def get_reward_for_tick(self, t):
-        if len(self.__rewards) == 0:
-            self.__rewards.extend(Reward.objects.order_by('-time'))
-        
+    def get_reward_for_tick(self, t):        
         for r in self.__rewards:
             if isinstance(t.time, datetime.datetime):
                 if r.time.date() < t.time.date():
@@ -343,9 +321,3 @@ class Chart(object):
         #    print str(type(err))+str(err)
 
         return 0
-
-
-class TickGroup():
-    def __init__(self, key, group):
-        self._key = key
-        self._group = group
