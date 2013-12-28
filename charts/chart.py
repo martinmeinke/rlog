@@ -267,27 +267,26 @@ class Chart(object):
         devices = self.getDeviceIDList()
         items = []
         
-        # TODO find a way to put that HTML into template
-        maximaHTML = ""
-        try: # not sure if really works with old tables which do not match updated model
-            for deviceID in devices:
-                ticks = SolarDailyMaxima.objects.filter(
-                    time__range=(self.__startdate, self.__enddate), 
-                    device = deviceID).order_by('-lW')[:1]
-                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
-        except Exception as e:
-            print "maxima calculation failed", e
-            
-        single = ""
-        try: # i'm a chicken
-            for deviceID in devices:
-                ticks = SolarEntryDay.objects.filter(
-                    time__range=(self.__startdate, self.__enddate), 
-                    device = deviceID).aggregate(Sum('lW'))
-                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]),2)))
-                self.__totalSupply += ticks["lW__sum"]
-        except Exception as e:
-            print "total energy calculation failed", e
+
+        for deviceID in devices:
+            ticks = SolarDailyMaxima.objects.filter(
+                time__range=(self.__startdate, self.__enddate), 
+                device = deviceID).order_by('-lW')[:1]
+            items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
+
+        for deviceID in devices:
+            ticks = SolarEntryDay.objects.filter(
+                time__range=(self.__startdate, self.__enddate), 
+                device = deviceID).aggregate(Sum('lW'))
+            items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]), 2)))
+            self.__totalSupply += ticks["lW__sum"]
+
+        for phase in ["phase1", "phase2", "phase3"]:
+            smartMeterTotal = SmartMeterEntryDay.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).aggregate(Sum(phase))
+            items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
+
+        
         
         kws = round(self.__totalSupply, 2)
         
@@ -305,11 +304,31 @@ class Chart(object):
             avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
         except:
             pass
+            
+        theDayBeforeStart = self.__startdate - relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+        smartMeterDayBefore = None
+        dayBeforeReading = SmartMeterEntryDay.objects.filter(time=theDayBeforeStart)[:1]
+        if dayBeforeReading:
+            smartMeterDayBefore = float(dayBeforeReading[0].reading)
+        smartMeterNow = None
+        nowReading = SmartMeterEntryDay.objects.order_by('-time')[:1]
+        if nowReading:
+            smartMeterNow = float(nowReading[0].reading)
+        
+        eneryConsumptionInPeriod = None
+        
+        try:
+            eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
+        except:
+            pass
 
         items.append(StatsItem("Beginn Zeitraum: ", bz))
         items.append(StatsItem("Ende Zeitraum: ", ez))
         items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
-        items.append(StatsItem("Durchschnitt / Periode", avgsp))
+        items.append(StatsItem("Zählerstand Start:", str(smartMeterDayBefore) + "kWh"))
+        items.append(StatsItem("Aktueller Zählerstand:", str(smartMeterNow) + "kWh"))
+        items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod) + "kWh"))
+        items.append(StatsItem("Durchschnitt Einspeisung / Periode", avgsp))
         items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
         items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
 
