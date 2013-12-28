@@ -252,7 +252,7 @@ function updateLegend() {
              newtimestamp += " Uhr";
 
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $(".legendLabel")[i].innerHTML = dataset[i].label + " " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
+         $(".legendLabel")[i].innerHTML = dataset[i].label + " am " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
          $(".legendLabel")[i].innerHTML = dataset[i].label + "Keine Daten vorhanden";
     }
