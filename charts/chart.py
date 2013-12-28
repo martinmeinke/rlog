@@ -267,26 +267,33 @@ class Chart(object):
         devices = self.getDeviceIDList()
         items = []
         
-
+        
         for deviceID in devices:
             ticks = SolarDailyMaxima.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
                 device = deviceID).order_by('-lW')[:1]
-            items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
+            try:
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
+            except Exception as e: # probably is index error when there are no values
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "keine Daten"))
 
         for deviceID in devices:
             ticks = SolarEntryDay.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
                 device = deviceID).aggregate(Sum('lW'))
-            items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]), 2)))
-            self.__totalSupply += ticks["lW__sum"]
+            try:
+                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]), 2)))
+                self.__totalSupply += ticks["lW__sum"]
+            except Exception as e:
+                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "keine Daten"))
 
         for phase in ["phase1", "phase2", "phase3"]:
             smartMeterTotal = SmartMeterEntryDay.objects.filter(
                 time__range=(self.__startdate, self.__enddate)).aggregate(Sum(phase))
-            items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
-
-        
+            try:
+                items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
+            except Exception as e:
+                items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "keine Daten"))
         
         kws = round(self.__totalSupply, 2)
         
@@ -305,7 +312,7 @@ class Chart(object):
         except:
             pass
             
-        theDayBeforeStart = self.__startdate - relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+        theDayBeforeStart = self.__startdate - datetime.timedelta(days=1)
         smartMeterDayBefore = None
         dayBeforeReading = SmartMeterEntryDay.objects.filter(time=theDayBeforeStart)[:1]
         if dayBeforeReading:
