@@ -43,7 +43,7 @@ class Chart(object):
         for device in distinct_devices:
             self.__devices.append(device.id)
 
-        self.__bar_scale_factor = 0.9
+        self.__bar_scale_factor = 0.95
         self.__totalSupply = 0
         self.__rewardTotal = 0
 
@@ -203,7 +203,7 @@ class Chart(object):
             settings["series"]["bars"] = {
                 "show": "true",
                 "align": "left",
-                "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+1))*self.__bar_scale_factor,
+                "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+4))*self.__bar_scale_factor,
                 "fill": "true",
                 "lineWidth": 1}
         
