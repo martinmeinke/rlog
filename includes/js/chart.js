@@ -19,7 +19,7 @@ function drawPlot() {
     max_len = 0;
     
     jQuery.each(data, function(){
-        max_len = this.data.length() > max_len ? this.data.length() : max_len;
+        max_len = this.data.length > max_len ? this.data.length : max_len;
     });
 		
     if(max_len == 0)
