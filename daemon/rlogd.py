@@ -181,7 +181,6 @@ class SmartMeter():
         self.__serial_port.parity = self.__parity
     
 
-    # checks checksum in data message
     def data_valid(self, data_string):
         # in my test there where 11 elements
         if len(data_string.split("\n")) != 11:
@@ -239,14 +238,14 @@ class SmartMeter():
             return daten
         return None
             
+
     # returns True / False indicating whether that device exists on the bus (if it answered valid data)
     def does_exist(self):
         log("discovering smart meter")
         data = self.request_data()
-        if data:
-            if DEBUG_ENABLED:
-                log("smart meter answered on data request %s " % (data))
+        if data and self.data_valid(data):
             return True
+        log("smart meter answered on data request %s " % (data))
         return False
 
 class RLogDaemon(Daemon):
