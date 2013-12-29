@@ -160,9 +160,9 @@ def stats(request, timeframe_url):
     
     ticksSM = chart.getSmartMeterTimeSeries()
 
-    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
-    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
-    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
+    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList()))}})
+    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList() + 1))}})
+    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList() + 2))}})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()
