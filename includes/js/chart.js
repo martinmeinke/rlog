@@ -15,8 +15,14 @@ function drawPlot() {
   	plot.setData(data);
   	plot.setupGrid()
   	plot.draw(); 
-
-    if(data[0].data.length == 0)
+    
+    max_len = 0;
+    
+    jQuery.each(data, function(){
+        max_len = this.length() > max_len ? this.length() : max_len;
+    });
+		
+    if(max_len == 0)
     {
         add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
     }else{
