@@ -41,6 +41,7 @@ class WR():
         self.__model = ""
         self.__bytesize = serial.EIGHTBITS
         self.__parity = serial.PARITY_NONE
+        self.setup_serial_port()
     
     # getters for member variables
     @property
@@ -115,7 +116,6 @@ class WR():
     # returns the type message or None
     def request_type(self):
         try:
-            self.setup_serial_port()
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "9\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
@@ -128,7 +128,6 @@ class WR():
     # returns the data message or None
     def request_data(self):
         try:
-            self.setup_serial_port()
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
@@ -167,6 +166,7 @@ class SmartMeter():
         self.__parity = serial.PARITY_EVEN
         self.__start_regex = re.compile("1-0:1\\.8\\.0\\*255")  # OBIS for total meter reading
         self.__end_regex = re.compile("0-0:96\\.1\\.255\\*255") # OBIS for serial number
+        self.setup_serial_port()
     
     # getters for member variables
     
@@ -225,7 +225,6 @@ class SmartMeter():
     # returns the data message or None
     def request_data(self):
         try:
-            self.setup_serial_port()
             self.__serial_port.write("/?!\r\n")
             self.__serial_port.flush()
             time.sleep(0.2)
@@ -245,11 +244,10 @@ class SmartMeter():
         data = self.request_data()
         if data and self.data_valid(data):
             return True
-        log("smart meter answered on data request %s " % (data))
+        log("smart meter answered badly on data request: %s " % (data))
         return False
 
 class RLogDaemon(Daemon):
-    DEVICE_NAME = None
     KWHPERRING = None
     NEXTRING = None
     SOUND = None
@@ -260,7 +258,8 @@ class RLogDaemon(Daemon):
 
     def __init__(self,pidfile):
         super(RLogDaemon, self).__init__(pidfile)
-        self._serial_port = None
+        self._smart_meter_serial_port = None
+        self._WR_serial_port = None
         self._slaves = {}
         self._slave_names = []
         self._mqttPublisher = None
@@ -309,7 +308,7 @@ class RLogDaemon(Daemon):
 
         #determine the serial adapter to be used
         if DEBUG_SERIAL:
-            self._serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
+            self._WR_serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
         else:
             self.discover_device()
         
@@ -323,12 +322,9 @@ class RLogDaemon(Daemon):
         except Exception as e:
             log("mqtt start problem:" + str(e))
             
-        if(self._serial_port != None):
+        if(self._WR_serial_port != None):
             log("looking for WR")
             self.findWRs()
-            time.sleep(1)
-            if self._smart_meter_enabled == True:
-                self.findSmartMeter()
             log("starting normal execution")
 
             while True:
@@ -358,7 +354,7 @@ class RLogDaemon(Daemon):
         if self._discovery_credit <= 0:
             # find the smart meter if necessary
             if self._smart_meter_found == False and self._smart_meter_enabled == True:
-                candidate = SmartMeter(self._serial_port)
+                candidate = SmartMeter(self._smart_meter_serial_port)
                 if candidate.does_exist():
                     try:
                         # fake 3 phases as new devices for MQTT
@@ -375,7 +371,7 @@ class RLogDaemon(Daemon):
             # find one missing WR
             if self._current_discovery_id != None:
                 missing_wrs = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
-                candidate = WR(self._current_discovery_id, self._serial_port)
+                candidate = WR(self._current_discovery_id, self._WR_serial_port)
                 if candidate.does_exist():
                     self._slaves[self._current_discovery_id] = candidate
                     try:
@@ -406,23 +402,40 @@ class RLogDaemon(Daemon):
         else:
           time.sleep(sleepduration)
 
-    #assume the first device starting with DEVICE_NAME_BASE is the rs485 adapter
+    # try all device starting with DEVICE_NAME_BASE and try to talk to the smart meter if it exists (if smart meter is enabled).
+    # if smart meter is found (or smartmeter is not enabled) try the first device starting with DEVICE_NAME_BASE and assume it is the rs485 adapter for the WR (make sure to skip smart meter adapter if present)
     def discover_device(self):
+        smart_meter_device = -1 # to be excluded in the second run
+        if self._smart_meter_enabled:
+            log("Searching for device where the smart meter responds")
+            for device_id in range(0, 100):
+                log("Checking if %s%d exists ..." % (DEVICE_NAME_BASE, device_id))
+                if os.path.exists("%s%d" % (DEVICE_NAME_BASE, device_id)):
+                    smart_meter_device_name = "%s%d" % (DEVICE_NAME_BASE, device_id)
+                    log("trying device: %s as smart meter device" % smart_meter_device_name)
+                    self._smart_meter_serial_port = serial.Serial(smart_meter_device_name, baudrate = 9600, stopbits = serial.STOPBITS_ONE, timeout = 1)
+                    if self.findSmartMeter():
+                        log("Using %s%d for smart meter" % smart_meter_device_name)
+                        smart_meter_device = device_id
+                        break
+        log("Searching rs485 device for WR")           
         for device_id in range(0, 100):
+            if device_id == smart_meter_device:
+                continue
             log("Checking if %s%d exists..." % (DEVICE_NAME_BASE, device_id))
             if os.path.exists("%s%d" % (DEVICE_NAME_BASE, device_id)):
-                RLogDaemon.DEVICE_NAME = "%s%d" % (DEVICE_NAME_BASE, device_id)
-                log("Using device: %s" % RLogDaemon.DEVICE_NAME)
-                self._serial_port = serial.Serial(port=RLogDaemon.DEVICE_NAME, baudrate = 9600, stopbits = serial.STOPBITS_ONE, timeout = 1)
+                WR_device_name = "%s%d" % (DEVICE_NAME_BASE, device_id)
+                log("Using device: %s" % WR_device_name)
+                self._WR_serial_port = serial.Serial(port=WR_device_name, baudrate = 9600, stopbits = serial.STOPBITS_ONE, timeout = 1)
                 return
-        log("Unable to find serial port")
+        log("Unable to find WR serial port")
 
     
     # try to read type message (and if that doesn't help data message) of each WR to get their IDs on the bus 
     def findWRs(self):
         statements = []
         for bus_id in range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1):
-            candidate = WR(bus_id, self._serial_port)
+            candidate = WR(bus_id, self._WR_serial_port)
             if candidate.does_exist():
                 if DEBUG_ENABLED:
                     log("found WR: " + candidate.model + " with bus id " + str(candidate.bus_id))
@@ -451,7 +464,7 @@ class RLogDaemon(Daemon):
     
     # try to find the smart meter
     def findSmartMeter(self):
-        candidate = SmartMeter(self._serial_port)
+        candidate = SmartMeter(self._smart_meter_serial_port)
         if candidate.does_exist():
             try:
                 # fake 3 phases as new devices for MQTT
@@ -462,6 +475,8 @@ class RLogDaemon(Daemon):
                 log("Exception while doing MQTT stuff: " + str(e))
             self._smart_meter_found = True
             self._smart_meter = candidate
+            return True
+        return False
         
 
     def poll_devices(self):
