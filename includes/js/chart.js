@@ -177,8 +177,8 @@ function autoUpdate()
 				        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
 			        }
 			        data[i]["data"] = data[i]["data"].sort(comparator);
-			        i++;
 			    }
+			    i++;
 		    });
         drawPlot();
 		  	window.setTimeout(autoUpdate, 3000);
