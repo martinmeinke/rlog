@@ -306,12 +306,6 @@ class RLogDaemon(Daemon):
     NEXTRING: %s
     SOUND: %s""" % (RLogDaemon.KWHPERRING, RLogDaemon.NEXTRING, RLogDaemon.SOUND))
 
-        #determine the serial adapter to be used
-        if DEBUG_SERIAL:
-            self._WR_serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
-        else:
-            self.discover_device()
-        
         log("starting MQTT")
         try:
             self._mqttPublisher = mqtt.mqtt(broker = MQTT_HOST)
@@ -321,7 +315,14 @@ class RLogDaemon(Daemon):
             self._mqttPublisher.publish("/devices/RLog/meta/locationY", LOCATIONY, 0, True)   
         except Exception as e:
             log("mqtt start problem:" + str(e))
-            
+ 
+
+        #determine the serial adapter to be used
+        if DEBUG_SERIAL:
+            self._WR_serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
+        else:
+            self.discover_device()
+                   
         if(self._WR_serial_port != None):
             log("looking for WR")
             self.findWRs()
@@ -415,7 +416,7 @@ class RLogDaemon(Daemon):
                     log("trying device: %s as smart meter device" % smart_meter_device_name)
                     self._smart_meter_serial_port = serial.Serial(smart_meter_device_name, baudrate = 9600, stopbits = serial.STOPBITS_ONE, timeout = 1)
                     if self.findSmartMeter():
-                        log("Using %s%d for smart meter" % smart_meter_device_name)
+                        log("Using %s for smart meter" % smart_meter_device_name)
                         smart_meter_device = device_id
                         break
         log("Searching rs485 device for WR")           
