@@ -267,6 +267,8 @@ class Chart(object):
         devices = self.getDeviceIDList()
         items = []
         
+        items.append(StatsItem("Beginn Zeitraum: ", bz))
+        items.append(StatsItem("Ende Zeitraum: ", ez))
         
         for deviceID in devices:
             ticks = SolarDailyMaxima.objects.filter(
@@ -286,6 +288,9 @@ class Chart(object):
                 self.__totalSupply += ticks["lW__sum"]
             except Exception as e:
                 items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "keine Daten"))
+                
+        kws = round(self.__totalSupply, 2)                
+        items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
 
         for phase in ["phase1", "phase2", "phase3"]:
             smartMeterTotal = SmartMeterEntryDay.objects.filter(
@@ -295,23 +300,14 @@ class Chart(object):
             except Exception as e:
                 items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "keine Daten"))
         
-        kws = round(self.__totalSupply, 2)
         
-        avgsp = None
+        smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
         try:
-            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
-        except:
-            pass
-        
-        self.calc_total_reward()
-        rwrdtotal = locale.currency(self.__rewardTotal/100)
-
-        avgrwrd = None
-        try:
-            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
-        except:
-            pass
+            items.append(StatsItem("Verbrauchsmaximum:", "{0}Wh ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
+        except Exception as e:
+            items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
             
+        
         theDayBeforeStart = self.__startdate - datetime.timedelta(days=1)
         smartMeterDayBefore = None
         dayBeforeReading = SmartMeterEntryDay.objects.filter(time=theDayBeforeStart)[:1]
@@ -328,13 +324,27 @@ class Chart(object):
             eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
         except:
             pass
-
-        items.append(StatsItem("Beginn Zeitraum: ", bz))
-        items.append(StatsItem("Ende Zeitraum: ", ez))
-        items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
+        
         items.append(StatsItem("Zählerstand Start:", str(smartMeterDayBefore) + "kWh"))
         items.append(StatsItem("Aktueller Zählerstand:", str(smartMeterNow) + "kWh"))
         items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod) + "kWh"))
+        
+        avgsp = None
+        try:
+            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+        except:
+            pass
+        
+        self.calc_total_reward()
+        rwrdtotal = locale.currency(self.__rewardTotal/100)
+
+        avgrwrd = None
+        try:
+            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
+        except:
+            pass
+
+        
         items.append(StatsItem("Durchschnitt Einspeisung / Periode", avgsp))
         items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
         items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
