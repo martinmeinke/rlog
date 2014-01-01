@@ -198,7 +198,7 @@ class Chart(object):
 
         if self.use_line_chart():
             settings["series"]["lines"] = {"show" : "true"}
-            settings["series"]["points"] = {"show" : "true"}
+            # settings["series"]["points"] = {"show" : "true"}
         else:
             settings["series"]["bars"] = {
                 "show": "true",
