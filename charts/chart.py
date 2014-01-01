@@ -43,7 +43,7 @@ class Chart(object):
         for device in distinct_devices:
             self.__devices.append(device.id)
 
-        self.__bar_scale_factor = 0.95
+        self.__bar_scale_factor = 0.9
         self.__totalSupply = 0
         self.__rewardTotal = 0
 
@@ -197,13 +197,13 @@ class Chart(object):
         settings["series"] = {}
 
         if self.use_line_chart():
-            settings["series"]["lines"] = {"show" : "true"}
+            settings["series"]["lines"] = {"show" : "true", "fill" : "true", "lineWidth": "2"}
             # settings["series"]["points"] = {"show" : "true"}
         else:
             settings["series"]["bars"] = {
                 "show": "true",
                 "align": "left",
-                "barWidth": (self.barWidth()/(len(self.getDeviceIDList())+4))*self.__bar_scale_factor,
+                "barWidth": (self.barWidth() / 3) * self.__bar_scale_factor,
                 "fill": "true",
                 "lineWidth": 1}
         

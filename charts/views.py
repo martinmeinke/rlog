@@ -156,13 +156,13 @@ def stats(request, timeframe_url):
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
-        graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "bars" : {"order" : str(i)}})
+        graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "lines": {"fillColor": "rgba(0,255,0,0.3)"}, "stack":"WR", "bars": {"order": "0"}})
     
     ticksSM = chart.getSmartMeterTimeSeries()
 
-    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList()))}})
-    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList()) + 1)}})
-    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM], "bars" : {"order" : str(len(chart.getDeviceIDList()) + 2)}})
+    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
+    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
+    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()
