@@ -303,7 +303,7 @@ class Chart(object):
         
         smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
         try:
-            items.append(StatsItem("Verbrauchsmaximum:", "{0}Wh ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
+            items.append(StatsItem("Verbrauchsmaximum:", "{0}W ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
         except Exception as e:
             items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
             
