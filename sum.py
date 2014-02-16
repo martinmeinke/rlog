@@ -1,7 +1,7 @@
 #! /usr/bin/python
 import mqtt, time
 
-MQTT_HOST = "127.0.0.1"
+MQTT_HOST = "192.168.11.50"
 WRs = {"dummy" : 0}
 SMs = {"dummy" : 0}
 
@@ -25,7 +25,12 @@ def on_message(mosquitto, message):
 mqttPublisher = mqtt.mqtt(MQTT_HOST)
 mqttPublisher.startMQTT()
 mqttPublisher.on_message = on_message
-mqttPublisher.subscribe("/devices/RLog/controls/+", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/3002IN (1)", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/3002IN (2)", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/3002IN (3)", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/VSM-102 (1)", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/VSM-102 (2)", 0)
+mqttPublisher.subscribe("/devices/RLog/controls/VSM-102 (3)", 0)
 mqttPublisher.publish("/devices/RLog/controls/Erzeugung/meta/type", "text", 0, True)
 mqttPublisher.publish("/devices/RLog/controls/Nutzung/meta/type", "text", 0, True)
 mqttPublisher.publish("/devices/RLog/controls/Bilanz/meta/type", "text", 0, True)
