@@ -1,3 +1,5 @@
+dependencies: libserial paho getopt
+
 libserial:
 	cd libserial-0.5.2; \
 	./configure && \
@@ -8,6 +10,11 @@ paho: submodules
 	cd org.eclipse.paho.mqtt.c; \
 	make && \
 	make install
+	
+getopt:
+	cd getoptpp; \
+	make SHARED=n && \
+	make SHARED=n install
 
 submodules:
 	git submodule init 
