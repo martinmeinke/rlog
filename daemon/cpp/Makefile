@@ -1,11 +1,14 @@
-all: mqtt.o main.o
-	g++ -o "rlogd" mqtt.o main.o -L/usr/local/lib -L/usr/lib/getoptpp -lsqlite3 -lpthread -lgetopt_pp -lserial -lpaho-mqtt3a
+all: mqtt.o main.o util.o
+	g++ -o "rlogd" mqtt.o main.o -L/usr/local/lib -L/usr/lib/getoptpp -lsqlite3 -lpthread -lgetopt_pp -lserial -lpaho-mqtt3a --std=c++11
 
-main.o:
-	g++ -o "main.o" -c src/rlogd.cpp -Isrc -I/usr/local/include -I/usr/include/getoptpp -O3 -fstack-protector-all
+main.o: src/rlogd.cpp
+	g++ -o "main.o" -c src/rlogd.cpp -Isrc -I/usr/local/include -I/usr/include/getoptpp -O3 -fstack-protector-all --std=c++11
 	
-mqtt.o:
-	g++ -o "mqtt.o" -c src/mqtt.cpp -Isrc -I/usr/local/include -O3 -fstack-protector-all
+mqtt.o: src/mqtt.cpp src/mqtt.h
+	g++ -o "mqtt.o" -c src/mqtt.cpp -Isrc -I/usr/local/include -O3 -fstack-protector-all --std=c++11
+	
+util.o: src/util.cpp src/util.h
+	g++ -o "util.o" -c src/util.cpp -Isrc -O3 -fstack-protector-all --std=c++11
     
 dependencies: libserial paho getopt
 
@@ -28,3 +31,7 @@ getopt:
 submodules:
 	git submodule init 
 	git submodule update
+	
+	
+clean:
+	rm -f *.o rlogd
