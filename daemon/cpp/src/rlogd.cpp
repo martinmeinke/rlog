@@ -12,7 +12,7 @@ using namespace std;
 class Test {
 public:
 	void bar() {
-		if(callback.operator bool())
+		if(callback) // equivalent to 'callback.operator bool()' <== c++11 magic!
 			callback();
 	}
 
@@ -21,7 +21,7 @@ public:
 
 class Bim {
 public:
-	Bim(){
+	Bim() : baz(42) {
 		t.callback = bind(&Bim::foo, this);
 	}
 
@@ -30,8 +30,11 @@ public:
 	}
 
 	void foo(){
-		cout << "BIM!" << endl;
+		cout << "BIM!" << baz << endl;
 	}
+
+private:
+	int baz;
 
 private:
 	Test t;
@@ -39,7 +42,6 @@ private:
 
 
 int main(int argc, char* argv[]){
-	// store the member function of an object:
 	Bim b;
 	b();
 	exit(0);
