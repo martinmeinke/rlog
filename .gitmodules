@@ -1,3 +1,6 @@
 [submodule "timezones"]
 	path = timezones
 	url = git@github.com:mde/timezone-js.git
+[submodule "daemon/cpp/org.eclipse.paho.mqtt.c"]
+	path = daemon/cpp/org.eclipse.paho.mqtt.c
+	url = git://git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.c.git
