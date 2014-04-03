@@ -10,7 +10,7 @@ mqtt.o: src/mqtt.cpp src/mqtt.h
 util.o: src/util.cpp src/util.h
 	g++ -o "util.o" -c src/util.cpp -Isrc -O3 -fstack-protector-all --std=c++11
     
-dependencies: libserial paho getopt
+dependencies: submodules clean_dependencies libserial paho getopt
 
 libserial:
 	cd libserial-0.5.2; \
@@ -18,7 +18,7 @@ libserial:
 	make && \
 	make install
 
-paho: submodules
+paho:
 	cd org.eclipse.paho.mqtt.c; \
 	make && \
 	make install
@@ -35,3 +35,17 @@ submodules:
 	
 clean:
 	rm -f *.o rlogd
+	
+clean_dependencies: clean_getopt clean_paho clean_libserial
+
+clean_paho:
+	cd org.eclipse.paho.mqtt.c; \
+	make clean \
+
+clean_libserial:
+	cd libserial-0.5.2; \
+	make clean
+
+clean_getopt:
+	cd getoptpp; \
+	make clean
