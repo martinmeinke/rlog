@@ -1,48 +1,59 @@
 #include <getopt_pp.h>
-#include <sqlite3.h>
-#include <SerialStream.h>
 #include <cstdlib>
-#include "util.h"
-#include "mqtt.h"
-#include <functional>
+#include "rlogd.h"
 #include <iostream>
+#include <functional>
+#include <list>
+#include <string>
 
 using namespace std;
 
-class Test {
-public:
-	void bar() {
-		if(callback) // equivalent to 'callback.operator bool()' <== c++11 magic!
-			callback();
-	}
+RLogd::RLogd(const string& database, const string& mqtt_hostname,
+		const unsigned int mqtt_port, const string& mqtt_clientID) :
+		mqtt(mqtt_clientID, mqtt_hostname, mqtt_port) {
 
-	function< void() > callback;
-};
+}
 
-class Bim {
-public:
-	Bim() : baz(42) {
-		t.callback = bind(&Bim::foo, this);
-	}
+void RLogd::start() {
+	mqtt.ConnectCallback = bind(&RLogd::onConnect, this);
+	mqtt.DisconnectCallback = bind(&RLogd::onDisconnect, this);
+	mqtt.ConnectionLostCallback = bind(&RLogd::onConnectionLost, this,
+			placeholders::_1);
+	mqtt.SubscribeCallback = bind(&RLogd::onSubscribe, this, placeholders::_1);
+	mqtt.MessageCallback = bind(&RLogd::onMessage, this, placeholders::_1,
+			placeholders::_2, placeholders::_3, placeholders::_4);
+	mqtt.connect();
+}
 
-	void operator()(){
-		t.bar();
-	}
+void RLogd::stop() {
+	mqtt.disconnect();
+}
 
-	void foo(){
-		cout << "BIM!" << baz << endl;
-	}
+void RLogd::onConnect() {
+	cout << "MQTT connected" << endl;
+	mqtt.subscribe("#");
+	/*
+	 list<string> topics = {"eins", "zwei", "drei"};
+	 mqtt.subscribe(topics);
+	 */
+}
 
-private:
-	int baz;
+void RLogd::onDisconnect() {
+	cout << "MQTT disconnected" << endl;
+}
 
-private:
-	Test t;
-};
+void RLogd::onConnectionLost(string reason) {
+	cout << "MQTT connection lost because of " << reason << endl;
+}
 
+void RLogd::onSubscribe(int QoS) {
+	cout << "MQTT subscribed with QoS " << QoS << endl;
+}
 
-int main(int argc, char* argv[]){
-	Bim b;
-	b();
-	exit(0);
+void RLogd::onMessage(std::string topic, std::string payload, int QoS,
+		bool retained) {
+	cout << string(retained ? "Retained " : "")
+			<< "MQTT message received with QoS " << QoS << " on topic " << topic
+			<< ": " << payload << endl;
+
 }
