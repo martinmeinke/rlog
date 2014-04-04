@@ -1,12 +1,10 @@
-#include <getopt_pp.h>
 #include <cstdlib>
 #include "rlogd.h"
 #include <iostream>
 #include <functional>
 #include <list>
 #include <string>
-#include <chrono>
-#include <thread>
+#include <sqlite3.h>
 
 using namespace std;
 
@@ -16,7 +14,7 @@ RLogd::RLogd(const string& database, const string& mqtt_hostname,
 
 }
 
-void RLogd::start() {
+void RLogd::init() {
 	mqtt.ConnectCallback = bind(&RLogd::onConnect, this);
 	mqtt.DisconnectCallback = bind(&RLogd::onDisconnect, this);
 	mqtt.ConnectionLostCallback = bind(&RLogd::onConnectionLost, this,
@@ -25,9 +23,11 @@ void RLogd::start() {
 	mqtt.MessageCallback = bind(&RLogd::onMessage, this, placeholders::_1,
 			placeholders::_2, placeholders::_3, placeholders::_4);
 	mqtt.UnsubscribeCallback = bind(&RLogd::onUnsubscribe, this);
-	mqtt.connect();
 
-	this_thread::sleep_for(chrono::seconds(1));
+	mqtt.connect();
+}
+
+void RLogd::start(){
 	list<string> topics = { "/devices/Switch 1/#", "/devices/Switch 2/#" };
 	mqtt.unsubscribe(topics);
 }

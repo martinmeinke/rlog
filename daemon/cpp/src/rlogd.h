@@ -1,8 +1,7 @@
 #include <string>
 #include "mqtt.h"
-#include "util.h"
-#include <sqlite3.h>
-#include <SerialStream.h>
+#include "inverterReader.h"
+#include "smartmeterReader.h"
 
 #ifndef RLOGD_H
 #define RLOGD_H
@@ -13,6 +12,7 @@ public:
 			const std::string& mqtt_hostname = "localhost",
 			const unsigned int mqtt_port = 1883,
 			const std::string& mqtt_clientID = "MQTTRLOGD");
+	void init();
 	void start();
 	void stop();
 
@@ -26,8 +26,7 @@ private:
 			bool retained);
 
 	MQTT_Client mqtt;
-	LibSerial::SerialStream serial_WR;
-	LibSerial::SerialStream serial_SM;
+	InverterReader invReader;
 };
 
 #endif

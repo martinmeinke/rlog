@@ -1,18 +1,25 @@
 #include "util.h"
-#include <sstream>
 
 using namespace std;
 
-vector<string>& split(const string &s, char delimiter, vector<string> &elems) {
-    stringstream stringstr(s);
-    string item;
-    while(getline(stringstr, item, delimiter)) {
-        elems.push_back(item);
-    }
-    return elems;
+vector<string> split(const string &s, char delim) {
+	vector<string> elems;
+	string token;
+	for (auto const c : s) {
+		if (c != delim)
+			token += c;
+		else {
+			if (token.length())
+				elems.push_back(token);
+			token.clear();
+		}
+	}
+	return elems;
 }
 
-vector<string> split(const string &s, char delim) {
-    vector<string> elems;
-    return split(s, delim, elems);
+BaseSerialReader::~BaseSerialReader() {
+	if (serialPort.IsOpen()) {
+		serialPort.flush();
+		serialPort.Close();
+	}
 }
