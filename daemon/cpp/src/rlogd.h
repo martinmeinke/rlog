@@ -7,7 +7,7 @@
 #ifndef RLOGD_H
 #define RLOGD_H
 
-class RLogd{
+class RLogd {
 public:
 	explicit RLogd(const std::string& database = "/home/stephan/test.db",
 			const std::string& mqtt_hostname = "localhost",
@@ -21,7 +21,9 @@ private:
 	void onDisconnect();
 	void onConnectionLost(std::string reason);
 	void onSubscribe(int QoS);
-	void onMessage(std::string topic, std::string payload, int QoS, bool retained);
+	void onUnsubscribe();
+	void onMessage(std::string topic, std::string payload, int QoS,
+			bool retained);
 
 	MQTT_Client mqtt;
 	LibSerial::SerialStream serial_WR;

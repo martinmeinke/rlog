@@ -5,6 +5,8 @@
 #include <functional>
 #include <list>
 #include <string>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -22,7 +24,12 @@ void RLogd::start() {
 	mqtt.SubscribeCallback = bind(&RLogd::onSubscribe, this, placeholders::_1);
 	mqtt.MessageCallback = bind(&RLogd::onMessage, this, placeholders::_1,
 			placeholders::_2, placeholders::_3, placeholders::_4);
+	mqtt.UnsubscribeCallback = bind(&RLogd::onUnsubscribe, this);
 	mqtt.connect();
+
+	this_thread::sleep_for(chrono::seconds(1));
+	list<string> topics = { "/devices/Switch 1/#", "/devices/Switch 2/#" };
+	mqtt.unsubscribe(topics);
 }
 
 void RLogd::stop() {
@@ -31,11 +38,11 @@ void RLogd::stop() {
 
 void RLogd::onConnect() {
 	cout << "MQTT connected" << endl;
-	mqtt.subscribe("#");
-	/*
-	 list<string> topics = {"eins", "zwei", "drei"};
-	 mqtt.subscribe(topics);
-	 */
+	mqtt.subscribe("/devices/RLog/controls/Erzeugung");
+	mqtt.subscribe(string("/devices/RLog/controls/Nutzung"));
+	list<string> topics = { "/devices/Switch 1/#", "/devices/Switch 2/#",
+			"/devices/Switch 3/#" };
+	mqtt.subscribe(topics);
 }
 
 void RLogd::onDisconnect() {
@@ -55,5 +62,8 @@ void RLogd::onMessage(std::string topic, std::string payload, int QoS,
 	cout << string(retained ? "Retained " : "")
 			<< "MQTT message received with QoS " << QoS << " on topic " << topic
 			<< ": " << payload << endl;
+}
 
+void RLogd::onUnsubscribe() {
+	cout << "MQTT unsubscribed with QoS " << endl;
 }

@@ -62,6 +62,15 @@ void MQTT_Client::onSubscribeFailure(void* context,
 	}
 }
 
+void MQTT_Client::onUnsubscribeFailure(void* context,
+		MQTTAsync_failureData* ret) {
+	if (context) {
+		MQTT_Client* client = reinterpret_cast<MQTT_Client*>(context);
+		if (client->UnsubscribeFailureCallback)
+			client->UnsubscribeFailureCallback(ret->code, string(ret->message));
+	}
+}
+
 void MQTT_Client::onConnect(void* context, MQTTAsync_successData* ret) {
 	if (context) {
 		MQTT_Client* client = reinterpret_cast<MQTT_Client*>(context);
@@ -131,22 +140,6 @@ void MQTT_Client::disconnect() {
 	}
 }
 
-
-void MQTT_Client::subscribe(const std::string& topic, int QoS) {
-	MQTTAsync_responseOptions subscribeOpts =
-	MQTTAsync_responseOptions_initializer;
-	subscribeOpts.onFailure = &MQTT_Client::onSubscribeFailure;
-	subscribeOpts.onSuccess = &MQTT_Client::onSubscribe;
-	subscribeOpts.context = this;
-	int rc;
-	if ((rc = MQTTAsync_subscribe(mqttClient, const_cast<char*>(topic.c_str()),
-			QoS, &subscribeOpts)) != MQTTASYNC_SUCCESS) {
-		throw std::runtime_error(
-				"Subscribing failed with return code: " + std::to_string(rc));
-	}
-}
-
-
 void MQTT_Client::onSubscribe(void* context, MQTTAsync_successData* response) {
 	if (context) {
 		MQTT_Client* client = reinterpret_cast<MQTT_Client*>(context);
@@ -154,6 +147,16 @@ void MQTT_Client::onSubscribe(void* context, MQTTAsync_successData* response) {
 			client->SubscribeCallback(response->alt.qos);
 	}
 }
+
+
+void MQTT_Client::onUnsubscribe(void* context, MQTTAsync_successData* response) {
+	if (context) {
+		MQTT_Client* client = reinterpret_cast<MQTT_Client*>(context);
+		if (client->UnsubscribeCallback)
+			client->UnsubscribeCallback();
+	}
+}
+
 
 bool MQTT_Client::isConnected() const {
 	return connected;
