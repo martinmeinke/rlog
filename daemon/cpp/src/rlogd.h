@@ -15,6 +15,7 @@ public:
 	void init();
 	void start();
 	void stop();
+	void test();
 
 private:
 	void onConnect();
@@ -27,6 +28,7 @@ private:
 
 	MQTT_Client mqtt;
 	InverterReader invReader;
+	SmartmeterReader smReader;
 };
 
 #endif

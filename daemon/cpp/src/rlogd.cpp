@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <sqlite3.h>
+#include "util.h"
 
 using namespace std;
 
@@ -34,6 +35,19 @@ void RLogd::start(){
 
 void RLogd::stop() {
 	mqtt.disconnect();
+}
+
+void RLogd::test() {
+	if(invReader.openDevice("/dev/ttyUSB0"))
+		while(true){
+			auto ret = invReader.read();
+			if(ret.size())
+				for (auto c : ret)
+					cout << "read:" << trim(c) << endl;;
+		}
+	else
+		cout << "can't open arduino" << endl;
+
 }
 
 void RLogd::onConnect() {
