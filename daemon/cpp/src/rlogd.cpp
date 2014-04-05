@@ -25,16 +25,28 @@ void RLogd::init() {
 			placeholders::_2, placeholders::_3, placeholders::_4);
 	mqtt.UnsubscribeCallback = bind(&RLogd::onUnsubscribe, this);
 
-	mqtt.connect();
+	try{
+		mqtt.connect();
+	} catch (runtime_error &e){
+		cerr << "mqtt connect failed: " << e.what() << endl;;
+	}
 }
 
 void RLogd::start(){
 	list<string> topics = { "/devices/Switch 1/#", "/devices/Switch 2/#" };
-	mqtt.unsubscribe(topics);
+	try{
+		mqtt.unsubscribe(topics);
+	} catch (runtime_error &e){
+		cerr << "mqtt unsubscribe error: " << e.what() << endl;;
+	}
 }
 
 void RLogd::stop() {
-	mqtt.disconnect();
+	try{
+		mqtt.disconnect();
+	} catch (runtime_error &e){
+		cerr << "mqtt disconnect  error: " << e.what() << endl;;
+	}
 }
 
 void RLogd::test() {
@@ -46,7 +58,7 @@ void RLogd::test() {
 					cout << "read:" << trim(c) << endl;;
 		}
 	else
-		cout << "can't open arduino" << endl;
+		cerr << "can't open arduino" << endl;
 
 }
 

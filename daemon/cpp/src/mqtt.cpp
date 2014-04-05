@@ -136,7 +136,7 @@ void MQTT_Client::disconnect() {
 	opts.context = this;
 	opts.onFailure = &MQTT_Client::onDisconnectFailure;
 	if ((rc = MQTTAsync_disconnect(mqttClient, &opts)) != MQTTASYNC_SUCCESS) {
-		throw runtime_error("Failed to disconnect" + to_string(rc));
+		throw runtime_error("Failed to disconnect. Return code: " + to_string(rc));
 	}
 }
 
