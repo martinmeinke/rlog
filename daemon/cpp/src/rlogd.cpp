@@ -58,7 +58,7 @@ void RLogd::test() {
 					cout << "read:" << trim(c) << endl;;
 		}
 	else
-		cerr << "can't open arduino" << endl;
+		cerr << "can't open test device" << endl;
 
 }
 

@@ -18,8 +18,6 @@ public:
 	virtual std::vector<std::string> read() = 0;
 	virtual bool openDevice(const std::string path) = 0;
 protected:
-	char pollSerialPort(int timeout = 1000);
-	bool openPort(const std::string& path);
 	std::shared_ptr<SerialPort> serialPort;
 };
 
