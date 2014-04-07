@@ -1,5 +1,4 @@
 #include "inverterReader.h"
-#include <regex>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -8,13 +7,16 @@
 using namespace std;
 
 
-// Read data from all inverters. Return string vector with line returned by each device (empty string if the device did not answer).
+// Read data from all inverters. Return string vector with lines returned by each inverter (empty string if the device did not answer).
 vector<string> InverterReader::read() {
-	string data = readData();
-	if (dataValid(data))
-		return split(data, ' ');
-	else
-		return vector<string>();
+	vector<string> ret;
+	ret.resize(inverterIDs.size());
+	for (auto id : inverterIDs) {
+		string data = readData(id);
+		if (dataValid(data))
+			ret.push_back(data);
+	}
+	return ret;
 }
 
 bool InverterReader::openDevice(const string path) {
@@ -24,10 +26,11 @@ bool InverterReader::openDevice(const string path) {
 				SerialPort::PARITY_NONE, SerialPort::STOP_BITS_1,
 				SerialPort::FLOW_CONTROL_DEFAULT);
 	} catch (exception &e) {
-		FILE_LOG(logWARNING) << "Can't open serial port " << path
+		FILE_LOG(logERROR) << "Can't open serial port " << path
 				<< " because of " << e.what();
 		return false;
 	}
+	// TODO: do something if 1 is not the ID of an inverter on the bus (default argument of read*() is 1)
 	if (typeValid(readType()))
 		return true;
 	if (dataValid(readData()))
@@ -73,45 +76,53 @@ string InverterReader::readData(unsigned short id) {
 	return readMessage();
 }
 
-/*
-# checks checksum in type message
-def type_valid(self, typ_string):
-    if len(typ_string) != 15: # so lang sind meine typen normalerweise
-        if DEBUG_ENABLED:
-            log("Read type message with invalid length. message is: " + typ_string + " length was: " + str(len(typ_string)))
-        return False
-    summe = 0
-    for i in range(1, len(typ_string) - 2): # 2. zeichen von hinten ist pruefsumme bei mir
-        summe += ord(typ_string[i])
-    if ord(typ_string[-2]) != summe % 256:
-        if DEBUG_ENABLED:
-            log("Read invalid type message: " + typ_string)
-        return False
-    return True
-*/
+
 bool InverterReader::typeValid(const string& type) {
+	if (type.length() != 15) { // that's the normal length of the type message I get
+		FILE_LOG(logDEBUG) << "Type message with invalid length: " << type
+				<< " Length is " << type.length() << "should be 15";
+		return false;
+	}
+	unsigned char checksum = 0;
+	for(string::size_type i = 1; i < type.length() - 2; i++) // second byte from behind is the checksum (sum of all previous bytes starting with the second and all that mod 256)
+		checksum += type[i];
+	if(type[type.length() - 2] != checksum){
+		FILE_LOG(logDEBUG) << "Type message with invalid checksum: " << type;
+		return false;
+	}
 	return true;
 }
 
 
-/*
-# checks checksum in data message
-def data_valid(self, data_string):
-    if DEBUG_SERIAL:
-        return True
-    if len(data_string) != 66: # so lang sind meine daten normalerweise
-        if DEBUG_ENABLED:
-            log("Read data message with invalid length. message is: " + data_string + " length was: " + str(len(data_string)))
-        return False
-    summe = 0
-    for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
-        summe += ord(data_string[i])
-    if ord(data_string[-9]) != summe % 256:
-        if DEBUG_ENABLED:
-            log("Read invalid data message: " + data_string)
-        return False
-    return True
-*/
 bool InverterReader::dataValid(const string& data) {
+	if (data.length() != 66) { // that's the normal length of the type message I get
+		FILE_LOG(logDEBUG) << "Data message with invalid length: " << data
+				<< " Length is " << data.length() << "should be 66";
+		return false;
+	}
+	unsigned char checksum = 0;
+	for(string::size_type i = 1; i < data.length() - 9; i++)  // ninth byte from behind is the checksum (sum of all previous bytes starting with the second and all that mod 256)
+		checksum += data[i];
+	if(data[data.length() - 9] != checksum){
+		FILE_LOG(logDEBUG) << "Data message with invalid checksum: " << data;
+		return false;
+	}
 	return true;
+}
+
+void InverterReader::findInverter(unsigned short startID,
+		unsigned short endID) {
+	for (unsigned short id = startID; id <= endID; id++) {
+		if (typeValid(readType(id))) {
+			FILE_LOG(logINFO) << "Found inverter with id " << id;
+			inverterIDs.push_back(id);
+			continue;
+		}
+		// second chance if type message got lost: data message
+		if (dataValid(readData(id))) {
+			FILE_LOG(logINFO) << "Found inverter with id " << id;
+			inverterIDs.push_back(id);
+			continue;
+		}
+	}
 }

@@ -29,7 +29,7 @@ public:
 
 	void publish(std::string& topic, std::string& payload, int Qos = 0,
 			bool retained = false);
-	void connect();
+	void connect(unsigned int pingTimeout = 60, bool cleanSession = false);
 	void disconnect();
 	template<typename Cont>
 	void subscribe(Cont const &topics, int QoS = 0);

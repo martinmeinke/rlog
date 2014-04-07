@@ -113,12 +113,12 @@ void MQTT_Client::publish(string& topic, string& payload, int QoS,
 				"MQTT publish failed with return code: " + to_string(rc));
 }
 
-void MQTT_Client::connect() {
+void MQTT_Client::connect(unsigned int pingTimeout, bool cleanSession) {
 	MQTTAsync_setCallbacks(mqttClient, this, &MQTT_Client::onConnectionLost,
 			&MQTT_Client::onMessage, NULL);
 	MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
-	conn_opts.keepAliveInterval = 60;
-	conn_opts.cleansession = 0;
+	conn_opts.keepAliveInterval = pingTimeout;
+	conn_opts.cleansession = cleanSession;
 	conn_opts.onSuccess = &MQTT_Client::onConnect;
 	conn_opts.onFailure = &MQTT_Client::onConnectFailure;
 	conn_opts.context = this;
