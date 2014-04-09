@@ -52,8 +52,10 @@ clean_paho:
 	make clean \
 
 clean_libserial:
+ifneq ($(wildcard libserial-0.5.2/Makefile),) 
 	cd libserial-0.5.2; \
 	make clean
+endif
 
 clean_getopt:
 	cd getoptpp; \
