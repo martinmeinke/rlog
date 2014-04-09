@@ -1,5 +1,5 @@
 all: util.o mqtt.o rlogd.o inverter.o smartmeter.o main.o
-	g++ -o "rlogd" util.o mqtt.o rlogd.o inverter.o smartmeter.o main.o -L/usr/local/lib -L/usr/lib/getoptpp -lsqlite3 -lpthread -lgetopt_pp -lserial -lpaho-mqtt3a --std=c++11 -ggdb -Wall
+	g++ -o "rlogd" util.o mqtt.o rlogd.o inverter.o smartmeter.o main.o -L/usr/local/lib -L/usr/lib/getoptpp -lsqlite3 -lboost_regex -lpthread -lgetopt_pp -lserial -lpaho-mqtt3a --std=c++11 -ggdb -Wall
 
 inverter.o: src/inverterReader.cpp src/inverterReader.h
 	g++ -o "inverter.o" -c src/inverterReader.cpp -Isrc -I/usr/local/include -O0 -fstack-protector-all -std=c++11 -ggdb -Wall

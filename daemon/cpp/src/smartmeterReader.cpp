@@ -4,6 +4,15 @@
 
 using namespace std;
 
+SmartmeterReader::SmartmeterReader() :
+		BaseSerialReader(), start_regex("1-0:1\\.8\\.0\\*255"), end_regex(
+				"0-0:96\\.1\\.255\\*255"), reading_regex("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)"),
+				phase1_regex("1-0:21\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"),
+				phase2_regex("1-0:41\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"),
+				phase3_regex("1-0:61\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"){
+
+}
+
 vector<string> SmartmeterReader::read() {
 	string data = readData();
 	if (dataValid(data))
