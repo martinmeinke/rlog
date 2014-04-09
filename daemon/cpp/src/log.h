@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <stdio.h>
+#include <algorithm>
 
 inline std::string NowTime();
 
@@ -20,6 +21,7 @@ public:
     static TLogLevel& ReportingLevel();
     static std::string ToString(TLogLevel level);
     static TLogLevel FromString(const std::string& level);
+    static bool& ReplaceLineEndings();
 protected:
     std::ostringstream os;
 private:
@@ -44,8 +46,19 @@ std::ostringstream& Log<T>::Get(TLogLevel level)
 template <typename T>
 Log<T>::~Log()
 {
-    os << std::endl;
-    T::Output(os.str());
+    if(ReplaceLineEndings()){
+    	std::string msg = os.str();
+    	std::replace_if(msg.begin(), msg.end(), [](const char& c)->bool{return c == '\n' or c == '\r';}, ' ');
+    T::Output(msg);
+    } else
+    	T::Output(os.str());
+}
+
+template <typename T>
+bool& Log<T>::ReplaceLineEndings()
+{
+    static bool replaceLineEndings = false;
+    return replaceLineEndings;
 }
 
 template <typename T>
@@ -103,7 +116,7 @@ inline void Output2FILE::Output(const std::string& msg)
     FILE* pStream = Stream();
     if (!pStream)
         return;
-    fprintf(pStream, "%s", msg.c_str());
+    fprintf(pStream, "%s\n", msg.c_str());
     fflush(pStream);
 }
 

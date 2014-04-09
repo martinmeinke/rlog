@@ -8,6 +8,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
 	FILELog::ReportingLevel() = logDEBUG;
+	FILELog::ReplaceLineEndings() = true;
 	FILE* log_fd = fopen("/home/stephan/rlogd.log", "w");
 	Output2FILE::Stream() = log_fd;
 	RLogd rlog("/home/stephan/test.db", "192.168.11.50", 1883, "testClient1");
