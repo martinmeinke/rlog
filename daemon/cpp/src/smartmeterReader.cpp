@@ -1,6 +1,11 @@
 #include "smartmeterReader.h"
 #include "log.h"
+#include "util.h"
 #include <exception>
+#include <vector>
+#include <string>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -13,12 +18,21 @@ SmartmeterReader::SmartmeterReader() :
 
 }
 
+// Read data from the smart meter. Return string vector where first entry is about total reading and following three are about phase 1 to 3
 vector<string> SmartmeterReader::read() {
+	vector<string> ret;
+	ret.resize(4);
 	string data = readData();
-	if (dataValid(data))
-		return split(data, ' ');
-	else
-		return vector<string>();
+
+	// TODO: use regex to preprocess data and put it in vector
+	if (dataValid(data)){
+		boost::smatch match;
+		if(boost::regex_search(data, match, reading_regex))
+			cout << match[1] << " " << fromString<double>(match[1]) << endl;
+		// ret.push_back(data);
+	}
+
+	return ret;
 }
 
 bool SmartmeterReader::openDevice(const string path) {
@@ -28,7 +42,7 @@ bool SmartmeterReader::openDevice(const string path) {
 				SerialPort::PARITY_EVEN, SerialPort::STOP_BITS_1,
 				SerialPort::FLOW_CONTROL_DEFAULT);
 	} catch (exception &e) {
-		FILE_LOG(logWARNING) << "Can't open serial port " << path
+		FILE_LOG(logWARNING) << "Can't open smartmeter serial port " << path
 				<< " because of " << e.what();
 		return false;
 	}
@@ -36,14 +50,63 @@ bool SmartmeterReader::openDevice(const string path) {
 		return true;
 	return false;
 }
-
+/*
+# returns the data message or None
+def request_data(self):
+    try:
+        self.__serial_port.write("/?!\r\n")
+        self.__serial_port.flush()
+        time.sleep(0.2)
+        self.__serial_port.write(chr(6) + "050\r\n")
+        self.__serial_port.flush()
+    except serial.SerialException as e:
+        log("RS45 problem while requesting smart meter data")
+    daten = self.read_datagram()
+    if self.data_valid(daten):
+        return daten
+    return None
+*/
 string SmartmeterReader::readData() {
-	return string();
+		try{
+			serialPort->Write(string("/?!\r\n"));
+			// may read the string that the smartmeter is sending but I'm mot interested in the content -> just for timing reasons
+			this_thread::sleep_for(chrono::milliseconds(200));
+			// send ACK
+			serialPort->Write(string(1, 6));
+			// wait a bit (may be optional)
+			this_thread::sleep_for(chrono::milliseconds(200));
+			// send command to get data
+			serialPort->Write(string("050\r\n"));
+		} catch (runtime_error& e){
+			return string();
+		}
+		return readMessage();
 }
 
-inline bool SmartmeterReader::dataValid(const string& data) {
-	//in my test there where 11 elements
-	if (int c = split(data, '\n').size() != 11) {
+string SmartmeterReader::readMessage() {
+	string buffer, data("1-0:1.8.0*255");
+	try {
+		// skip everything until total reading OBIS
+		while (not boost::regex_search(buffer, start_regex)) {
+			buffer += string(1, serialPort->ReadByte(2000));
+		}
+		// skip everything until serial number OBIS
+		while (not boost::regex_search(data, end_regex)) {
+			data += string(1, serialPort->ReadByte(2000));
+		}
+		// read until return character
+		while (data.compare(data.length() - 1, 1, "\n") != 0) {
+			data += string(1, serialPort->ReadByte(2000));
+		}
+	} catch (runtime_error& e) {
+		data.clear();
+	}
+	return data;
+}
+
+bool SmartmeterReader::dataValid(const string& data) {
+	// in my test there where 10 non-empty elements
+	if (int c = split(data, '\n').size() != 10) {
 		FILE_LOG(logWARNING)
 				<< "Read smart meter datagram with invalid structure. datagram is: "
 				<< data << ". Number of elements (should be 11): " << c;

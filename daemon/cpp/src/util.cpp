@@ -5,6 +5,7 @@
 #include <functional>
 #include <cctype>
 #include <locale>
+#include <sstream>
 
 using namespace std;
 
@@ -21,6 +22,19 @@ string& rtrim(string& s) {
 string& trim(string& s) {
         return ltrim(rtrim(s));
 }
+
+template<class T>
+T fromString(const string& s){
+     istringstream stream (s);
+     T t;
+     stream >> t;
+     return t;
+}
+
+// Instantiate for double and int
+template double fromString<double>(const string& s);
+template int fromString<int>(const string& s);
+
 
 vector<string> split(const string &s, char delim) {
 	vector<string> elems;

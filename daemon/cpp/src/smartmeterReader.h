@@ -11,6 +11,7 @@ public:
 	bool openDevice(const std::string path);
 private:
 	std::string readData();
+	std::string readMessage();
 	bool dataValid(const std::string& data);
 	// I don't think I can write more efficient FSMs than what comes out when regex compiles my expression ...
 	boost::regex start_regex;

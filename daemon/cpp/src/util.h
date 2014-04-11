@@ -12,6 +12,9 @@ std::string& trim(std::string& s);
 
 std::vector<std::string> split(const std::string &s, char delim);
 
+template<class T>
+T fromString(const std::string& s);
+
 class BaseSerialReader{
 public:
 	virtual ~BaseSerialReader();

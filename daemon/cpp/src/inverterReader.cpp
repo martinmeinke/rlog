@@ -7,7 +7,7 @@
 using namespace std;
 
 
-// Read data from all inverters. Return string vector with lines returned by each inverter (empty string if the device did not answer).
+// Read data from all inverters. Return string vector with lines all valid lines returned by each of the inverters.
 vector<string> InverterReader::read() {
 	vector<string> ret;
 	ret.resize(inverterIDs.size());
@@ -26,7 +26,7 @@ bool InverterReader::openDevice(const string path) {
 				SerialPort::PARITY_NONE, SerialPort::STOP_BITS_1,
 				SerialPort::FLOW_CONTROL_DEFAULT);
 	} catch (exception &e) {
-		FILE_LOG(logERROR) << "Can't open serial port " << path
+		FILE_LOG(logERROR) << "Can't open inverter serial port " << path
 				<< " because of " << e.what();
 		return false;
 	}
@@ -47,7 +47,7 @@ string InverterReader::readMessage() {
 			line = string(1, serialPort->ReadByte(2000));
 		// read until return character
 		while (line.compare(line.length() - 1, 1, "\r") != 0)
-			line = string(1, serialPort->ReadByte(2000));
+			line += string(1, serialPort->ReadByte(2000));
 	} catch (runtime_error& e) {
 		line.clear();
 	}
