@@ -13,11 +13,9 @@ int main(int argc, char* argv[]) {
 	Output2FILE::Stream() = log_fd;
 	RLogd rlog("/home/stephan/test.db", "localhost", 1883, "testClient1");
 	rlog.init();
-	this_thread::sleep_for(chrono::seconds(1));
 	rlog.start();
 	this_thread::sleep_for(chrono::seconds(1));
 	rlog.stop();
-	this_thread::sleep_for(chrono::seconds(1));
-
+	this_thread::sleep_for(chrono::milliseconds(42));
 	exit(0);
 }

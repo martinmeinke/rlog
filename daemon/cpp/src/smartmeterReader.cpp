@@ -57,7 +57,7 @@ bool SmartmeterReader::openDevice(const string path) {
 				SerialPort::PARITY_EVEN, SerialPort::STOP_BITS_1,
 				SerialPort::FLOW_CONTROL_DEFAULT);
 	} catch (exception &e) {
-		FILE_LOG(logWARNING) << "Can't open smartmeter serial port " << path
+		FILE_LOG(logWARNING) << "Can't open smartmeter serial port at " << path
 				<< " because of " << e.what();
 		return false;
 	}

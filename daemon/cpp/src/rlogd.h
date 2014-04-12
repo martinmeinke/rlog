@@ -19,7 +19,7 @@ public:
 	void stop();
 
 private:
-	void findDevices();
+	bool findDevices();
 	void onConnect();
 	void onDisconnect();
 	void onConnectionLost(std::string reason);

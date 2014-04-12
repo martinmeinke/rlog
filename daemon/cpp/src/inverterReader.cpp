@@ -29,7 +29,7 @@ bool InverterReader::openDevice(const string path) {
 				SerialPort::PARITY_NONE, SerialPort::STOP_BITS_1,
 				SerialPort::FLOW_CONTROL_DEFAULT);
 	} catch (exception &e) {
-		FILE_LOG(logERROR) << "Can't open inverter serial port " << path
+		FILE_LOG(logWARNING) << "Can't open inverter serial port at" << path
 				<< " because of " << e.what();
 		return false;
 	}

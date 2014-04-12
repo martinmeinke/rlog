@@ -37,7 +37,25 @@ void RLogd::init() {
 }
 
 void RLogd::start(){
-	findDevices();
+	if(findDevices()){
+		this_thread::sleep_for(chrono::milliseconds(200));
+		// main loop
+		while(true){
+			chrono::system_clock::time_point start = chrono::system_clock::now();
+			auto inverterReading = async(&InverterReader::read, invReader);
+			auto smartmeterReading = async(&SmartmeterReader::read, smReader);
+			for(auto element : inverterReading.get())
+				FILE_LOG(logDEBUG) << "got from inverter: " << element;
+			for(auto element : smartmeterReading.get())
+							FILE_LOG(logDEBUG) << "got from inverter: " << element;
+			chrono::milliseconds duration = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start);
+			if(duration > chrono::milliseconds(10000)){
+				FILE_LOG(logDEBUG) << "timing critical. iteration took " << duration.count() / 1000 << " seconds";
+			} else {
+				this_thread::sleep_for(chrono::milliseconds(10000) - duration);
+			}
+		}
+	}
 }
 
 void RLogd::stop() {
@@ -48,31 +66,50 @@ void RLogd::stop() {
 	}
 }
 
-void RLogd::findDevices() {
+bool RLogd::findDevices() {
 	FILE_LOG(logINFO) << "start discovering devices";
 	bool smartMeterDeviceFound = false, inverterDeviceFound = false;
 	for (unsigned short i = 0; (i < 10) and not (smartMeterDeviceFound and inverterDeviceFound); i++) {
 		this_thread::sleep_for(chrono::milliseconds(200));
 		if ((not smartMeterDeviceFound) and smReader.openDevice(devBaseName + toString<unsigned short>(i))) {
 			smartMeterDeviceFound = true;
+			// fake 3 smart meter
+			try{
+				mqtt.publish("/devices/RLog/controls/VSM-102 (1)/meta/type", "text", 0, true);
+				mqtt.publish("/devices/RLog/controls/VSM-102 (2)/meta/type", "text", 0, true);
+				mqtt.publish("/devices/RLog/controls/VSM-102 (3)/meta/type", "text", 0, true);
+			} catch (runtime_error &e){
+				FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+			}
 			FILE_LOG(logINFO) << "Discovered smart meter at " << devBaseName << i;
 			continue;
 		}
 		if ((not inverterDeviceFound) and invReader.openDevice(devBaseName + toString<unsigned short>(i))) {
 			if (invReader.findInverter(invList)) {
 				inverterDeviceFound = true;
+				try{
+					for(auto element : split(invList, ','))
+						mqtt.publish(string("/devices/RLog/controls/3002IN (") + element + string(")/meta/type"), "text", 0, true);
+				}catch (runtime_error &e){
+					FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+				}
 				FILE_LOG(logINFO) << "Discovered inverter at " << devBaseName << i;
 			}
 		}
 	}
+	return smartMeterDeviceFound and inverterDeviceFound;
 }
 
 
 void RLogd::onConnect() {
 	FILE_LOG(logINFO) << "MQTT connected";
-	mqtt.publish("/devices/RLog/meta/name", "Rlog", 0, true);
-	mqtt.publish("/devices/RLog/meta/locationX", LOCATIONX, 0, true);
-	mqtt.publish("/devices/RLog/meta/locationY", LOCATIONY, 0, true);
+	try{
+		mqtt.publish("/devices/RLog/meta/name", "Rlog", 0, true);
+		mqtt.publish("/devices/RLog/meta/locationX", LOCATIONX, 0, true);
+		mqtt.publish("/devices/RLog/meta/locationY", LOCATIONY, 0, true);
+	} catch (runtime_error &e){
+		FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+	}
 }
 
 void RLogd::onDisconnect() {
