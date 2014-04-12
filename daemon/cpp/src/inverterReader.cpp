@@ -63,7 +63,6 @@ string InverterReader::readMessage() {
 }
 
 string InverterReader::readType(unsigned short id) {
-	cerr << "inverter reader this: " << this << endl;
 	stringstream s;
 	s << "#" << setfill('0') << setw(2) << id << "9\r";
 	try{
@@ -77,7 +76,6 @@ string InverterReader::readType(unsigned short id) {
 }
 
 string InverterReader::readData(unsigned short id) {
-	cerr << "inverter reader this: " << this << endl;
 	stringstream s;
 	s << "#" << setfill('0') << setw(2) << id << "0\r";
 	try{

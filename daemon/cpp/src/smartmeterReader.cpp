@@ -74,12 +74,11 @@ bool SmartmeterReader::openDevice(const string path) {
 
 
 string SmartmeterReader::readData() {
-	cerr << "smartmeter reader this: " << this << endl;
 	try{
 		serialPort->Write(string("/?!\r\n"));
 		try{
 			while(true){
-				serialPort->ReadByte(500);
+				serialPort->ReadByte(1000);
 			}
 		} catch (runtime_error& e){
 			// cerr << "read smartmeter answer timed out" << endl;
@@ -87,7 +86,7 @@ string SmartmeterReader::readData() {
 		// write ACK
 		serialPort->Write(string(1, 6));
 		// wait a bit
-		this_thread::sleep_for(chrono::milliseconds(250));
+		this_thread::sleep_for(chrono::milliseconds(500));
 		// send read command
 		serialPort->Write(string("050\r\n"));
 	} catch (runtime_error& e){

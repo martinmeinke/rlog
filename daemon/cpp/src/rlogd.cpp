@@ -40,19 +40,18 @@ void RLogd::init() {
 void RLogd::start(){
 	running = true;
 	if(findDevices()){
-		cerr << "entered main loop" << endl << "smartmeterreader: " << &smReader << endl << "inverterreader: " << &invReader << endl;
 		// main loop
 		while(running){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
-			auto inverterReading = async(&InverterReader::read, invReader);
-			auto smartmeterReading = async(&SmartmeterReader::read, smReader);
+			auto inverterReading = async(&InverterReader::read, &invReader);
+			auto smartmeterReading = async(&SmartmeterReader::read, &smReader);
 			for(auto element : inverterReading.get()){
 				FILE_LOG(logDEBUG) << "got from inverter: " << element;
 				cerr << "got from inverter: " << element << endl;
 			}
 			for(auto element : smartmeterReading.get()){
-				FILE_LOG(logDEBUG) << "got from inverter: " << element;
-				cerr  << "got from inverter: " << element << endl;
+				FILE_LOG(logDEBUG) << "got from smartmeter: " << element;
+				cerr  << "got from smartmeter: " << element << endl;
 			}
 			chrono::milliseconds duration = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start);
 			if(duration > chrono::milliseconds(10000)){

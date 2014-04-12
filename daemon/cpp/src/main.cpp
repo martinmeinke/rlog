@@ -26,6 +26,5 @@ int main(int argc, char* argv[]) {
 	rlog.init();
 	cerr << "init successful" << endl;
 	rlog.start();
-	cerr << "rlog started" << endl;
 	exit(0);
 }
