@@ -23,6 +23,7 @@ public:
 	virtual ~BaseSerialReader();
 	virtual std::vector<std::string> read() = 0;
 	virtual bool openDevice(const std::string path) = 0;
+	void closeDevice();
 protected:
 	std::shared_ptr<SerialPort> serialPort;
 };

@@ -33,25 +33,32 @@ void RLogd::init() {
 		mqtt.connect();
 	} catch (runtime_error &e){
 		FILE_LOG(logERROR) << "mqtt connect failed: " << e.what();
+		cerr << "mqtt connect failed: " << e.what() << endl;
 	}
 }
 
 void RLogd::start(){
 	running = true;
 	if(findDevices()){
+		cerr << "entered main loop" << endl;
 		this_thread::sleep_for(chrono::milliseconds(200));
 		// main loop
 		while(running){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
 			auto inverterReading = async(&InverterReader::read, invReader);
 			auto smartmeterReading = async(&SmartmeterReader::read, smReader);
-			for(auto element : inverterReading.get())
+			for(auto element : inverterReading.get()){
 				FILE_LOG(logDEBUG) << "got from inverter: " << element;
-			for(auto element : smartmeterReading.get())
-							FILE_LOG(logDEBUG) << "got from inverter: " << element;
+				cerr << "got from inverter: " << element << endl;
+			}
+			for(auto element : smartmeterReading.get()){
+				FILE_LOG(logDEBUG) << "got from inverter: " << element;
+				cerr  << "got from inverter: " << element << endl;
+			}
 			chrono::milliseconds duration = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start);
 			if(duration > chrono::milliseconds(10000)){
 				FILE_LOG(logDEBUG) << "timing critical. iteration took " << duration.count() / 1000 << " seconds";
+				cerr << "timing critical. iteration took " << duration.count() / 1000 << " seconds" << endl;
 			} else {
 				this_thread::sleep_for(chrono::milliseconds(10000) - duration);
 			}
@@ -65,13 +72,16 @@ void RLogd::stop() {
 		mqtt.disconnect();
 	} catch (runtime_error &e){
 		FILE_LOG(logERROR) << "mqtt disconnect  error: " << e.what();
+		cerr << "mqtt disconnect  error: " << e.what() << endl;
 	}
 }
 
 bool RLogd::findDevices() {
 	FILE_LOG(logINFO) << "start discovering devices";
+	cerr  << "start discovering devices" << endl;
 	bool smartMeterDeviceFound = false, inverterDeviceFound = false;
-	for (unsigned short i = 0; (i < 10) and not (smartMeterDeviceFound and inverterDeviceFound); i++) {
+	for (unsigned short i = 0; (i < 2) and not (smartMeterDeviceFound and inverterDeviceFound); i++) {
+		cerr << "trying device number " << i << endl;
 		this_thread::sleep_for(chrono::milliseconds(200));
 		if ((not smartMeterDeviceFound) and smReader.openDevice(devBaseName + toString<unsigned short>(i))) {
 			smartMeterDeviceFound = true;
@@ -82,9 +92,15 @@ bool RLogd::findDevices() {
 				mqtt.publish("/devices/RLog/controls/VSM-102 (3)/meta/type", "text", 0, true);
 			} catch (runtime_error &e){
 				FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+				cerr << "mqtt publish error in " << __func__ << ": " << e.what() << endl;
 			}
 			FILE_LOG(logINFO) << "Discovered smart meter at " << devBaseName << i;
+			cerr  << "Discovered smart meter at " << devBaseName << i << endl;
 			continue;
+		} else {
+			smReader.closeDevice();
+			FILE_LOG(logERROR) << "closing port after unsuccessful smartmeter discovery attempt";
+			cerr << "closing port after unsuccessful smartmeter discovery attempt" << endl;
 		}
 		if ((not inverterDeviceFound) and invReader.openDevice(devBaseName + toString<unsigned short>(i))) {
 			if (invReader.findInverter(invList)) {
@@ -94,9 +110,15 @@ bool RLogd::findDevices() {
 						mqtt.publish(string("/devices/RLog/controls/3002IN (") + element + string(")/meta/type"), "text", 0, true);
 				}catch (runtime_error &e){
 					FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+					cerr << "mqtt publish error in " << __func__ << ": " << e.what() << endl;
 				}
 				FILE_LOG(logINFO) << "Discovered inverter at " << devBaseName << i;
+				cerr << "Discovered inverter at " << devBaseName << i << endl;
 			}
+		} else {
+			smReader.closeDevice();
+			FILE_LOG(logERROR) << "closing port after unsuccessful inverter discovery attempt";
+			cerr << "closing port after unsuccessful inverter discovery attempt" << endl;
 		}
 	}
 	return smartMeterDeviceFound and inverterDeviceFound;
@@ -111,13 +133,16 @@ void RLogd::onConnect() {
 		mqtt.publish("/devices/RLog/meta/locationY", LOCATIONY, 0, true);
 	} catch (runtime_error &e){
 		FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
+		cerr << "mqtt publish error in " << __func__ << ": " << e.what() << endl;
 	}
 }
 
 void RLogd::onDisconnect() {
 	FILE_LOG(logINFO) << "MQTT disconnected";
+	cerr << "MQTT disconnected" << endl;
 }
 
 void RLogd::onConnectionLost(string reason) {
 	FILE_LOG(logERROR) << "MQTT connection lost because of " << reason;
+	cerr << "MQTT connection lost because of " << reason << endl;
 }

@@ -71,3 +71,9 @@ BaseSerialReader::~BaseSerialReader() {
 	}
 }
 
+
+void BaseSerialReader::closeDevice() {
+	if (serialPort->IsOpen()) {
+		serialPort->Close();
+	}
+}

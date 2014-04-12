@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include "log.h"
+#include <iostream>
 
 using namespace std;
 
@@ -16,11 +17,15 @@ void signal_handler(int signal){
 int main(int argc, char* argv[]) {
 	FILELog::ReportingLevel() = logDEBUG;
 	FILELog::ReplaceLineEndings() = true;
-	FILE* log_fd = fopen("home/pi/rlogd.log", "a");
+	FILE* log_fd = fopen("/home/pi/rlogd.log", "a");
 	Output2FILE::Stream() = log_fd;
-	RLogd rlog("/home/pi/test.db", "localhost", 1883, "testClient1");
+	cerr << "logging initialized" << endl;
+	RLogd rlog("/home/pi/test.db", "127.0.0.1", 1883, "testClient1");
+	cerr << "rlog created" << endl;
 	signal(SIGINT, signal_handler);
 	rlog.init();
+	cerr << "init successful" << endl;
 	rlog.start();
+	cerr << "rlog started" << endl;
 	exit(0);
 }

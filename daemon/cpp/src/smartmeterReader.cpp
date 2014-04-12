@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 using namespace std;
 
@@ -59,6 +60,8 @@ bool SmartmeterReader::openDevice(const string path) {
 	} catch (exception &e) {
 		FILE_LOG(logWARNING) << "Can't open smartmeter serial port at " << path
 				<< " because of " << e.what();
+		cerr << "Can't open smartmeter serial port at " << path
+				<< " because of " << e.what() << endl;
 		return false;
 	}
 	if (dataValid(readData()))
@@ -72,13 +75,11 @@ string SmartmeterReader::readData() {
 			serialPort->Write(string("/?!\r\n"));
 			// may read the string that the smartmeter is sending but I'm not interested in the content -> just for timing reasons
 			this_thread::sleep_for(chrono::milliseconds(200));
-			// send ACK
-			serialPort->Write(string(1, 6));
-			// wait a bit (may be optional)
-			this_thread::sleep_for(chrono::milliseconds(200));
-			// send command to get data
-			serialPort->Write(string("050\r\n"));
+			// write command to get data
+			serialPort->Write(string(1, (char) 6) + string("050\r\n"));
 		} catch (runtime_error& e){
+			FILE_LOG(logERROR) << "smartmeter command writing error: " << e.what();
+			cerr << "smartmeter command writing error: " << e.what() << endl;
 			return string();
 		}
 		return readMessage();
@@ -100,6 +101,8 @@ string SmartmeterReader::readMessage() {
 			data += string(1, serialPort->ReadByte(2000));
 		}
 	} catch (runtime_error& e) {
+		FILE_LOG(logERROR) << "smartmeter read message failed: " << e.what();
+		cerr << "smartmeter read message failed: " << e.what() << endl;
 		data.clear();
 	}
 	return data;
@@ -110,7 +113,9 @@ bool SmartmeterReader::dataValid(const string& data) {
 	if (int c = split(data, '\n').size() != 10) {
 		FILE_LOG(logWARNING)
 				<< "Read smart meter datagram with invalid structure. datagram is: "
-				<< data << ". Number of elements (should be 11): " << c;
+				<< data << ". Number of elements (should be 10): " << c;
+		cerr << "Read smart meter datagram with invalid structure. datagram is: "
+				<< data << ". Number of elements (should be 10): " << c << endl;
 		return false;
 	}
 	return true;
