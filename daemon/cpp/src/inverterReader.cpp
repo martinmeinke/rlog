@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iomanip>
 #include "log.h"
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -12,6 +14,7 @@ vector<string> InverterReader::read() {
 	vector<string> ret;
 	ret.resize(inverterIDs.size());
 	for (auto id : inverterIDs) {
+		this_thread::sleep_for(chrono::milliseconds(200));
 		string data = readData(id);
 		if (dataValid(data))
 			ret.push_back(data);
@@ -113,6 +116,7 @@ bool InverterReader::dataValid(const string& data) {
 void InverterReader::findInverter(unsigned short startID,
 		unsigned short endID) {
 	for (unsigned short id = startID; id <= endID; id++) {
+		this_thread::sleep_for(chrono::milliseconds(200));
 		if (typeValid(readType(id))) {
 			FILE_LOG(logINFO) << "Found inverter with id " << id;
 			inverterIDs.push_back(id);
@@ -122,7 +126,6 @@ void InverterReader::findInverter(unsigned short startID,
 		if (dataValid(readData(id))) {
 			FILE_LOG(logINFO) << "Found inverter with id " << id;
 			inverterIDs.push_back(id);
-			continue;
 		}
 	}
 }

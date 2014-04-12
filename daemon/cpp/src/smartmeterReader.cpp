@@ -10,11 +10,12 @@
 using namespace std;
 
 SmartmeterReader::SmartmeterReader() :
-		BaseSerialReader(), start_regex("1-0:1\\.8\\.0\\*255"), end_regex(
-				"0-0:96\\.1\\.255\\*255"), reading_regex("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)"),
-				phase1_regex("1-0:21\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"),
-				phase2_regex("1-0:41\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"),
-				phase3_regex("1-0:61\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)"){
+				BaseSerialReader(), start_regex(R"raw(1-0:1\.8\.0\*255)raw"),
+				end_regex(R"raw(0-0:96\.1\.255\*255)raw"),
+				reading_regex(R"raw(1-0:1\.8\.0\*255\(([0-9]+\.[0-9]+)\*kWh\))raw"),
+				phase1_regex(R"raw(1-0:21\.7\.255\*255\(([0-9]+\.[0-9]+)\*kW\))raw"),
+				phase2_regex(R"raw(1-0:41\.7\.255\*255\(([0-9]+\.[0-9]+)\*kW\))raw"),
+				phase3_regex(R"raw(1-0:61\.7\.255\*255\(([0-9]+\.[0-9]+)\*kW\))raw"){
 
 }
 
@@ -23,15 +24,29 @@ vector<string> SmartmeterReader::read() {
 	vector<string> ret;
 	ret.resize(4);
 	string data = readData();
-
-	// TODO: use regex to preprocess data and put it in vector
-	if (dataValid(data)){
+	if (dataValid(data)) {
 		boost::smatch match;
-		if(boost::regex_search(data, match, reading_regex))
-			cout << match[1] << " " << fromString<double>(match[1]) << endl;
-		// ret.push_back(data);
-	}
+		if (boost::regex_search(data, match, reading_regex))
+			ret.push_back(match[1]);
+		else
+			return vector<string>();
 
+		if (boost::regex_search(data, match, phase1_regex))
+			ret.push_back(match[1]);
+		else
+			return vector<string>();
+
+		if (boost::regex_search(data, match, phase2_regex))
+			ret.push_back(match[1]);
+		else
+			return vector<string>();
+
+		if (boost::regex_search(data, match, phase3_regex))
+			ret.push_back(match[1]);
+		else
+			return vector<string>();
+
+	}
 	return ret;
 }
 
