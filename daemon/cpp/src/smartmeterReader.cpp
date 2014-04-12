@@ -23,30 +23,33 @@ SmartmeterReader::SmartmeterReader() :
 // Read data from the smart meter. Return string vector where first entry is about total reading and following three are about phase 1 to 3
 vector<string> SmartmeterReader::read() {
 	vector<string> ret;
-	ret.resize(4);
-	string data = readData();
-	if (dataValid(data)) {
-		boost::smatch match;
-		if (boost::regex_search(data, match, reading_regex))
-			ret.push_back(match[1]);
-		else
-			return vector<string>();
-
-		if (boost::regex_search(data, match, phase1_regex))
-			ret.push_back(match[1]);
-		else
-			return vector<string>();
-
-		if (boost::regex_search(data, match, phase2_regex))
-			ret.push_back(match[1]);
-		else
-			return vector<string>();
-
-		if (boost::regex_search(data, match, phase3_regex))
-			ret.push_back(match[1]);
-		else
-			return vector<string>();
-
+	try{
+		string data = readData();
+		if (dataValid(data)) {
+			boost::smatch match;
+			if (boost::regex_search(data, match, reading_regex))
+				ret.push_back(match[1]);
+			else
+				return vector<string>();
+	
+			if (boost::regex_search(data, match, phase1_regex))
+				ret.push_back(match[1]);
+			else
+				return vector<string>();
+	
+			if (boost::regex_search(data, match, phase2_regex))
+				ret.push_back(match[1]);
+			else
+				return vector<string>();
+	
+			if (boost::regex_search(data, match, phase3_regex))
+				ret.push_back(match[1]);
+			else
+				return vector<string>();
+		}
+	} catch (exception& e){
+		FILE_LOG(logERROR) << "smartmeter reader error: " << e.what();
+		cerr << "smartmeter reader error: " << e.what() << endl;
 	}
 	return ret;
 }
@@ -56,7 +59,7 @@ bool SmartmeterReader::openDevice(const string path) {
 	try {
 		serialPort->Open(SerialPort::BAUD_9600, SerialPort::CHAR_SIZE_7,
 				SerialPort::PARITY_EVEN, SerialPort::STOP_BITS_1,
-				SerialPort::FLOW_CONTROL_DEFAULT);
+				SerialPort::FLOW_CONTROL_NONE);
 	} catch (exception &e) {
 		FILE_LOG(logWARNING) << "Can't open smartmeter serial port at " << path
 				<< " because of " << e.what();
@@ -71,35 +74,42 @@ bool SmartmeterReader::openDevice(const string path) {
 
 
 string SmartmeterReader::readData() {
+	cerr << "smartmeter reader this: " << this << endl;
+	try{
+		serialPort->Write(string("/?!\r\n"));
 		try{
-			serialPort->Write(string("/?!\r\n"));
-			// may read the string that the smartmeter is sending but I'm not interested in the content -> just for timing reasons
-			this_thread::sleep_for(chrono::milliseconds(200));
-			// write command to get data
-			serialPort->Write(string(1, (char) 6) + string("050\r\n"));
+			while(true){
+				serialPort->ReadByte(500);
+			}
 		} catch (runtime_error& e){
-			FILE_LOG(logERROR) << "smartmeter command writing error: " << e.what();
-			cerr << "smartmeter command writing error: " << e.what() << endl;
-			return string();
+			// cerr << "read smartmeter answer timed out" << endl;
 		}
-		return readMessage();
+		// write ACK
+		serialPort->Write(string(1, 6));
+		// wait a bit
+		this_thread::sleep_for(chrono::milliseconds(250));
+		// send read command
+		serialPort->Write(string("050\r\n"));
+	} catch (runtime_error& e){
+		FILE_LOG(logERROR) << "smartmeter command writing error: " << e.what();
+		cerr << "smartmeter command writing error: " << e.what() << endl;
+		return string();
+	}
+	return readMessage();
 }
 
 string SmartmeterReader::readMessage() {
 	string buffer, data("1-0:1.8.0*255");
 	try {
 		// skip everything until total reading OBIS
-		while (not boost::regex_search(buffer, start_regex)) {
+		while (not boost::regex_search(buffer, start_regex))
 			buffer += string(1, serialPort->ReadByte(2000));
-		}
 		// skip everything until serial number OBIS
-		while (not boost::regex_search(data, end_regex)) {
+		while (not boost::regex_search(data, end_regex))
 			data += string(1, serialPort->ReadByte(2000));
-		}
 		// read until return character
-		while (data.compare(data.length() - 1, 1, "\n") != 0) {
+		while (data.compare(data.length() - 1, 1, "\n") != 0)
 			data += string(1, serialPort->ReadByte(2000));
-		}
 	} catch (runtime_error& e) {
 		FILE_LOG(logERROR) << "smartmeter read message failed: " << e.what();
 		cerr << "smartmeter read message failed: " << e.what() << endl;

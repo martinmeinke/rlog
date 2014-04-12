@@ -40,8 +40,7 @@ void RLogd::init() {
 void RLogd::start(){
 	running = true;
 	if(findDevices()){
-		cerr << "entered main loop" << endl;
-		this_thread::sleep_for(chrono::milliseconds(200));
+		cerr << "entered main loop" << endl << "smartmeterreader: " << &smReader << endl << "inverterreader: " << &invReader << endl;
 		// main loop
 		while(running){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
@@ -97,7 +96,7 @@ bool RLogd::findDevices() {
 			FILE_LOG(logINFO) << "Discovered smart meter at " << devBaseName << i;
 			cerr  << "Discovered smart meter at " << devBaseName << i << endl;
 			continue;
-		} else {
+		} else if(not smartMeterDeviceFound){
 			smReader.closeDevice();
 			FILE_LOG(logERROR) << "closing port after unsuccessful smartmeter discovery attempt";
 			cerr << "closing port after unsuccessful smartmeter discovery attempt" << endl;
@@ -115,8 +114,8 @@ bool RLogd::findDevices() {
 				FILE_LOG(logINFO) << "Discovered inverter at " << devBaseName << i;
 				cerr << "Discovered inverter at " << devBaseName << i << endl;
 			}
-		} else {
-			smReader.closeDevice();
+		} else if(not inverterDeviceFound){
+			invReader.closeDevice();
 			FILE_LOG(logERROR) << "closing port after unsuccessful inverter discovery attempt";
 			cerr << "closing port after unsuccessful inverter discovery attempt" << endl;
 		}

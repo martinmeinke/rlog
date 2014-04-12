@@ -14,12 +14,16 @@ using namespace std;
 // Read data from all inverters. Return string vector with lines all valid lines returned by each of the inverters.
 vector<string> InverterReader::read() {
 	vector<string> ret;
-	ret.resize(inverterIDs.size());
-	for (auto id : inverterIDs) {
-		this_thread::sleep_for(chrono::milliseconds(200));
-		string data = readData(id);
-		if (dataValid(data))
-			ret.push_back(data);
+	try{
+		for (auto id : inverterIDs) {
+			this_thread::sleep_for(chrono::milliseconds(200));
+			string data = readData(id);
+			if (dataValid(data))
+				ret.push_back(data);
+		}
+	} catch (exception& e){
+		FILE_LOG(logERROR) << "inverter reader error: " << e.what();
+		cerr << "inverter reader error: " << e.what() << endl;
 	}
 	return ret;
 }
@@ -59,6 +63,7 @@ string InverterReader::readMessage() {
 }
 
 string InverterReader::readType(unsigned short id) {
+	cerr << "inverter reader this: " << this << endl;
 	stringstream s;
 	s << "#" << setfill('0') << setw(2) << id << "9\r";
 	try{
@@ -72,6 +77,7 @@ string InverterReader::readType(unsigned short id) {
 }
 
 string InverterReader::readData(unsigned short id) {
+	cerr << "inverter reader this: " << this << endl;
 	stringstream s;
 	s << "#" << setfill('0') << setw(2) << id << "0\r";
 	try{
