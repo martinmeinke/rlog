@@ -50,26 +50,12 @@ bool SmartmeterReader::openDevice(const string path) {
 		return true;
 	return false;
 }
-/*
-# returns the data message or None
-def request_data(self):
-    try:
-        self.__serial_port.write("/?!\r\n")
-        self.__serial_port.flush()
-        time.sleep(0.2)
-        self.__serial_port.write(chr(6) + "050\r\n")
-        self.__serial_port.flush()
-    except serial.SerialException as e:
-        log("RS45 problem while requesting smart meter data")
-    daten = self.read_datagram()
-    if self.data_valid(daten):
-        return daten
-    return None
-*/
+
+
 string SmartmeterReader::readData() {
 		try{
 			serialPort->Write(string("/?!\r\n"));
-			// may read the string that the smartmeter is sending but I'm mot interested in the content -> just for timing reasons
+			// may read the string that the smartmeter is sending but I'm not interested in the content -> just for timing reasons
 			this_thread::sleep_for(chrono::milliseconds(200));
 			// send ACK
 			serialPort->Write(string(1, 6));
