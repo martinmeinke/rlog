@@ -33,12 +33,7 @@ bool InverterReader::openDevice(const string path) {
 				<< " because of " << e.what();
 		return false;
 	}
-	// TODO: do something if 1 is not the ID of an inverter on the bus (default argument of read*() is 1)
-	if (typeValid(readType()))
-		return true;
-	if (dataValid(readData()))
-		return true;
-	return false;
+	return true;
 }
 
 
@@ -113,10 +108,11 @@ bool InverterReader::dataValid(const string& data) {
 	return true;
 }
 
-void InverterReader::findInverter(unsigned short startID,
-		unsigned short endID) {
-	for (unsigned short id = startID; id <= endID; id++) {
+bool InverterReader::findInverter(const string& inverterlist) {
+	bool ret = true;
+	for(string element : split(inverterlist, ',')) {
 		this_thread::sleep_for(chrono::milliseconds(200));
+		unsigned short id = fromString<unsigned short>(element);
 		if (typeValid(readType(id))) {
 			FILE_LOG(logINFO) << "Found inverter with id " << id;
 			inverterIDs.push_back(id);
@@ -126,6 +122,9 @@ void InverterReader::findInverter(unsigned short startID,
 		if (dataValid(readData(id))) {
 			FILE_LOG(logINFO) << "Found inverter with id " << id;
 			inverterIDs.push_back(id);
+			continue;
 		}
+		ret = false;
 	}
+	return ret;
 }

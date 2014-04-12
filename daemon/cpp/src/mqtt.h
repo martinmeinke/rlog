@@ -27,8 +27,9 @@ public:
 	std::function<void(int rc, std::string desc)> DisconnectFailureCallback;
 	std::function<void(std::string desc)> ConnectionLostCallback;
 
-	void publish(std::string& topic, std::string& payload, int Qos = 0,
-			bool retained = false);
+	void publish(const std::string& topic, const std::string& payload, int QoS = 0,	bool retained = false);
+	template<std::size_t N, std::size_t M>
+	void publish(const char (&topic)[N], const char (&payload)[M], int QoS = 0,	bool retained = false);
 	void connect(unsigned int pingTimeout = 60, bool cleanSession = false);
 	void disconnect();
 	template<typename Cont>
@@ -85,7 +86,7 @@ inline void MQTT_Client::subscribe(const std::string& topic, int QoS) {
 
 template<std::size_t N>
 inline void MQTT_Client::subscribe(const char (&topic)[N], int QoS) {
-	subscribe(std::string(topic), QoS);
+	subscribe(std::string(topic, N -1), QoS);
 }
 
 template<typename Cont>
@@ -110,7 +111,12 @@ inline void MQTT_Client::unsubscribe(const std::string& topic) {
 
 template<std::size_t N>
 inline void MQTT_Client::unsubscribe(const char (&topic)[N]) {
-	unsubscribe(std::string(topic));
+	unsubscribe(std::string(topic, N -1));
+}
+
+template<std::size_t N, std::size_t M>
+inline void MQTT_Client::publish(const char (&topic)[N], const char (&payload)[M], int QoS,	bool retained){
+	publish(std::string(topic, N -1), std::string(payload, M -1), QoS, retained);
 }
 
 #endif

@@ -8,7 +8,7 @@ class InverterReader: public BaseSerialReader {
 public:
 	std::vector<std::string> read();
 	bool openDevice(const std::string path);
-	void findInverter(unsigned short startID = 1, unsigned short endID = 32);
+	bool findInverter(const std::string& inverterList = "1,2,3");
 private:
 	std::string readType(unsigned short id = 1);
 	std::string readData(unsigned short id = 1);

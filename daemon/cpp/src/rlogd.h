@@ -12,26 +12,23 @@ public:
 			const std::string& mqtt_hostname = "localhost",
 			const unsigned int mqtt_port = 1883,
 			const std::string& mqtt_clientID = "MQTTRLOGD",
-			const std::string& deviceBaseName = "/dev/ttyUSB");
+			const std::string& deviceBaseName = "/dev/ttyUSB",
+			const std::string& inverterList = "1,2,3");
 	void init();
-	void findDevices();
 	void start();
 	void stop();
-	void test();
 
 private:
+	void findDevices();
 	void onConnect();
 	void onDisconnect();
 	void onConnectionLost(std::string reason);
-	void onSubscribe(int QoS);
-	void onUnsubscribe();
-	void onMessage(std::string topic, std::string payload, int QoS,
-			bool retained);
 
 	MQTT_Client mqtt;
 	InverterReader invReader;
 	SmartmeterReader smReader;
 	std::string devBaseName;
+	std::string invList;
 };
 
 #endif

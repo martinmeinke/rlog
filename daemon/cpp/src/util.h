@@ -15,6 +15,9 @@ std::vector<std::string> split(const std::string &s, char delim);
 template<class T>
 T fromString(const std::string& s);
 
+template<typename T>
+std::string toString(const T& v);
+
 class BaseSerialReader{
 public:
 	virtual ~BaseSerialReader();

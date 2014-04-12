@@ -31,9 +31,21 @@ T fromString(const string& s){
      return t;
 }
 
-// Instantiate for double and int
+// Instantiate for double, int and unsigned short
 template double fromString<double>(const string& s);
 template int fromString<int>(const string& s);
+template unsigned short fromString<unsigned short>(const string& s);
+
+
+template<typename T>
+string toString(const T& v){
+    ostringstream strstr;
+    strstr << v;
+    return strstr.str();
+}
+
+// Instantiate for unsigned short
+template string toString<unsigned short>(const unsigned short& v);
 
 
 vector<string> split(const string &s, char delim) {

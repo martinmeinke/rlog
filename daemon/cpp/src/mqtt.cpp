@@ -96,7 +96,7 @@ int MQTT_Client::onMessage(void* context, char* topicName, int topicLen,
 		return 0;
 }
 
-void MQTT_Client::publish(string& topic, string& payload, int QoS,
+void MQTT_Client::publish(const string& topic, const string& payload, int QoS,
 		bool retained) {
 	MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
 	MQTTAsync_message pubmsg = MQTTAsync_message_initializer;
