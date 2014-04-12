@@ -37,10 +37,11 @@ void RLogd::init() {
 }
 
 void RLogd::start(){
+	running = true;
 	if(findDevices()){
 		this_thread::sleep_for(chrono::milliseconds(200));
 		// main loop
-		while(true){
+		while(running){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
 			auto inverterReading = async(&InverterReader::read, invReader);
 			auto smartmeterReading = async(&SmartmeterReader::read, smReader);
@@ -59,6 +60,7 @@ void RLogd::start(){
 }
 
 void RLogd::stop() {
+	running = false;
 	try{
 		mqtt.disconnect();
 	} catch (runtime_error &e){

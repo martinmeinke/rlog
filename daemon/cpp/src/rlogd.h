@@ -18,6 +18,8 @@ public:
 	void start();
 	void stop();
 
+	static bool running;
+
 private:
 	bool findDevices();
 	void onConnect();
