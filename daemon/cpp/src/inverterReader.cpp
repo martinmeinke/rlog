@@ -1,5 +1,5 @@
 #include "inverterReader.h"
-#include "inverterReader.h"
+#include "util.h"
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -128,26 +128,30 @@ bool InverterReader::dataValid(const string& data) {
 	return true;
 }
 
-bool InverterReader::findInverter(const string& inverterlist) {
-	bool ret = true;
+// returns vector with names of responding inverters
+map<unsigned short, string> InverterReader::findInverter(const string& inverterlist) {
+	map<unsigned short, string> ret;
 	for(string element : split(inverterlist, ',')) {
 		this_thread::sleep_for(chrono::milliseconds(200));
 		unsigned short id = fromString<unsigned short>(element);
-		if (typeValid(readType(id))) {
-			FILE_LOG(logINFO) << "Found inverter with id " << id;
-			cerr << "Found inverter with id " << id << endl;
+		string type = readType(id);
+		if (typeValid(type)) {
+			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type" << trim(split(type, ' ')[1]);
+			cerr << "Found inverter with id " << id << " of type" << trim(split(type, ' ')[1]) << endl;
 			inverterIDs.push_back(id);
+			ret[id] = trim(split(type, ' ')[1]);
 			continue;
 		}
 		this_thread::sleep_for(chrono::milliseconds(200));
 		// second chance if type message got lost: data message
-		if (dataValid(readData(id))) {
-			FILE_LOG(logINFO) << "Found inverter with id " << id;
-			cerr << "Found inverter with id " << id << endl;
+		string data = readData(id);
+		if (dataValid(data)) {
+			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type" << trim(split(data, ' ')[9]);
+			cerr << "Found inverter with id " << id << " of type" << trim(split(data, ' ')[9]) << endl;
 			inverterIDs.push_back(id);
+			ret[id] = trim(split(data, ' ')[9]);
 			continue;
 		}
-		ret = false;
 	}
 	return ret;
 }

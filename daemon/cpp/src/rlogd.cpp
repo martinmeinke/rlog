@@ -8,6 +8,7 @@
 #include <thread>
 #include <future>
 #include <chrono>
+#include <map>
 #include "util.h"
 #include "log.h"
 
@@ -103,17 +104,15 @@ bool RLogd::findDevices() {
 			cerr << "closing port after unsuccessful smartmeter discovery attempt" << endl;
 		}
 		if ((not inverterDeviceFound) and invReader.openDevice(devBaseName + toString<unsigned short>(i))) {
-			if (invReader.findInverter(invList)) {
+			map<unsigned short, string> inverterResponses = invReader.findInverter(invList);
+			for(auto element : inverterResponses){ // this means there is at least one inverter found. We could add a check here that requires all to be found ...
 				inverterDeviceFound = true;
 				try{
-					for(auto element : split(invList, ','))
-						mqtt.publish(string("/devices/RLog/controls/3002IN (") + element + string(")/meta/type"), "text", 0, true);
+					mqtt.publish(string("/devices/RLog/controls/") + element.second + string(" (") + toString<unsigned short>(element.first) + string(")/meta/type"), "text", 0, true);
 				}catch (runtime_error &e){
 					FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
 					cerr << "mqtt publish error in " << __func__ << ": " << e.what() << endl;
 				}
-				FILE_LOG(logINFO) << "Discovered inverter at " << devBaseName << i;
-				cerr << "Discovered inverter at " << devBaseName << i << endl;
 			}
 		} else if(not inverterDeviceFound){
 			invReader.closeDevice();
