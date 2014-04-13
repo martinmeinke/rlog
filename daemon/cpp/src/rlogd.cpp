@@ -19,9 +19,11 @@ using namespace std;
 
 RLogd::RLogd(const string& database, const string& mqtt_hostname,
 		const unsigned int mqtt_port, const string& mqtt_clientID,
-		const string& deviceBaseName, const string& inverterList) :
+		const string& deviceBaseName, const string& inverterList,
+		const unsigned int timing, const unsigned short maxDeviceID) :
 		mqtt(mqtt_clientID, mqtt_hostname, mqtt_port), devBaseName(
-				deviceBaseName), invList(inverterList) {
+				deviceBaseName), invList(inverterList), interval(timing), maxDevice(
+				maxDeviceID + 1) {
 }
 
 void RLogd::init() {
@@ -54,11 +56,11 @@ void RLogd::start(){
 				cerr  << "got from smartmeter: " << element << endl;
 			}
 			chrono::milliseconds duration = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start);
-			if(duration > chrono::milliseconds(10000)){
+			if(duration > chrono::milliseconds(interval)){
 				FILE_LOG(logDEBUG) << "timing critical. iteration took " << duration.count() / 1000 << " seconds";
 				cerr << "timing critical. iteration took " << duration.count() / 1000 << " seconds" << endl;
 			} else {
-				this_thread::sleep_for(chrono::milliseconds(10000) - duration);
+				this_thread::sleep_for(chrono::milliseconds(interval) - duration);
 			}
 		}
 	}
@@ -78,7 +80,7 @@ bool RLogd::findDevices() {
 	FILE_LOG(logINFO) << "start discovering devices";
 	cerr  << "start discovering devices" << endl;
 	bool smartMeterDeviceFound = false, inverterDeviceFound = false;
-	for (unsigned short i = 0; (i < 2) and not (smartMeterDeviceFound and inverterDeviceFound); i++) {
+	for (unsigned short i = 0; (i < maxDevice) and not (smartMeterDeviceFound and inverterDeviceFound); i++) {
 		cerr << "trying device number " << i << endl;
 		this_thread::sleep_for(chrono::milliseconds(200));
 		if ((not smartMeterDeviceFound) and smReader.openDevice(devBaseName + toString<unsigned short>(i))) {

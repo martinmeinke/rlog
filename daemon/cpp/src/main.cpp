@@ -25,7 +25,10 @@ void printUsage(){
 		 << "  --broker, -b\t\tHostname of MQTT broker. Default 127.0.0.1" << endl
 		 << "  --brokerPort, -p\tPort of the MQTT broker. Default 1883" << endl
 		 << "  --clientId, -c\tThe MQTT client ID to be used. Default \"rlogd\"" << endl
-		 << "  --deviceBaseName, -n\tThe common prefix of USB-Serial adapter. Default /dev/ttyUSB" << endl;
+		 << "  --deviceBaseName, -n\tThe common prefix of USB-Serial adapter. Default /dev/ttyUSB" << endl
+		 << "  --interval, -t\tDelay between readings in milliseconds. Default 10000" << endl
+	 	 << "  --maxDeviceID, -m\tMaximum ID of USB device to look for serial ports on. Default 1" << endl;
+
 }
 
 int main(int argc, char* argv[]) {
@@ -36,6 +39,8 @@ int main(int argc, char* argv[]) {
 	string logfile = "/home/pi/git/rlog/rlogd.log";
 	string clientID = "rlogd";
 	string deviceBaseName = "/dev/ttyUSB";
+	unsigned int interval = 10000;
+	unsigned short maxDeviceID = 1;
 	bool help = false;
 
 	GetOpt_pp ops(argc, argv);
@@ -47,6 +52,10 @@ int main(int argc, char* argv[]) {
 	ops >> Option('p', "brokerPort", brokerPort);
 	ops >> Option('c', "clientId", clientID, "rlogd");
 	ops >> Option('n', "deviceBaseName", deviceBaseName, "/dev/ttyUSB");
+	ops >> Option('t', "interval", interval);
+	ops >> Option('m', "maxDeviceID", maxDeviceID);
+
+
 	ops >> OptionPresent('h', "help", help);
 
 	if (help) {
@@ -60,7 +69,7 @@ int main(int argc, char* argv[]) {
 	FILE* log_fd = fopen(logfile.c_str(), "a");
 	Output2FILE::Stream() = log_fd;
 	cerr << "logging initialized to file " << logfile << endl;
-	RLogd rlog(database, broker, brokerPort, clientID, deviceBaseName, inverter);
+	RLogd rlog(database, broker, brokerPort, clientID, deviceBaseName, inverter, interval, maxDeviceID);
 	cerr << "rlog created" << endl;
 	signal(SIGINT, signal_handler);
 	rlog.init();

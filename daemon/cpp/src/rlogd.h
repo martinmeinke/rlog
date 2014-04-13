@@ -13,7 +13,9 @@ public:
 			const unsigned int mqtt_port = 1883,
 			const std::string& mqtt_clientID = "MQTTRLOGD",
 			const std::string& deviceBaseName = "/dev/ttyUSB",
-			const std::string& inverterList = "1,2,3");
+			const std::string& inverterList = "1,2,3",
+			const unsigned int timing = 10000,
+			const unsigned short maxDeviceID = 1);
 	void init();
 	void start();
 	void stop();
@@ -31,6 +33,8 @@ private:
 	SmartmeterReader smReader;
 	std::string devBaseName;
 	std::string invList;
+	unsigned int interval;
+	unsigned short maxDevice;
 };
 
 #endif
