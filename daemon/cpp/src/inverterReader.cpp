@@ -128,7 +128,7 @@ bool InverterReader::dataValid(const string& data) {
 	return true;
 }
 
-// returns vector with names of responding inverters
+// returns map with inverter names keyed by bus IDs
 map<unsigned short, string> InverterReader::findInverter(const string& inverterlist) {
 	map<unsigned short, string> ret;
 	for(string element : split(inverterlist, ',')) {
@@ -136,8 +136,8 @@ map<unsigned short, string> InverterReader::findInverter(const string& inverterl
 		unsigned short id = fromString<unsigned short>(element);
 		string type = readType(id);
 		if (typeValid(type)) {
-			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type" << trim(split(type, ' ')[1]);
-			cerr << "Found inverter with id " << id << " of type" << trim(split(type, ' ')[1]) << endl;
+			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type " << trim(split(type, ' ')[1]);
+			cerr << "Found inverter with id " << id << " of type " << trim(split(type, ' ')[1]) << endl;
 			inverterIDs.push_back(id);
 			ret[id] = trim(split(type, ' ')[1]);
 			continue;
@@ -146,10 +146,11 @@ map<unsigned short, string> InverterReader::findInverter(const string& inverterl
 		// second chance if type message got lost: data message
 		string data = readData(id);
 		if (dataValid(data)) {
-			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type" << trim(split(data, ' ')[9]);
-			cerr << "Found inverter with id " << id << " of type" << trim(split(data, ' ')[9]) << endl;
+			vector<string> messageParts = split(data, ' ');
+			FILE_LOG(logINFO) << "Found inverter with id " << id << " of type " << trim(messageParts[messageParts.size() - 1]);
+			cerr << "Found inverter with id " << id << " of type " << trim(messageParts[messageParts.size() - 1]) << endl;
 			inverterIDs.push_back(id);
-			ret[id] = trim(split(data, ' ')[9]);
+			ret[id] = trim(messageParts[messageParts.size() - 1]);
 			continue;
 		}
 	}
