@@ -50,10 +50,10 @@ string InverterReader::readMessage() {
 	try {
 		// skip everything until line feed
 		while (line.compare("\n") != 0)
-			line = string(1, serialPort->ReadByte(2000));
+			line = string(1, serialPort->ReadByte(1000));
 		// read until return character
 		while (line.compare(line.length() - 1, 1, "\r") != 0)
-			line += string(1, serialPort->ReadByte(2000));
+			line += string(1, serialPort->ReadByte(1000));
 	} catch (runtime_error& e) {
 		FILE_LOG(logERROR) << "Inverter serial port read error: " << e.what();
 		cerr << "Inverter serial port read error: " << e.what() << endl;

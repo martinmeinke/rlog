@@ -97,7 +97,7 @@ bool RLogd::findDevices() {
 			continue;
 		} else if(not smartMeterDeviceFound){
 			smReader.closeDevice();
-			FILE_LOG(logERROR) << "closing port after unsuccessful smartmeter discovery attempt";
+			FILE_LOG(logINFO) << "closing port after unsuccessful smartmeter discovery attempt";
 			cerr << "closing port after unsuccessful smartmeter discovery attempt" << endl;
 		}
 		if ((not inverterDeviceFound) and invReader.openDevice(devBaseName + toString<unsigned short>(i))) {
@@ -115,7 +115,7 @@ bool RLogd::findDevices() {
 			}
 		} else if(not inverterDeviceFound){
 			invReader.closeDevice();
-			FILE_LOG(logERROR) << "closing port after unsuccessful inverter discovery attempt";
+			FILE_LOG(logINFO) << "closing port after unsuccessful inverter discovery attempt";
 			cerr << "closing port after unsuccessful inverter discovery attempt" << endl;
 		}
 	}

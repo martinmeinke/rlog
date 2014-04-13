@@ -102,13 +102,15 @@ string SmartmeterReader::readMessage() {
 	try {
 		// skip everything until total reading OBIS
 		while (not boost::regex_search(buffer, start_regex))
-			buffer += string(1, serialPort->ReadByte(2000));
+			buffer += string(1, serialPort->ReadByte(1000));
 		// skip everything until serial number OBIS
 		while (not boost::regex_search(data, end_regex))
-			data += string(1, serialPort->ReadByte(2000));
+			data += string(1, serialPort->ReadByte(1000));
 		// read until return character
 		while (data.compare(data.length() - 1, 1, "\n") != 0)
-			data += string(1, serialPort->ReadByte(2000));
+			data += string(1, serialPort->ReadByte(1000));
+		// write ACK
+		serialPort->Write(string(1, 6));
 	} catch (runtime_error& e) {
 		FILE_LOG(logERROR) << "smartmeter read message failed: " << e.what();
 		cerr << "smartmeter read message failed: " << e.what() << endl;
