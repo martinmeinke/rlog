@@ -72,7 +72,13 @@ int main(int argc, char* argv[]) {
 	RLogd rlog(database, broker, brokerPort, clientID, deviceBaseName, inverter, interval, maxDeviceID);
 	cerr << "rlog created" << endl;
 	signal(SIGINT, signal_handler);
-	rlog.init();
+	try{
+		rlog.init();
+	} catch (runtime_error &e){
+		cerr << e.what() << endl;
+		FILE_LOG(logERROR) << "init failed: " << e.what();
+		exit(1);
+	}
 	cerr << "init successful" << endl;
 	rlog.start();
 	exit(0);

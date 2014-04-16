@@ -2,6 +2,7 @@
 #include "mqtt.h"
 #include "inverterReader.h"
 #include "smartmeterReader.h"
+#include <sqlite3.h>
 
 #ifndef RLOGD_H
 #define RLOGD_H
@@ -33,8 +34,13 @@ private:
 	SmartmeterReader smReader;
 	std::string devBaseName;
 	std::string invList;
+	std::string database;
 	unsigned int interval;
 	unsigned short maxDevice;
+	sqlite3 * db_connection = nullptr;
+	sqlite3_stmt * insertDevice = nullptr;
+	sqlite3_stmt * insertInverterTick = nullptr;
+	sqlite3_stmt * inserSmartmeterTick = nullptr;
 };
 
 #endif

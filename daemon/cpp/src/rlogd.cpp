@@ -23,7 +23,7 @@ RLogd::RLogd(const string& database, const string& mqtt_hostname,
 		const string& deviceBaseName, const string& inverterList,
 		const unsigned int timing, const unsigned short maxDeviceID) :
 		mqtt(mqtt_clientID, mqtt_hostname, mqtt_port), devBaseName(
-				deviceBaseName), invList(inverterList), interval(timing), maxDevice(
+				deviceBaseName), invList(inverterList), database(database), interval(timing), maxDevice(
 				maxDeviceID + 1) {
 }
 
@@ -38,6 +38,21 @@ void RLogd::init() {
 		FILE_LOG(logERROR) << "mqtt connect failed: " << e.what();
 		cerr << "mqtt connect failed: " << e.what() << endl;
 	}
+
+	if(sqlite3_open(database.c_str(), &db_connection) != SQLITE_OK){
+		throw runtime_error(string("Cannot open database: ") + string(sqlite3_errmsg(db_connection)));
+	}
+	FILE_LOG(logINFO) << "opened database " << database;
+
+	if(sqlite3_prepare_v2(db_connection, "INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", -1, &insertDevice, NULL) != SQLITE_OK){
+		throw runtime_error(string("Cannot prepare statement to insert inverter devices: ") + string(sqlite3_errmsg(db_connection)));
+	}
+	if(sqlite3_prepare_v2(db_connection, "INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", -1, &insertInverterTick, NULL) != SQLITE_OK){
+		throw runtime_error(string("Cannot prepare statement to insert inverter ticks: ") + string(sqlite3_errmsg(db_connection)));
+	}
+	if(sqlite3_prepare_v2(db_connection, "INSERT INTO charts_smartmeterentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?)", -1, &inserSmartmeterTick, NULL) != SQLITE_OK){
+		throw runtime_error(string("Cannot prepare statement to insert smartmeter ticks: ") + string(sqlite3_errmsg(db_connection)));
+	}
 }
 
 void RLogd::start(){
@@ -47,7 +62,7 @@ void RLogd::start(){
 		while(running){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
 			auto inverterReading = async(&InverterReader::read, &invReader);
-			auto smartmeterReading = async(&SmartmeterReader::read, &smReader);
+			auto smartmeterReading = async(&SmartmeterReader::read, &smReader); // timing issue on a single core?!
 			for(auto element : inverterReading.get()){
 				FILE_LOG(logDEBUG) << "got from inverter: " << element;
 				cerr << "got from inverter: " << element << endl;
@@ -112,6 +127,21 @@ bool RLogd::findDevices() {
 				}catch (runtime_error &e){
 					FILE_LOG(logERROR) << "mqtt publish error in " << __func__ << ": " << e.what();
 					cerr << "mqtt publish error in " << __func__ << ": " << e.what() << endl;
+				}
+
+				if(sqlite3_clear_bindings(insertDevice) == SQLITE_OK && sqlite3_reset(insertDevice) == SQLITE_OK){
+					if(sqlite3_bind_int(insertDevice, 1, element.first) == SQLITE_OK && sqlite3_bind_text(insertDevice, 2, element.second.c_str(), -1, SQLITE_STATIC) == SQLITE_OK){
+						if(sqlite3_step(insertDevice) != SQLITE_OK){
+							FILE_LOG(logERROR) << "database error while inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
+							cerr << "database error while inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
+						}
+					} else {
+						FILE_LOG(logERROR) << "database error while binding values when inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
+						cerr << "database error while binding values when inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
+					}
+				} else {
+					FILE_LOG(logERROR) << "database error while resetting statement before inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
+					cerr << "database error while resetting statement before inserting device: " << sqlite3_errmsg(db_connection) << ". Values: " << element.first << element.second;
 				}
 			}
 		} else if(not inverterDeviceFound){
