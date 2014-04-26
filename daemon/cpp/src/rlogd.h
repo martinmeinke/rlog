@@ -40,7 +40,7 @@ private:
 	sqlite3 * db_connection = nullptr;
 	sqlite3_stmt * insertDevice = nullptr;
 	sqlite3_stmt * insertInverterTick = nullptr;
-	sqlite3_stmt * inserSmartmeterTick = nullptr;
+	sqlite3_stmt * insertSmartmeterTick = nullptr;
 };
 
 #endif

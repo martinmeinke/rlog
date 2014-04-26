@@ -109,8 +109,7 @@ void MQTT_Client::publish(const string& topic, const string& payload, int QoS,
 	if ((rc = MQTTAsync_sendMessage(mqttClient,
 			const_cast<char*>(topic.c_str()), &pubmsg, &opts))
 			!= MQTTASYNC_SUCCESS)
-		throw runtime_error(
-				"MQTT publish failed with return code: " + to_string(rc));
+		throw runtime_error("MQTT publish failed with return code: " + to_string(rc));
 }
 
 void MQTT_Client::connect(unsigned int pingTimeout, bool cleanSession) {
@@ -124,8 +123,7 @@ void MQTT_Client::connect(unsigned int pingTimeout, bool cleanSession) {
 	conn_opts.context = this;
 	int rc;
 	if ((rc = MQTTAsync_connect(mqttClient, &conn_opts)) != MQTTASYNC_SUCCESS) {
-		throw runtime_error(
-				"MQTT connect failed with return code " + to_string(rc));
+		throw runtime_error("MQTT connect failed with return code " + to_string(rc));
 	}
 }
 

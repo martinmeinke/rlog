@@ -95,6 +95,19 @@ string SmartmeterReader::readData() {
 		return string();
 	}
 	return readMessage();
+	/* only for debugging:
+	return string("# 1-0:1.8.0*255(00300.00*kWh)\n"\
+	"1-0:2.1.7*255(1.1*kWh)\n"\
+	"1-0:4.1.7*255(2.2*kWh)\n"\
+	"1-0:6.1.7*255(3.3*kWh)\n"\
+	"1-0:21.7.255*255(4.4*kW)\n"\
+	"1-0:41.7.255*255(5.5*kW)\n"\
+	"1-0:61.7.255*255(6.6000*kW)\n"\
+	"1-0:1.7.255*255(7.7000*kW)\n"\
+	"1-0:96.5.5*255(q)\n"\
+	"0-0:96.1.255*255(11401476)\n"\
+	"");
+*/
 }
 
 string SmartmeterReader::readMessage() {

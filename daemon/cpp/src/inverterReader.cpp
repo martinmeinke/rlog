@@ -86,6 +86,9 @@ string InverterReader::readData(unsigned short id) {
 		return string();
 	}
 	return readMessage();
+	/* only for debugging:
+	return string("\n*030   5 172.1  0.10    22 230.4  0.05    20  26   1925 C 3501xi\r");
+	*/
 }
 
 
@@ -111,10 +114,8 @@ bool InverterReader::typeValid(const string& type) {
 
 bool InverterReader::dataValid(const string& data) {
 	if (data.length() != 66) { // that's the normal length of the type message I get
-		FILE_LOG(logDEBUG) << "Data message with invalid length: " << data
-				<< " Length is " << data.length() << " should be 66";
-		cerr << "Data message with invalid length: " << data
-				<< " Length is " << data.length() << " should be 66" << endl;
+		FILE_LOG(logDEBUG) << "Data message with invalid length: " << data << " Length is " << data.length() << " should be 66";
+		cerr << "Data message with invalid length: " << data << " Length is " << data.length() << " should be 66" << endl;
 		return false;
 	}
 	unsigned char checksum = 0;

@@ -28,7 +28,6 @@ void printUsage(){
 		 << "  --deviceBaseName, -n\tThe common prefix of USB-Serial adapter. Default /dev/ttyUSB" << endl
 		 << "  --interval, -t\tDelay between readings in milliseconds. Default 10000" << endl
 	 	 << "  --maxDeviceID, -m\tMaximum ID of USB device to look for serial ports on. Default 1" << endl;
-
 }
 
 int main(int argc, char* argv[]) {
