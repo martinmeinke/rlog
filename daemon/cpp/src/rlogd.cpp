@@ -65,7 +65,7 @@ void RLogd::start(){
 				cerr << "got from inverter: " << element << endl;
 				vector<string> values = split(element, ' ');
 				try{
-					mqtt.publish(string("/devices/RLog/controls/") + trim(values[values.size() - 1]) + string(" (") + to_string(fromString<unsigned short>(values[0].substr(1, 2))) + string(")"), values[7], 0, true);
+					mqtt.publish(string("/devices/RLog/controls/") + trim(values[values.size() - 1]) + string(" (") + to_string(fromString<unsigned short>(values[0].substr(2, 2))) + string(")"), values[7], 0, true);
 				} catch(runtime_error &e){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;
@@ -99,9 +99,9 @@ void RLogd::start(){
 			vector<string> smartMeterValues = smReader.read();
 			if(smartMeterValues.size() != 0){
 				try{
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (1)"), to_string(fromString<double>(smartMeterValues[1])), 0, true);
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (2)"), to_string(fromString<double>(smartMeterValues[2])), 0, true);
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (3)"), to_string(fromString<double>(smartMeterValues[3])), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (1)"), to_string(fromString<double>(smartMeterValues[1]) * 1000.0f), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (2)"), to_string(fromString<double>(smartMeterValues[2]) * 1000.0f), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (3)"), to_string(fromString<double>(smartMeterValues[3]) * 1000.0f), 0, true);
 				} catch(runtime_error &e){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;
@@ -111,9 +111,9 @@ void RLogd::start(){
 					// FILE_LOG(logDEBUG) << "got from smartmeter: " << smartMeterValues[0] << ", " << smartMeterValues[1] << ", " << smartMeterValues[2] << ", " << smartMeterValues[3];
 					cerr  << "got from smartmeter: " << smartMeterValues[0] << ", " << smartMeterValues[1] << ", " << smartMeterValues[2] << ", " << smartMeterValues[3] << endl;
 					rc |= sqlite3_bind_double(insertSmartmeterTick, 1, fromString<double>(smartMeterValues[0])); // bind reading
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 2, fromString<double>(smartMeterValues[1])); // bind phase 1
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 3, fromString<double>(smartMeterValues[2])); // bind phase 2
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 4, fromString<double>(smartMeterValues[3])); // bind phase 3
+					rc |= sqlite3_bind_double(insertSmartmeterTick, 2, fromString<double>(smartMeterValues[1]) * 1000.0f); // bind phase 1
+					rc |= sqlite3_bind_double(insertSmartmeterTick, 3, fromString<double>(smartMeterValues[2]) * 1000.0f); // bind phase 2
+					rc |= sqlite3_bind_double(insertSmartmeterTick, 4, fromString<double>(smartMeterValues[3]) * 1000.0f); // bind phase 3
 					if(rc == SQLITE_OK){
 						if((rc = sqlite3_step(insertSmartmeterTick)) != SQLITE_DONE){
 							FILE_LOG(logERROR) << "database error while inserting smartmeter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection);
