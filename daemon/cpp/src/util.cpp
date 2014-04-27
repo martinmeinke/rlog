@@ -19,7 +19,7 @@ string& rtrim(string& s) {
         return s;
 }
 
-string& trim(string& s) {
+string trim(string s) {
         return ltrim(rtrim(s));
 }
 
