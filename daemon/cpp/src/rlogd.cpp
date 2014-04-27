@@ -61,7 +61,7 @@ void RLogd::start(){
 			chrono::system_clock::time_point start = chrono::system_clock::now();
 			// read inverter
 			for(auto element : invReader.read()){
-				FILE_LOG(logDEBUG) << "got from inverter: " << element;
+				// FILE_LOG(logDEBUG) << "got from inverter: " << element;
 				cerr << "got from inverter: " << element << endl;
 				vector<string> values = split(element, ' ');
 				try{
@@ -108,7 +108,7 @@ void RLogd::start(){
 				}
 				if(sqlite3_clear_bindings(insertSmartmeterTick) == SQLITE_OK && sqlite3_reset(insertSmartmeterTick) == SQLITE_OK){
 					int rc = SQLITE_OK;
-					FILE_LOG(logDEBUG) << "got from smartmeter: " << smartMeterValues[0] << ", " << smartMeterValues[1] << ", " << smartMeterValues[2] << ", " << smartMeterValues[3];
+					// FILE_LOG(logDEBUG) << "got from smartmeter: " << smartMeterValues[0] << ", " << smartMeterValues[1] << ", " << smartMeterValues[2] << ", " << smartMeterValues[3];
 					cerr  << "got from smartmeter: " << smartMeterValues[0] << ", " << smartMeterValues[1] << ", " << smartMeterValues[2] << ", " << smartMeterValues[3] << endl;
 					rc |= sqlite3_bind_double(insertSmartmeterTick, 1, fromString<double>(smartMeterValues[0])); // bind reading
 					rc |= sqlite3_bind_double(insertSmartmeterTick, 2, fromString<double>(smartMeterValues[1])); // bind phase 1
