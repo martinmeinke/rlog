@@ -1,0 +1,10 @@
+*.o
+*.a
+*.so
+Makefile
+config.h
+config.status
+doxygen.conf
+examples/.deps/*
+libtool
+stamp-h1
