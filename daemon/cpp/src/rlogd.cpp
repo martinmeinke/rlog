@@ -65,7 +65,7 @@ void RLogd::start(){
 				cerr << "got from inverter: " << element << endl;
 				vector<string> values = split(element, ' ');
 				try{
-					mqtt.publish(string("/devices/RLog/controls/") + trim(values[values.size() - 1]) + string(" (") + to_string(fromString<unsigned short>(values[0].substr(2, 2))) + string(")"), values[7], 0, true);
+					mqtt.publish(string("/devices/RLog/controls/") + trim(values[values.size() - 1]) + string(" (") + toString<double>(fromString<unsigned short>(values[0].substr(2, 2))) + string(")"), values[7], 0, true);
 				} catch(runtime_error &e){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;
@@ -99,9 +99,9 @@ void RLogd::start(){
 			vector<string> smartMeterValues = smReader.read();
 			if(smartMeterValues.size() != 0){
 				try{
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (1)"), to_string(fromString<double>(smartMeterValues[1]) * 1000.0f), 0, true);
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (2)"), to_string(fromString<double>(smartMeterValues[2]) * 1000.0f), 0, true);
-					mqtt.publish(string("/devices/RLog/controls/VSM-102 (3)"), to_string(fromString<double>(smartMeterValues[3]) * 1000.0f), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (1)"), toString<double>(fromString<double>(smartMeterValues[1]) * 1000.0f), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (2)"), toString<double>(fromString<double>(smartMeterValues[2]) * 1000.0f), 0, true);
+					mqtt.publish(string("/devices/RLog/controls/VSM-102 (3)"), toString<double>(fromString<double>(smartMeterValues[3]) * 1000.0f), 0, true);
 				} catch(runtime_error &e){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;

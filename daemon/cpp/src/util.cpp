@@ -46,6 +46,7 @@ string toString(const T& v){
 
 // Instantiate for unsigned short
 template string toString<unsigned short>(const unsigned short& v);
+template string toString<double>(const double& v);
 
 
 vector<string> split(const string &s, char delim) {
