@@ -51,8 +51,8 @@ string InverterReader::readMessage() {
 		// skip everything until line feed
 		while (line.compare("\n") != 0)
 			line = string(1, serialPort->ReadByte(1000));
-		// read until return character
-		while (line.length() < 60 || line.compare(line.length() - 1, 1, "\r") != 0) // length comparison because checksum may be '\r' by chance
+		// read until return character but keep in mind that checksum might be the return character
+		while (line.compare(line.length() - 1, 1, "\r") != 0 && (not(line.length() == 14  || line.length() == 58 ))) // length comparison because checksum may be '\r' by chance
 			line += string(1, serialPort->ReadByte(1000));
 	} catch (runtime_error& e) {
 		FILE_LOG(logERROR) << "Inverter serial port read error: " << e.what();
