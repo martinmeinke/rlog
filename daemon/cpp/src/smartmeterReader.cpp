@@ -26,23 +26,23 @@ vector<string> SmartmeterReader::read() {
 	try{
 		string data = readData();
 		if (dataValid(data)) {
-			boost::smatch match;
-			if (boost::regex_search(data, match, reading_regex))
+			smatch match;
+			if (regex_search(data, match, reading_regex))
 				ret.push_back(match[1]);
 			else
 				return vector<string>();
 	
-			if (boost::regex_search(data, match, phase1_regex))
+			if (regex_search(data, match, phase1_regex))
 				ret.push_back(match[1]);
 			else
 				return vector<string>();
 	
-			if (boost::regex_search(data, match, phase2_regex))
+			if (regex_search(data, match, phase2_regex))
 				ret.push_back(match[1]);
 			else
 				return vector<string>();
 	
-			if (boost::regex_search(data, match, phase3_regex))
+			if (regex_search(data, match, phase3_regex))
 				ret.push_back(match[1]);
 			else
 				return vector<string>();
@@ -114,10 +114,10 @@ string SmartmeterReader::readMessage() {
 	string buffer, data("1-0:1.8.0*255");
 	try {
 		// skip everything until total reading OBIS
-		while (not boost::regex_search(buffer, start_regex))
+		while (not regex_search(buffer, start_regex))
 			buffer += string(1, serialPort->ReadByte(1000));
 		// skip everything until serial number OBIS
-		while (not boost::regex_search(data, end_regex))
+		while (not regex_search(data, end_regex))
 			data += string(1, serialPort->ReadByte(1000));
 		// read until return character
 		while (data.compare(data.length() - 1, 1, "\n") != 0)
