@@ -3,6 +3,7 @@
 #include "inverterReader.h"
 #include "smartmeterReader.h"
 #include <sqlite3.h>
+#include <map>
 
 #ifndef RLOGD_H
 #define RLOGD_H
@@ -28,6 +29,8 @@ private:
 	void onConnect();
 	void onDisconnect();
 	void onConnectionLost(std::string reason);
+	inline void saveInverterTick(int deviceID, std::vector<std::string>& values);
+	inline void saveSmartmeterTick(double reading, double phase1, double phase2, double phase3);
 
 	MQTT_Client mqtt;
 	InverterReader invReader;
@@ -41,6 +44,8 @@ private:
 	sqlite3_stmt * insertDevice = nullptr;
 	sqlite3_stmt * insertInverterTick = nullptr;
 	sqlite3_stmt * insertSmartmeterTick = nullptr;
+	std::map<unsigned short, double> inverterMinute;
+	std::map<unsigned short, double> inverterHour;
 };
 
 #endif

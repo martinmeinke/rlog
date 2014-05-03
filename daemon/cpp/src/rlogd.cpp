@@ -73,30 +73,7 @@ void RLogd::start(){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;
 				}
-				if(sqlite3_clear_bindings(insertInverterTick) == SQLITE_OK && sqlite3_reset(insertInverterTick) == SQLITE_OK){
-					int rc = SQLITE_OK;
-					rc |= sqlite3_bind_int(insertInverterTick, 1, deviceID); // bind device id
-					rc |= sqlite3_bind_double(insertInverterTick, 2, fromString<double>(trim(values[2]))); // bind gV
-					rc |= sqlite3_bind_double(insertInverterTick, 3, fromString<double>(trim(values[3]))); // bind gA
-					rc |= sqlite3_bind_double(insertInverterTick, 4, fromString<double>(trim(values[4]))); // bind gW
-					rc |= sqlite3_bind_double(insertInverterTick, 5, fromString<double>(trim(values[5]))); // bind lV
-					rc |= sqlite3_bind_double(insertInverterTick, 6, fromString<double>(trim(values[6]))); // bind lA
-					rc |= sqlite3_bind_double(insertInverterTick, 7, fromString<double>(trim(values[7]))); // bind lW
-					rc |= sqlite3_bind_double(insertInverterTick, 8, fromString<double>(trim(values[8]))); // bind temp
-					rc |= sqlite3_bind_double(insertInverterTick, 9, fromString<double>(trim(values[9]))); // bind total
-					if(rc == SQLITE_OK){
-						if((rc = sqlite3_step(insertInverterTick)) != SQLITE_DONE){
-							FILE_LOG(logERROR) << "database error while inserting inverter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection);
-							cerr << "database error while inserting inverter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection) << endl;
-						}
-					} else {
-						FILE_LOG(logERROR) << "database error while binding values when inserting inverter tick: " << sqlite3_errmsg(db_connection);
-						cerr << "database error while binding values when inserting inverter tick: " << sqlite3_errmsg(db_connection) << endl;
-					}
-				} else {
-					FILE_LOG(logERROR) << "database error while resetting statement before inserting inverter tick: " << sqlite3_errmsg(db_connection);
-					cerr << "database error while resetting statement before inserting inverter tick: " << sqlite3_errmsg(db_connection) << endl;
-				}
+				saveInverterTick(deviceID, values);
 			}
 			// read smartmeter
 			vector<string> smartMeterValues = smReader.read();
@@ -113,27 +90,7 @@ void RLogd::start(){
 					FILE_LOG(logERROR) << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what();
 					cerr << "MQTT publish error in " << __func__  << " line " << __LINE__ << ": " << e.what() << endl;
 				}
-				if(sqlite3_clear_bindings(insertSmartmeterTick) == SQLITE_OK && sqlite3_reset(insertSmartmeterTick) == SQLITE_OK){
-					int rc = SQLITE_OK;
-					// FILE_LOG(logDEBUG) << "got from smartmeter: " << reading << ", " << phase1 << ", " << phase2 << ", " << phase3;
-					cerr  << "got from smartmeter: " << reading << ", " << phase1 << ", " << phase2 << ", " << phase3 << endl;
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 1, reading); // bind reading
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 2, phase1); // bind phase 1
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 3, phase2); // bind phase 2
-					rc |= sqlite3_bind_double(insertSmartmeterTick, 4, phase3); // bind phase 3
-					if(rc == SQLITE_OK){
-						if((rc = sqlite3_step(insertSmartmeterTick)) != SQLITE_DONE){
-							FILE_LOG(logERROR) << "database error while inserting smartmeter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection);
-							cerr << "database error while inserting smartmeter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection) << endl;
-						}
-					} else {
-						FILE_LOG(logERROR) << "database error while binding values when inserting smartmeter tick: " << sqlite3_errmsg(db_connection);
-						cerr << "database error while binding values when inserting smartmeter tick: " << sqlite3_errmsg(db_connection) << endl;
-					}
-				} else {
-					FILE_LOG(logERROR) << "database error while resetting statement before inserting smartmeter tick: " << sqlite3_errmsg(db_connection);
-					cerr << "database error while resetting statement before inserting smartmeter tick: " << sqlite3_errmsg(db_connection) << endl;
-				}
+				saveSmartmeterTick(reading, phase1, phase2, phase3);
 			} else {
 				FILE_LOG(logERROR) << "did not read anything from smart meter";
 				cerr << "did not read anything from smart meter" << endl;
@@ -243,4 +200,55 @@ void RLogd::onDisconnect() {
 void RLogd::onConnectionLost(string reason) {
 	FILE_LOG(logERROR) << "MQTT connection lost because of " << reason;
 	cerr << "MQTT connection lost because of " << reason << endl;
+}
+
+inline void RLogd::saveInverterTick(int deviceID,vector<string>& values) {
+	if(sqlite3_clear_bindings(insertInverterTick) == SQLITE_OK && sqlite3_reset(insertInverterTick) == SQLITE_OK){
+		int rc = SQLITE_OK;
+		rc |= sqlite3_bind_int(insertInverterTick, 1, deviceID); // bind device id
+		rc |= sqlite3_bind_double(insertInverterTick, 2, fromString<double>(trim(values[2]))); // bind gV
+		rc |= sqlite3_bind_double(insertInverterTick, 3, fromString<double>(trim(values[3]))); // bind gA
+		rc |= sqlite3_bind_double(insertInverterTick, 4, fromString<double>(trim(values[4]))); // bind gW
+		rc |= sqlite3_bind_double(insertInverterTick, 5, fromString<double>(trim(values[5]))); // bind lV
+		rc |= sqlite3_bind_double(insertInverterTick, 6, fromString<double>(trim(values[6]))); // bind lA
+		rc |= sqlite3_bind_double(insertInverterTick, 7, fromString<double>(trim(values[7]))); // bind lW
+		rc |= sqlite3_bind_double(insertInverterTick, 8, fromString<double>(trim(values[8]))); // bind temp
+		rc |= sqlite3_bind_double(insertInverterTick, 9, fromString<double>(trim(values[9]))); // bind total
+		if(rc == SQLITE_OK){
+			if((rc = sqlite3_step(insertInverterTick)) != SQLITE_DONE){
+				FILE_LOG(logERROR) << "database error while inserting inverter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection);
+				cerr << "database error while inserting inverter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection) << endl;
+			}
+		} else {
+			FILE_LOG(logERROR) << "database error while binding values when inserting inverter tick: " << sqlite3_errmsg(db_connection);
+			cerr << "database error while binding values when inserting inverter tick: " << sqlite3_errmsg(db_connection) << endl;
+		}
+	} else {
+		FILE_LOG(logERROR) << "database error while resetting statement before inserting inverter tick: " << sqlite3_errmsg(db_connection);
+		cerr << "database error while resetting statement before inserting inverter tick: " << sqlite3_errmsg(db_connection) << endl;
+	}
+}
+
+inline void RLogd::saveSmartmeterTick(double reading, double phase1, double phase2, double phase3) {
+	if(sqlite3_clear_bindings(insertSmartmeterTick) == SQLITE_OK && sqlite3_reset(insertSmartmeterTick) == SQLITE_OK){
+		int rc = SQLITE_OK;
+		// FILE_LOG(logDEBUG) << "got from smartmeter: " << reading << ", " << phase1 << ", " << phase2 << ", " << phase3;
+		cerr  << "got from smartmeter: " << reading << ", " << phase1 << ", " << phase2 << ", " << phase3 << endl;
+		rc |= sqlite3_bind_double(insertSmartmeterTick, 1, reading); // bind reading
+		rc |= sqlite3_bind_double(insertSmartmeterTick, 2, phase1); // bind phase 1
+		rc |= sqlite3_bind_double(insertSmartmeterTick, 3, phase2); // bind phase 2
+		rc |= sqlite3_bind_double(insertSmartmeterTick, 4, phase3); // bind phase 3
+		if(rc == SQLITE_OK){
+			if((rc = sqlite3_step(insertSmartmeterTick)) != SQLITE_DONE){
+				FILE_LOG(logERROR) << "database error while inserting smartmeter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection);
+				cerr << "database error while inserting smartmeter tick. Error code: " << rc << " : " << sqlite3_errmsg(db_connection) << endl;
+			}
+		} else {
+			FILE_LOG(logERROR) << "database error while binding values when inserting smartmeter tick: " << sqlite3_errmsg(db_connection);
+			cerr << "database error while binding values when inserting smartmeter tick: " << sqlite3_errmsg(db_connection) << endl;
+		}
+	} else {
+		FILE_LOG(logERROR) << "database error while resetting statement before inserting smartmeter tick: " << sqlite3_errmsg(db_connection);
+		cerr << "database error while resetting statement before inserting smartmeter tick: " << sqlite3_errmsg(db_connection) << endl;
+	}
 }
