@@ -7,6 +7,7 @@
 #include <thread>
 #include "util.h"
 #include "log.h"
+#include <ctime>
 
 
 #define LOCATIONX "14.122994"
@@ -61,8 +62,8 @@ void RLogd::start(){
 		vector<string> values = split(element, ' ');
 		unsigned short deviceID = fromString<unsigned short>(values[0].substr(2, 2)); // values[0] looks like: "\n\*\d\d\d" and first two digits are device id
 		double reading = fromString<double>(trim(values[9]));
-		smartmeterMinute[deviceID] = make_pair(reading, chrono::system_clock::now());
-		smartmeterHour[deviceID] = make_pair(reading, chrono::system_clock::now());
+		inverterMinute[deviceID] = make_pair(reading, chrono::system_clock::now());
+		inverterHour[deviceID] = make_pair(reading, chrono::system_clock::now());
 		FILE_LOG(logINFO) << "initialized inverter " << deviceID << " with value " << reading;
 		cerr << "initialized inverter " << deviceID << " with value " << reading << endl;
 	}
@@ -80,6 +81,7 @@ void RLogd::start(){
 	running = true;
 	while(running){
 		chrono::system_clock::time_point start = chrono::system_clock::now();
+
 		// read inverter
 		for(auto element : invReader.read()){
 			// FILE_LOG(logDEBUG) << "got from inverter: " << element;
@@ -88,7 +90,11 @@ void RLogd::start(){
 			int deviceID = fromString<int>(values[0].substr(2, 2)); // values[0] looks like: "\n\*\d\d\d" and first two digits are device id
 			publishInvertertick(deviceID, trim(values[values.size() - 1]), values[7]);
 			saveInverterTick(deviceID, values);
+			double currentTotal = fromString<double>(trim(values[9]));
+			calculateMinutelyInverterReading(inverterMinute[deviceID], currentTotal);
+			calculateHourlyInverterReading(inverterHour[deviceID], currentTotal);
 		}
+
 		// read smartmeter
 		vector<string> smartMeterValues = smReader.read();
 		if(smartMeterValues.size() != 0){
@@ -98,11 +104,18 @@ void RLogd::start(){
 					phase3 = fromString<double>(smartMeterValues[3]) * 1000.0f;
 			publishSmartMeterTick(phase1, phase2, phase3);
 			saveSmartmeterTick(reading, phase1, phase2, phase3);
+			calculateMinutelySmartmeterReading(smartmeterMinute[1], phase1);
+			calculateMinutelySmartmeterReading(smartmeterMinute[2], phase2);
+			calculateMinutelySmartmeterReading(smartmeterMinute[3], phase3);
+			calculateHourlySmartmeterReading(smartmeterHour[1], phase1);
+			calculateHourlySmartmeterReading(smartmeterHour[2], phase2);
+			calculateHourlySmartmeterReading(smartmeterHour[3], phase3);
 		} else {
 			FILE_LOG(logERROR) << "did not read anything from smart meter";
 			cerr << "did not read anything from smart meter" << endl;
 		}
 
+		// wait until interval is over
 		chrono::milliseconds duration = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start);
 		if(duration > chrono::milliseconds(interval)){
 			FILE_LOG(logDEBUG) << "timing critical. iteration took " << duration.count() / 1000 << " seconds";
@@ -263,23 +276,23 @@ inline void RLogd::saveSmartmeterTick(double reading, double phase1, double phas
 }
 
 inline void RLogd::calculateMinutelyInverterReading(
-		pair<double, std::chrono::system_clock::time_point>& minute,
-		double current_reading) {
+		pair<double, std::chrono::system_clock::time_point>& minute, double current_reading) {
+	minute.first += 1;
+	minute.second += chrono::milliseconds(10000000);
+	time_t t = chrono::system_clock::to_time_t(minute.second);
+	cout << "minute: " << minute.first << " " << ctime(&t) << endl;
 }
 
 inline void RLogd::calculateHourlyInverterReading(
-		pair<double, std::chrono::system_clock::time_point>& hour,
-		double current_reading) {
+		pair<double, std::chrono::system_clock::time_point>& hour, double current_reading) {
 }
 
 inline void RLogd::calculateMinutelySmartmeterReading(
-		pair<double, std::chrono::system_clock::time_point>& minute,
-		double current_reading) {
+		pair<double, std::chrono::system_clock::time_point>& minute, double current_reading) {
 }
 
 inline void RLogd::calculateHourlySmartmeterReading(
-		pair<double, std::chrono::system_clock::time_point>& hour,
-		double current_reading) {
+		pair<double, std::chrono::system_clock::time_point>& hour, double current_reading) {
 }
 
 inline void RLogd::publishInvertertick(unsigned short deviceID, const std::string& deviceName, const std::string& value) {
