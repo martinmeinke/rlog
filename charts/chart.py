@@ -290,7 +290,14 @@ class Chart(object):
                 items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "keine Daten"))
                 
         kws = round(self.__totalSupply, 2)                
-        items.append(StatsItem("Insgesamt eingespeist: ", str(kws) + "Wh"))
+        items.append(StatsItem("Insgesamt erzeugt: ", str(kws) + "Wh"))
+        
+        try:
+            eigenverbrauchTicks = EigenVerbrauch.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
+            items.append(StatsItem("Eigenverbrauch: ", "{0}Wh".format(round(eigenverbrauchTicks["eigenverbrauch__sum"]), 2)))
+        except Exception as e:
+            items.append(StatsItem("Eigenverbrauch: ", "keine Daten"))
 
         for phase in ["phase1", "phase2", "phase3"]:
             smartMeterTotal = SmartMeterEntryDay.objects.filter(

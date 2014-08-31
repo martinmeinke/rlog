@@ -481,6 +481,9 @@ class RLogDaemon(Daemon):
         
 
     def poll_devices(self):
+	# variables for Eigenverbrauch
+	sumProduced = 0
+	sumUsed = 0
         # poll the WR
         statements = []
         for (bus_id, wr) in self._slaves.iteritems():
@@ -490,8 +493,9 @@ class RLogDaemon(Daemon):
             if data:
                 cols = data.split()
                 try:
-                  line_power = cols[7]
-                  self.update_bell_counter(line_power)
+                  linePower = cols[7]
+                  sumProduced += linePower # add together production
+                  self.update_bell_counter(linePower)
                 except Exception as e:
                   log(str(e))
                 tmp = [str(wr.bus_id)]
@@ -541,6 +545,7 @@ class RLogDaemon(Daemon):
                 match = self._phase1_regex.search(datagram)
                 if match:
                     values.append(float(match.group(1)) * 1000)
+                    sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (1)", str(values[-1]), 0, True)
                     except Exception as e:
@@ -548,6 +553,7 @@ class RLogDaemon(Daemon):
                 match = self._phase2_regex.search(datagram)
                 if match:
                     values.append(float(match.group(1)) * 1000)
+                    sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (2)", str(values[-1]), 0, True)
                     except Exception as e:
@@ -555,6 +561,7 @@ class RLogDaemon(Daemon):
                 match = self._phase3_regex.search(datagram)
                 if match:
                     values.append(float(match.group(1)) * 1000)
+                    sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (3)", str(values[-1]), 0, True)
                     except Exception as e:
@@ -570,7 +577,16 @@ class RLogDaemon(Daemon):
                         log("sqlite trigger shit is going on\n" + str(e))
                 else:
                     log("Can't read all values from smart meter: " + str(values))
-                
+        # insert Eigenverbrauch into database
+        eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
+        try:
+            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (NULL, strftime('%Y-%m-%d', 'now', 'localtime'), ?)", (eigenverbrauch))
+            self._db_connection.commit()
+        except sqlite3.OperationalError as ex:
+            log("Eigenverbrauch: Database is locked or some other DB error")
+            log(str(type(ex)) + str(ex))
+        except sqlite3.IntegrityError as e:
+            log("sqlite integrity error (triggers?)")
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):

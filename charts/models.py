@@ -175,7 +175,11 @@ class SmartMeterDailyMaxima(models.Model):
                 
 ###############
 # other stuff #
-############### 
+###############
+
+class EigenVerbrauch(models.Model):
+    time = models.DateField(primary_key=True)
+    eigenverbrauch = models.DecimalField(max_digits=9, decimal_places=3) 
   
 class Reward(models.Model):
 	time = models.DateTimeField()
