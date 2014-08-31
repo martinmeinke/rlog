@@ -494,7 +494,7 @@ class RLogDaemon(Daemon):
                 cols = data.split()
                 try:
                   linePower = cols[7]
-                  sumProduced += linePower # add together production
+                  sumProduced += float(linePower) # add together production
                   self.update_bell_counter(linePower)
                 except Exception as e:
                   log(str(e))
@@ -580,7 +580,7 @@ class RLogDaemon(Daemon):
         # insert Eigenverbrauch into database
         eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         try:
-            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (NULL, strftime('%Y-%m-%d', 'now', 'localtime'), ?)", (eigenverbrauch))
+            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (strftime('%Y-%m-%d', 'now', 'localtime'), ?)", [eigenverbrauch])
             self._db_connection.commit()
         except sqlite3.OperationalError as ex:
             log("Eigenverbrauch: Database is locked or some other DB error")
