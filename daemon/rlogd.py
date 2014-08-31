@@ -270,6 +270,7 @@ class RLogDaemon(Daemon):
         self._smart_meter = None
         self._smart_meter_enabled = False
         self._smart_meter_found = False
+        self._eigenverbrauchLastSaved = time.time()
         
         self._reading_regex = re.compile("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)")          # 1-0:1.8.0*255(00000.00*kWh)
         self._phase1_regex = re.compile("1-0:21\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)")       # 1-0:21.7.255*255(0000.0000*kW)
@@ -580,8 +581,15 @@ class RLogDaemon(Daemon):
         # insert Eigenverbrauch into database
         eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         try:
-            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (strftime('%Y-%m-%d', 'now', 'localtime'), ?)", [eigenverbrauch])
+            currentValue = 0;
+            self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = strftime('%Y-%m-%d', 'now', 'localtime') LIMIT 1;")
+            if self._db_cursor.rowcount != 0:
+                value = self._db_cursor.fetchone()
+                currentValue = float(value[0])
+            newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
+            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (strftime('%Y-%m-%d', 'now', 'localtime'), ?)", [newValue])
             self._db_connection.commit()
+            self._eigenverbrauchLastSaved = time.time()
         except sqlite3.OperationalError as ex:
             log("Eigenverbrauch: Database is locked or some other DB error")
             log(str(type(ex)) + str(ex))
