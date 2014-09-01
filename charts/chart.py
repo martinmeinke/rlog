@@ -292,10 +292,11 @@ class Chart(object):
         kws = round(self.__totalSupply, 2)                
         items.append(StatsItem("Insgesamt erzeugt: ", str(kws) + "Wh"))
         
+        eigenverbrauchInPeriod = 0
         try:
-            eigenverbrauchTicks = EigenVerbrauch.objects.filter(
-                time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
-            items.append(StatsItem("Eigenverbrauch: ", "{0}Wh".format(round(eigenverbrauchTicks["eigenverbrauch__sum"]), 2)))
+            eigenverbrauchTicks = EigenVerbrauch.objects.filter(time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
+            eigenverbrauchInPeriod = round(eigenverbrauchTicks["eigenverbrauch__sum"])
+            items.append(StatsItem("Eigenverbrauch: ", "{0}Wh".format(eigenverbrauchInPeriod, 2)))
         except Exception as e:
             items.append(StatsItem("Eigenverbrauch: ", "keine Daten"))
 
@@ -307,14 +308,6 @@ class Chart(object):
             except Exception as e:
                 items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "keine Daten"))
         
-        
-        smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
-        try:
-            items.append(StatsItem("Verbrauchsmaximum:", "{0}W ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
-        except Exception as e:
-            items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
-            
-        
         theDayBeforeStart = self.__startdate - datetime.timedelta(days=1)
         smartMeterDayBefore = None
         dayBeforeReading = SmartMeterEntryDay.objects.filter(time=theDayBeforeStart)[:1]
@@ -324,18 +317,28 @@ class Chart(object):
         nowReading = SmartMeterEntryDay.objects.filter(time=self.__enddate).order_by('-time')[:1]
         if nowReading:
             smartMeterNow = float(nowReading[0].reading)
-        
         eneryConsumptionInPeriod = None
-        
         try:
             eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
         except:
             pass
         
+        items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
+        try:
+            bezug = eneryConsumptionInPeriod * 1000 - eigenverbrauchInPeriod
+            items.append(StatsItem("Bezug: ", "{0}Wh".format(bezug if bezug > 0 else 0, 2)))
+        except Exception as e:
+            items.append(StatsItem("Bezug: ", "keine Daten"))
+
+        smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
+        try:
+            items.append(StatsItem("Verbrauchsmaximum:", "{0}W ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
+        except Exception as e:
+            items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
         items.append(StatsItem("Zählerstand Start:", str(smartMeterDayBefore) + "kWh"))
         items.append(StatsItem("Aktueller Zählerstand:", str(smartMeterNow) + "kWh"))
-        items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod) + "kWh"))
-        
+             
+
         avgsp = None
         try:
             avgsp = round((self.__totalSupply/self.getNumPoints()),2)
