@@ -585,7 +585,8 @@ class RLogDaemon(Daemon):
             self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = strftime('%Y-%m-%d', 'now', 'localtime') LIMIT 1;")
             if self._db_cursor.rowcount != 0:
                 value = self._db_cursor.fetchone()
-                currentValue = float(value[0])
+		if value:
+                    currentValue = float(value[0])
             newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
             self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (strftime('%Y-%m-%d', 'now', 'localtime'), ?)", [newValue])
             self._db_connection.commit()
