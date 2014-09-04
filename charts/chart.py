@@ -314,16 +314,15 @@ class Chart(object):
         if dayBeforeReading:
             smartMeterDayBefore = float(dayBeforeReading[0].reading)
         smartMeterNow = None
-        nowReading = SmartMeterEntryDay.objects.filter(time=self.__enddate).order_by('-time')[:1]
+        nowReading = SmartMeterEntryDay.objects.filter(time=self.__enddate).order_by('-time')[:1] # TODO: this is faulty
         if nowReading:
             smartMeterNow = float(nowReading[0].reading)
         eneryConsumptionInPeriod = None
         try:
             eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
+            items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
         except:
-            pass
-        
-        items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
+            items.append(StatsItem("Insgesamt genutzt: ", "keine Daten")) 
         try:
             bezug = eneryConsumptionInPeriod * 1000 - eigenverbrauchInPeriod
             items.append(StatsItem("Bezug: ", "{0}Wh".format(bezug if bezug > 0 else 0, 2)))
