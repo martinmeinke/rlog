@@ -297,16 +297,18 @@ class Chart(object):
             eigenverbrauchTicks = EigenVerbrauch.objects.filter(time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
             eigenverbrauchInPeriod = round(eigenverbrauchTicks["eigenverbrauch__sum"])
             items.append(StatsItem("Eigenverbrauch: ", "{0}Wh".format(eigenverbrauchInPeriod, 2)))
+            items.append(StatsItem("Einspeisung: ", "{0}Wh".format(kws - eigenverbrauchInPeriod, 2)))
         except Exception as e:
             items.append(StatsItem("Eigenverbrauch: ", "keine Daten"))
+            items.append(StatsItem("Einspeisung: ", "keine Daten"))
 
         for phase in ["phase1", "phase2", "phase3"]:
             smartMeterTotal = SmartMeterEntryDay.objects.filter(
                 time__range=(self.__startdate, self.__enddate)).aggregate(Sum(phase))
             try:
-                items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
+                items.append(StatsItem("Verbrauch Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
             except Exception as e:
-                items.append(StatsItem("Nutzung Phase {0}:".format(phase[-1]), "keine Daten"))
+                items.append(StatsItem("Verbrauch Phase {0}:".format(phase[-1]), "keine Daten"))
         
         theDayBeforeStart = self.__startdate - datetime.timedelta(days=1)
         smartMeterDayBefore = None
@@ -320,9 +322,9 @@ class Chart(object):
         eneryConsumptionInPeriod = None
         try:
             eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
-            items.append(StatsItem("Insgesamt genutzt: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
+            items.append(StatsItem("Gesamtverbrauch: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
         except:
-            items.append(StatsItem("Insgesamt genutzt: ", "keine Daten")) 
+            items.append(StatsItem("Gesamtverbrauch: ", "keine Daten")) 
         try:
             bezug = eneryConsumptionInPeriod * 1000 - eigenverbrauchInPeriod
             items.append(StatsItem("Bezug: ", "{0}Wh".format(bezug if bezug > 0 else 0, 2)))
