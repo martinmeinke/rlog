@@ -1,8 +1,8 @@
 import os, sys
-sys.path.append('/home/pi/git')
-sys.path.append('/home/pi/git/rlog')
+sys.path.append('/home/stephan/git')
+sys.path.append('/home/stephan/git/rlog')
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rlog.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 
 # This application object is used by the development server
 # as well as any WSGI server configured to use this file.

@@ -1,11 +1,11 @@
 SerialPort.lo: SerialPort.cpp /usr/include/stdc-predef.h SerialPort.h \
  /usr/include/c++/4.8.2/string \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++config.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/os_defines.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++config.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/os_defines.h \
  /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
- /usr/include/gnu/stubs-64.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/cpu_defines.h \
+ /usr/include/gnu/stubs-hard.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/cpu_defines.h \
  /usr/include/c++/4.8.2/bits/stringfwd.h \
  /usr/include/c++/4.8.2/bits/memoryfwd.h \
  /usr/include/c++/4.8.2/bits/char_traits.h \
@@ -24,16 +24,16 @@ SerialPort.lo: SerialPort.cpp /usr/include/stdc-predef.h SerialPort.h \
  /usr/include/c++/4.8.2/bits/stl_iterator.h \
  /usr/include/c++/4.8.2/bits/postypes.h /usr/include/c++/4.8.2/cwchar \
  /usr/include/wchar.h /usr/include/stdio.h \
- /usr/lib/gcc/x86_64-unknown-linux-gnu/4.8.2/include/stdarg.h \
+ /usr/lib/gcc/armv7l-unknown-linux-gnueabihf/4.8.2/include/stdarg.h \
  /usr/include/bits/wchar.h \
- /usr/lib/gcc/x86_64-unknown-linux-gnu/4.8.2/include/stddef.h \
+ /usr/lib/gcc/armv7l-unknown-linux-gnueabihf/4.8.2/include/stddef.h \
  /usr/include/xlocale.h /usr/include/c++/4.8.2/bits/allocator.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++allocator.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++allocator.h \
  /usr/include/c++/4.8.2/ext/new_allocator.h /usr/include/c++/4.8.2/new \
  /usr/include/c++/4.8.2/exception \
  /usr/include/c++/4.8.2/bits/atomic_lockfree_defines.h \
  /usr/include/c++/4.8.2/bits/localefwd.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++locale.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++locale.h \
  /usr/include/c++/4.8.2/clocale /usr/include/locale.h \
  /usr/include/bits/locale.h /usr/include/c++/4.8.2/iosfwd \
  /usr/include/c++/4.8.2/cctype /usr/include/ctype.h \
@@ -47,13 +47,13 @@ SerialPort.lo: SerialPort.cpp /usr/include/stdc-predef.h SerialPort.h \
  /usr/include/c++/4.8.2/bits/range_access.h \
  /usr/include/c++/4.8.2/bits/basic_string.h \
  /usr/include/c++/4.8.2/ext/atomicity.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/gthr.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/gthr-default.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/gthr.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/gthr-default.h \
  /usr/include/pthread.h /usr/include/sched.h /usr/include/time.h \
  /usr/include/bits/sched.h /usr/include/bits/time.h \
  /usr/include/bits/timex.h /usr/include/bits/pthreadtypes.h \
  /usr/include/bits/setjmp.h \
- /usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/atomic_word.h \
+ /usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/atomic_word.h \
  /usr/include/c++/4.8.2/bits/basic_string.tcc \
  /usr/include/c++/4.8.2/vector \
  /usr/include/c++/4.8.2/bits/stl_construct.h \
@@ -87,15 +87,16 @@ SerialPort.lo: SerialPort.cpp /usr/include/stdc-predef.h SerialPort.h \
  /usr/include/asm-generic/ioctl.h /usr/include/bits/ioctl-types.h \
  /usr/include/sys/time.h /usr/include/signal.h /usr/include/bits/signum.h \
  /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h \
- /usr/include/bits/sigcontext.h /usr/include/bits/sigstack.h \
- /usr/include/sys/ucontext.h /usr/include/bits/sigthread.h \
- /usr/include/c++/4.8.2/cstring /usr/include/string.h \
- /usr/include/unistd.h /usr/include/bits/posix_opt.h \
- /usr/include/bits/environments.h /usr/include/bits/confname.h \
- /usr/include/getopt.h /usr/include/c++/4.8.2/cstdlib \
- /usr/include/stdlib.h /usr/include/bits/waitflags.h \
- /usr/include/bits/waitstatus.h /usr/include/alloca.h \
- /usr/include/bits/stdlib-bsearch.h /usr/include/bits/stdlib-float.h
+ /usr/include/bits/sigcontext.h /usr/include/asm/sigcontext.h \
+ /usr/include/bits/sigstack.h /usr/include/sys/ucontext.h \
+ /usr/include/bits/sigthread.h /usr/include/c++/4.8.2/cstring \
+ /usr/include/string.h /usr/include/unistd.h \
+ /usr/include/bits/posix_opt.h /usr/include/bits/environments.h \
+ /usr/include/bits/confname.h /usr/include/getopt.h \
+ /usr/include/c++/4.8.2/cstdlib /usr/include/stdlib.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/alloca.h /usr/include/bits/stdlib-bsearch.h \
+ /usr/include/bits/stdlib-float.h
 
 /usr/include/stdc-predef.h:
 
@@ -103,9 +104,9 @@ SerialPort.h:
 
 /usr/include/c++/4.8.2/string:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++config.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++config.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/os_defines.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/os_defines.h:
 
 /usr/include/features.h:
 
@@ -115,9 +116,9 @@ SerialPort.h:
 
 /usr/include/gnu/stubs.h:
 
-/usr/include/gnu/stubs-64.h:
+/usr/include/gnu/stubs-hard.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/cpu_defines.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/cpu_defines.h:
 
 /usr/include/c++/4.8.2/bits/stringfwd.h:
 
@@ -159,17 +160,17 @@ SerialPort.h:
 
 /usr/include/stdio.h:
 
-/usr/lib/gcc/x86_64-unknown-linux-gnu/4.8.2/include/stdarg.h:
+/usr/lib/gcc/armv7l-unknown-linux-gnueabihf/4.8.2/include/stdarg.h:
 
 /usr/include/bits/wchar.h:
 
-/usr/lib/gcc/x86_64-unknown-linux-gnu/4.8.2/include/stddef.h:
+/usr/lib/gcc/armv7l-unknown-linux-gnueabihf/4.8.2/include/stddef.h:
 
 /usr/include/xlocale.h:
 
 /usr/include/c++/4.8.2/bits/allocator.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++allocator.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++allocator.h:
 
 /usr/include/c++/4.8.2/ext/new_allocator.h:
 
@@ -181,7 +182,7 @@ SerialPort.h:
 
 /usr/include/c++/4.8.2/bits/localefwd.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/c++locale.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/c++locale.h:
 
 /usr/include/c++/4.8.2/clocale:
 
@@ -221,9 +222,9 @@ SerialPort.h:
 
 /usr/include/c++/4.8.2/ext/atomicity.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/gthr.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/gthr.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/gthr-default.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/gthr-default.h:
 
 /usr/include/pthread.h:
 
@@ -241,7 +242,7 @@ SerialPort.h:
 
 /usr/include/bits/setjmp.h:
 
-/usr/include/c++/4.8.2/x86_64-unknown-linux-gnu/bits/atomic_word.h:
+/usr/include/c++/4.8.2/armv7l-unknown-linux-gnueabihf/bits/atomic_word.h:
 
 /usr/include/c++/4.8.2/bits/basic_string.tcc:
 
@@ -356,6 +357,8 @@ PosixSignalHandler.h:
 /usr/include/bits/sigaction.h:
 
 /usr/include/bits/sigcontext.h:
+
+/usr/include/asm/sigcontext.h:
 
 /usr/include/bits/sigstack.h:
 
