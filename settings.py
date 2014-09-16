@@ -4,8 +4,8 @@ import os
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.28']
-DEBUG = False
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.60']
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -16,10 +16,10 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': PROJECT_PATH+'/sensor.db',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
+        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'rlog',                      # Or path to database file if using sqlite3.
+        'USER': 'stephan',                      # Not used with sqlite3.
+        'PASSWORD': '*nahpets13*',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }

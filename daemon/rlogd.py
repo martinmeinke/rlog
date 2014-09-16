@@ -19,11 +19,11 @@ from daemon import Daemon
 import argparse
 import re
 
-DEBUG_ENABLED = False
-DEBUG_SERIAL = False
+DEBUG_ENABLED = True
+DEBUG_SERIAL = True
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-DATABASE = PROJECT_PATH+"/../sensor.db"
+#DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
 DEBUG_SERIAL_PORT = "/dev/pts/4"
 MQTT_HOST = "localhost"
@@ -265,8 +265,8 @@ class RLogDaemon(Daemon):
         self._slave_names = []
         self._mqttPublisher = None
 #        self._db_connection = sqlite3.connect(DATABASE)
-        self._db_connection = psycopg2.connect("dbname='rlog' user='stephan' host='localhost'")
-        self._db_cursor = self._db_connection.cursor()
+        self._db_connection = None
+        self._db_cursor = None
         self._current_discovery_id = 1
         self._discovery_credit = 0
         self._smart_meter = None
@@ -282,20 +282,25 @@ class RLogDaemon(Daemon):
 #        self._db_cursor.execute('PRAGMA journal_mode=WAL;') 
         log("RLogDaemon created")
 
+    def connectToDatabase(self):
+        self._db_connection = psycopg2.connect("dbname='rlog' user='stephan'")
+        self._db_cursor = self._db_connection.cursor()
+        log("database conencted")
+
     def run(self):
         log("daemon running")
+
+        self.connectToDatabase() # necessary to connect here and not earlier in constructor because database connections will not survive daemonization (fork) (at least not when using ip sockets)
         
-        self._db_cursor.execute("SELECT * FROM charts_settings WHERE active = 1 ORDER BY id DESC LIMIT 1")
-        if self._db_cursor.rowcount == 0:
-            log("Couldn't read settings from database")
-            return
-
-        sets = self._db_cursor.fetchone()
-
+        self._db_cursor.execute("SELECT * FROM charts_settings WHERE active = TRUE ORDER BY id DESC LIMIT 1;")
         try:
-            RLogDaemon.KWHPERRING = sets[2]
-            RLogDaemon.NEXTRING = sets[2]
-            RLogDaemon.SOUND = sets[3]
+            if self._db_cursor.rowcount == 0:
+                log("Couldn't read settings from database")
+            else:
+                sets = self._db_cursor.fetchone()
+                RLogDaemon.KWHPERRING = sets[2]
+                RLogDaemon.NEXTRING = sets[2]
+                RLogDaemon.SOUND = sets[3]
         except Exception as ex:
             log(str(type(ex))+str(ex))
             RLogDaemon.KWHPERRING = 1
@@ -379,10 +384,16 @@ class RLogDaemon(Daemon):
                 if candidate.does_exist():
                     self._slaves[self._current_discovery_id] = candidate
                     try:
-                        self._db_cursor.execute("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", (candidate.bus_id, candidate.model))
+                        self._db_cursor.execute("INSERT INTO charts_device (id, model) VALUES (%s, %s)", (candidate.bus_id, candidate.model)) # actually updates if exists due to database rule:
+# CREATE OR REPLACE RULE upsert_device AS
+#    ON INSERT TO charts_device
+#       WHERE (EXISTS (SELECT 1 FROM charts_device WHERE charts_device."id" = new."id"))
+#    DO INSTEAD 
+#       UPDATE charts_device SET "model" = new."model"
+#            WHERE charts_device."id" = new."id";
                         self._db_connection.commit()
-                    except sqlite3.OperationalError as ex:
-                        log("Database is locked or some other DB error!")
+                    except psycopg2.OperationalError as ex:
+                        log("Database Operational Error!")
                         log(str(type(ex))+str(ex))
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
@@ -459,9 +470,16 @@ class RLogDaemon(Daemon):
                 log(str(len(remaining_wr)) + " WR have not yet been discovered")
         if len(statements) > 0:
             try:
-                self._db_cursor.executemany("INSERT OR REPLACE INTO charts_device (id, model) VALUES (?, ?)", statements)
+                self._db_cursor.executemany("INSERT INTO charts_device (id, model) VALUES (%s, %s)", statements) # actually updates if exists due to database rule:
+# CREATE OR REPLACE RULE upsert_device AS
+#    ON INSERT TO charts_device
+#       WHERE (EXISTS (SELECT 1 FROM charts_device WHERE charts_device."id" = new."id"))
+#    DO INSTEAD 
+#       UPDATE charts_device SET "model" = new."model"
+#            WHERE charts_device."id" = new."id";
+
                 self._db_connection.commit()
-            except sqlite3.OperationalError as ex:
+            except psycopg2.OperationalError as ex:
                 log("Database is locked or some other DB error!")
                 log(str(type(ex))+str(ex))
                 
@@ -500,7 +518,7 @@ class RLogDaemon(Daemon):
                   sumProduced += float(linePower) # add together production
                   self.update_bell_counter(linePower)
                 except Exception as e:
-                  log(str(e))
+                   log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
                 tmp = [str(wr.bus_id)]
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
@@ -513,13 +531,13 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
+                self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (now(), %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
                 self._db_connection.commit()
-            except sqlite3.OperationalError as ex:
-                log("WR: Database is locked or some other DB error!")
+            except psycopg2.OperationalError as ex:
+                log("WR: Database Operational Error!")
                 log(str(type(ex))+str(ex))
-            except sqlite3.IntegrityError as e:
-                log("sqlite trigger shit is going on\n" + str(e))
+            except psycopg2.IntegrityError as e:
+                log("integrity error shit is going on\n" + str(e))
         # poll the smart meter (if it's there)
         if self._smart_meter:
             statements = []
@@ -571,33 +589,39 @@ class RLogDaemon(Daemon):
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 if len(values) == 4:
                     try:
-                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick VALUES (NULL, now(), ?, ?, ?, ?)", values)
+                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick (time, reading, phase1, phase2, phase3) VALUES (now(), %s, %s, %s, %s)", values)
                         self._db_connection.commit()
-                    except sqlite3.OperationalError as ex:
-                        log("Smart Meter: Database is locked or some other DB error!")
+                    except psycopg2.OperationalError as ex:
+                        log("Smart Meter: Database Operational Error!")
                         log(str(type(ex))+str(ex))
-                    except sqlite3.IntegrityError as e:
-                        log("sqlite trigger shit is going on\n" + str(e))
+                    except psycopg2.IntegrityError as e:
+                        log("Integrity shit is going on\n" + str(e))
                 else:
                     log("Can't read all values from smart meter: " + str(values))
         # insert Eigenverbrauch into database
         eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         try:
             currentValue = 0;
-            self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = CURRENT_DATE LIMIT 1;")
+            self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = CURRENT_DATE LIMIT 1")
             if self._db_cursor.rowcount != 0:
                 value = self._db_cursor.fetchone()
-		        if value:
+		if value:
                     currentValue = float(value[0])
             newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
-            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (now(), ?)", [newValue])
+            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (now(), %s)", [newValue]) # will do insert or replace because of table rule:
+#"CREATE OR REPLACE RULE upsert_eigenverbrauch AS
+#   ON INSERT TO charts_eigenverbrauch
+#     WHERE (EXISTS (SELECT 1 FROM charts_eigenverbrauch WHERE ("time" = new."time")))
+#   DO INSTEAD 
+#     UPDATE charts_eigenverbrauch SET "eigenverbrauch" = new."eigenverbrauch" WHERE ("time" = new."time");
             self._db_connection.commit()
             self._eigenverbrauchLastSaved = time.time()
-        except sqlite3.OperationalError as ex:
-            log("Eigenverbrauch: Database is locked or some other DB error")
+        except psycopg2.OperationalError as ex:
+            log("Eigenverbrauch: Database Operational Error")
             log(str(type(ex)) + str(ex))
-        except sqlite3.IntegrityError as e:
-            log("sqlite integrity error (triggers?)")
+        except psycopg2.IntegrityError as e:
+            log("integrity error (triggers?)")
+            log(str(type(ex)) + str(ex))
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
@@ -620,7 +644,7 @@ class RLogDaemon(Daemon):
 # calling this script directly...
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='The RLog daemon handles the communication among the KACO inverters and the Sqlite database.')
+        description='The RLog daemon handles the communication among the KACO inverters, the smartmeter and the postgresql database.')
 
     parser.add_argument('--querydelay', default = 10, type = int, help = 'Delay in seconds between two queries')
     parser.add_argument('--participants', default = 32, type = int, help = 'Maximum ID of bus participant to discover')

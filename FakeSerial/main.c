@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 		write(pt,
 				"\n*030   5 242.9  0.14    40 230.4  0.27    38  26   1925 Z 3501xi\r",
 				66);
-		sleep(10);
+		sleep(2);
 	}
 
 	return 0;
