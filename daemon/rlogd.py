@@ -6,7 +6,8 @@ Created on Oct 10, 2012
 @author: martin and stephan
 '''
 import serial
-import sqlite3
+#import sqlite3
+import psycopg2
 import time
 import commands
 import os
@@ -263,7 +264,8 @@ class RLogDaemon(Daemon):
         self._slaves = {}
         self._slave_names = []
         self._mqttPublisher = None
-        self._db_connection = sqlite3.connect(DATABASE)
+#        self._db_connection = sqlite3.connect(DATABASE)
+        self._db_connection = psycopg2.connect("dbname='rlog' user='stephan' host='localhost'")
         self._db_cursor = self._db_connection.cursor()
         self._current_discovery_id = 1
         self._discovery_credit = 0
@@ -320,7 +322,7 @@ class RLogDaemon(Daemon):
 
         #determine the serial adapter to be used
         if DEBUG_SERIAL:
-            self._WR_serial_port= serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
+            self._WR_serial_port = serial.Serial(DEBUG_SERIAL_PORT, 9600, timeout = 1)
         else:
             self.discover_device()
                    
@@ -511,7 +513,7 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
+                self._db_cursor.executemany("INSERT INTO charts_solarentrytick VALUES (NULL, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?)", statements)
                 self._db_connection.commit()
             except sqlite3.OperationalError as ex:
                 log("WR: Database is locked or some other DB error!")
@@ -569,7 +571,7 @@ class RLogDaemon(Daemon):
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 if len(values) == 4:
                     try:
-                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick VALUES (NULL, datetime('now', 'localtime'), ?, ?, ?, ?)", values)
+                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick VALUES (NULL, now(), ?, ?, ?, ?)", values)
                         self._db_connection.commit()
                     except sqlite3.OperationalError as ex:
                         log("Smart Meter: Database is locked or some other DB error!")
@@ -582,13 +584,13 @@ class RLogDaemon(Daemon):
         eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         try:
             currentValue = 0;
-            self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = strftime('%Y-%m-%d', 'now', 'localtime') LIMIT 1;")
+            self._db_cursor.execute("SELECT eigenverbrauch FROM charts_eigenverbrauch WHERE time = CURRENT_DATE LIMIT 1;")
             if self._db_cursor.rowcount != 0:
                 value = self._db_cursor.fetchone()
-		if value:
+		        if value:
                     currentValue = float(value[0])
             newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
-            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (strftime('%Y-%m-%d', 'now', 'localtime'), ?)", [newValue])
+            self._db_cursor.execute("INSERT OR REPLACE INTO charts_eigenverbrauch VALUES (now(), ?)", [newValue])
             self._db_connection.commit()
             self._eigenverbrauchLastSaved = time.time()
         except sqlite3.OperationalError as ex:

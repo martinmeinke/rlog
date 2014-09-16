@@ -21,17 +21,17 @@ class SolarEntryTick(models.Model):
     total = models.DecimalField(max_digits=9, decimal_places=3)
     
     
-class SolarEntryTickBackup(models.Model):
-    time = models.DateTimeField()
-    device = models.ForeignKey(Device)
-    gV = models.DecimalField(max_digits=9, decimal_places=3)
-    gA = models.DecimalField(max_digits=9, decimal_places=3)
-    gW = models.DecimalField(max_digits=9, decimal_places=3)
-    lV = models.DecimalField(max_digits=9, decimal_places=3)
-    lA = models.DecimalField(max_digits=9, decimal_places=3)
-    lW = models.DecimalField(max_digits=9, decimal_places=3)
-    temp = models.DecimalField(max_digits=9, decimal_places=3)
-    total = models.DecimalField(max_digits=9, decimal_places=3)
+#class SolarEntryTickBackup(models.Model):
+#    time = models.DateTimeField()
+#    device = models.ForeignKey(Device)
+#    gV = models.DecimalField(max_digits=9, decimal_places=3)
+#    gA = models.DecimalField(max_digits=9, decimal_places=3)
+#    gW = models.DecimalField(max_digits=9, decimal_places=3)
+#    lV = models.DecimalField(max_digits=9, decimal_places=3)
+#    lA = models.DecimalField(max_digits=9, decimal_places=3)
+#    lW = models.DecimalField(max_digits=9, decimal_places=3)
+#    temp = models.DecimalField(max_digits=9, decimal_places=3)
+#    total = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SolarEntryMinute(models.Model):
@@ -43,14 +43,14 @@ class SolarEntryMinute(models.Model):
     class Meta:
         unique_together = (("time", "device"))
 
-class SolarEntryMinuteBackup(models.Model):
-    time = models.DateTimeField()
-    exacttime = models.DateTimeField(null = True)
-    device = models.ForeignKey(Device)
-    lW = models.DecimalField(max_digits=9, decimal_places=3)
-
-    class Meta:
-        unique_together = (("time", "device"))
+#class SolarEntryMinuteBackup(models.Model):
+#    time = models.DateTimeField()
+#    exacttime = models.DateTimeField(null = True)
+#    device = models.ForeignKey(Device)
+#    lW = models.DecimalField(max_digits=9, decimal_places=3)
+#
+#    class Meta:
+#        unique_together = (("time", "device"))
         
 
 class SolarEntryHour(models.Model):
@@ -110,12 +110,12 @@ class SmartMeterEntryTick(models.Model):
     phase3 = models.DecimalField(max_digits=9, decimal_places=3)
     
     
-class SmartMeterEntryTickBackup(models.Model):
-    time = models.DateTimeField()
-    reading = models.DecimalField(max_digits=9, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
+#class SmartMeterEntryTickBackup(models.Model):
+#    time = models.DateTimeField()
+#    reading = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SmartMeterEntryMinute(models.Model):
@@ -126,13 +126,13 @@ class SmartMeterEntryMinute(models.Model):
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
     phase3 = models.DecimalField(max_digits=9, decimal_places=3)
 
-class SmartMeterEntryMinuteBackup(models.Model):
-    time = models.DateTimeField(primary_key=True)
-    exacttime = models.DateTimeField(null = True)
-    reading = models.DecimalField(max_digits=9, decimal_places=3)
-    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
-    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
-    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
+#class SmartMeterEntryMinuteBackup(models.Model):
+#    time = models.DateTimeField(primary_key=True)
+#    exacttime = models.DateTimeField(null = True)
+#    reading = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase1 = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase2 = models.DecimalField(max_digits=9, decimal_places=3)
+#    phase3 = models.DecimalField(max_digits=9, decimal_places=3)
         
 
 class SmartMeterEntryHour(models.Model):
