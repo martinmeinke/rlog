@@ -224,7 +224,7 @@ void RLogd::onConnectionLost(string reason) {
 	cerr << "MQTT connection lost because of " << reason << endl;
 }
 
-inline void RLogd::saveInverterTick(int deviceID,vector<string>& values) {
+inline void RLogd::saveInverterTick(int deviceID, vector<string>& values) {
 	if(sqlite3_clear_bindings(insertInverterTick) == SQLITE_OK && sqlite3_reset(insertInverterTick) == SQLITE_OK){
 		int rc = SQLITE_OK;
 		rc |= sqlite3_bind_int(insertInverterTick, 1, deviceID); // bind device id
