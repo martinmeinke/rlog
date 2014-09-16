@@ -2,7 +2,7 @@
 '''
 Created on Oct 6, 2012
 
-@author: martin
+@author: martin, stephan
 '''
 from django.conf import settings
 from dateutil.relativedelta import relativedelta

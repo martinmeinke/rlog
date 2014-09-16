@@ -4,6 +4,7 @@ import os
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.28']
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
@@ -107,7 +108,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'rlog.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -163,5 +164,4 @@ import logging
 l = logging.getLogger('django.db.backends')
 l.setLevel(logging.DEBUG)
 l.addHandler(logging.StreamHandler())
-
 
