@@ -18,6 +18,7 @@ import mqtt
 from daemon import Daemon
 import argparse
 import re
+import decimal
 
 DEBUG_ENABLED = True
 DEBUG_SERIAL = True
@@ -249,7 +250,7 @@ class SmartMeter():
         return False
 
 class AggregationItem():
-    def __init__(self, time = None, data = None):
+    def __init__(self, data = None, time = None):
         self.timestamp = datetime.datetime.today() if time == None else time # this is going to hold the time when the data was last updated
         self.data = [] if data == None else data # this is going to hold the actual data as psycopg2's execute() expects
     
@@ -280,62 +281,76 @@ class Aggregation():
     def getInitialWRdata(self, db_cursor, busID):
         # start with WR minute
         try:
+            thisMinute = datetime.datetime.today() + relativedelta(second=0, microsecond=0)
+            self.WRminute[busID] = AggregationItem([thisMinute, datetime.datetime.today(), busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no minutely inverter data for bus id " + str(busID))
-                self.WRminute[busID] = AggregationItem()
             else:
                 minutely = db_cursor.fetchone()
-                self.WRminute[busID] = AggregationItem(minutely[1], minutely)
+                if minutely[0] == thisMinute:
+                    log("There is relevant data for this minute:" + str(minutely[3]))
+                    self.WRminute[busID] = AggregationItem(minutely, minutely[1])
         except Exception as ex:
             log("Exception while loading minutely data: " + str(ex))
             sys.exit(1)
         # hour
         try:
+            thisHour = datetime.datetime.today() + relativedelta(minute=0, second=0, microsecond=0)
+            self.WRhour[busID] = AggregationItem([thisHour, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no hourly inverter data for bus id " + str(busID))
-                self.WRhour[busID] = AggregationItem()
             else:
                 hourly = db_cursor.fetchone()
-                self.WRhour[busID] = AggregationItem(hourly[0], hourly)
+                if hourly[0] == thisHour:
+                    log("There is relevant data for this hour:" + str(hourly[2]))
+                    self.WRhour[busID] = AggregationItem(hourly, hourly[0])
         except Exception as ex:
             log("Exception while loading hourly data: " + str(ex))
             sys.exit(1)
         # month
         try:
+            thisMonth = (datetime.datetime.today() + relativedelta(day=1)).date()
+            self.WRmonth[busID] = AggregationItem([thisMonth, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no monthly inverter data for bus id " + str(busID))
-                self.WRmonth[busID] = AggregationItem()
             else:
                 monthly = db_cursor.fetchone()
-                self.WRmonth[busID] = AggregationItem(monthly[0], monthly)
+                if monthly[0] == thisMonth:
+                    log("There is relevant data for this month:" + str(monthly[2]))
+                    self.WRmonth[busID] = AggregationItem(monthly, monthly[0])
         except Exception as ex:
             log("Exception while loading monthly data: " + str(ex))
             sys.exit(1)
         # year
         try:
+            thisYear = datetime.datetime.today() + relativedelta(month=1, day=1)).date()
+            self.WRyear[busID] = AggregationItem([(thisYear, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no yearly inverter data for bus id " + str(busID))
-                self.WRyear[busID] = AggregationItem()
             else:
                 yearly = db_cursor.fetchone()
-                self.WRyear[busID] = AggregationItem(yearly[0], yearly)
+                if yearly[0] == thisYear:
+                    log("There is relevant data for this year:" + str(yearly[2]))
+                    self.WRyear[busID] = AggregationItem(yearly, yearly[0])
         except Exception as ex:
             log("Exception while loading yearly data: " + str(ex))
             sys.exit(1)
         # maximum
         try:
+            thisDay = datetime.datetime.today().date()
+            self.WRmaxima[busID] = AggregationItem([thisDay, busID, decimal.Decimal(0), datetime.datetime.today()])
             db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no maximum inverter data for bus id " + str(busID))
-                self.WRmaxima[busID] = AggregationItem()
             else:
                 maximum = db_cursor.fetchone()
-                if maximum[0] == datetime.datetime.today().date():
-                    self.WRmaxima[busID] = AggregationItem(maximum[0], maximum)
+                if maximum[0] == thisDay:
+                    log("There is relevant maximum data for today:" + str(maximum[2]))
+                    self.WRmaxima[busID] = AggregationItem(maximum, maximum[0])
         except Exception as ex:
             log("Exception while loading maximum data: " + str(ex))
             sys.exit(1)
