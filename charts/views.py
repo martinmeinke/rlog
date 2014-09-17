@@ -45,14 +45,10 @@ def liveData(request):
         return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs))
     
     else:
-        if int(request.GET["timeframe"]) == 1440:
-            ticksWR = SolarEntryTick.objects.order_by('-time')
-            ticksSM = SmartMeterEntryTick.objects.order_by('-time')
-        else:
-            start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
-            end = datetime.datetime.today()
-            ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
-            ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+        start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+        end = datetime.datetime.today()
+        ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
+        ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         
         for device in Device.objects.distinct():
             timetuples = chart.fetchTimeSeriesLiveView(device.id, ticksWR)
