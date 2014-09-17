@@ -19,8 +19,9 @@ class SolarEntryTick(models.Model):
     lW = models.DecimalField(max_digits=9, decimal_places=3)
     temp = models.DecimalField(max_digits=9, decimal_places=3)
     total = models.DecimalField(max_digits=9, decimal_places=3)
+
     
-    
+# going back to single tables stuff with postgres    
 #class SolarEntryTickBackup(models.Model):
 #    time = models.DateTimeField()
 #    device = models.ForeignKey(Device)
