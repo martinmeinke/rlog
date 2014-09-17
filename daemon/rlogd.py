@@ -19,6 +19,9 @@ from daemon import Daemon
 import argparse
 import re
 import decimal
+from dateutil.relativedelta import relativedelta
+import pytz
+from tzlocal import get_localzone
 
 DEBUG_ENABLED = True
 DEBUG_SERIAL = True
@@ -279,9 +282,12 @@ class Aggregation():
     
     # this method takes a db cursor and the bus id and retrieves the latest data from the database to initialize inverter fields
     def getInitialWRdata(self, db_cursor, busID):
+        # get local timezone    
+        local_tz = get_localzone()
         # start with WR minute
         try:
-            thisMinute = datetime.datetime.today() + relativedelta(second=0, microsecond=0)
+            thisMinuteNaive = datetime.datetime.today() + relativedelta(second=0, microsecond=0) # this datetime has no timezone
+            thisMinute = thisMinuteNaive.replace(tzinfo=local_tz) # we need to give it a timezone because django (and so the postgres database) uses dates with timezones
             self.WRminute[busID] = AggregationItem([thisMinute, datetime.datetime.today(), busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
@@ -296,7 +302,8 @@ class Aggregation():
             sys.exit(1)
         # hour
         try:
-            thisHour = datetime.datetime.today() + relativedelta(minute=0, second=0, microsecond=0)
+            thisHourNaive = datetime.datetime.today() + relativedelta(minute=0, second=0, microsecond=0)
+            thisHour = thisHourNaive.replace(tzinfo=local_tz)
             self.WRhour[busID] = AggregationItem([thisHour, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
@@ -326,8 +333,8 @@ class Aggregation():
             sys.exit(1)
         # year
         try:
-            thisYear = datetime.datetime.today() + relativedelta(month=1, day=1)).date()
-            self.WRyear[busID] = AggregationItem([(thisYear, busID, decimal.Decimal(0)])
+            thisYear = (datetime.datetime.today() + relativedelta(month=1, day=1)).date()
+            self.WRyear[busID] = AggregationItem([thisYear, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
                 log("There is no yearly inverter data for bus id " + str(busID))
@@ -418,6 +425,7 @@ class RLogDaemon(Daemon):
     def connectToDatabase(self):
         self._db_connection = psycopg2.connect("dbname='rlog' user='stephan'")
         self._db_cursor = self._db_connection.cursor()
+        self._db_cursor.tzinfo_factory = psycopg2.tz.LocalTimezone
         log("database conencted")
 
     def run(self):
