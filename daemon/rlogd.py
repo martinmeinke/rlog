@@ -248,6 +248,117 @@ class SmartMeter():
         log("smart meter answered badly on data request: %s " % (data))
         return False
 
+class AggregationItem():
+    def __init__(self, time = None, data = None):
+        self.timestamp = datetime.datetime.today() if time == None else time # this is going to hold the time when the data was last updated
+        self.data = [] if data == None else data # this is going to hold the actual data as psycopg2's execute() expects
+
+class Aggregation():
+    def __init__(self):
+        self.WRminute = {} # dictionary for the minutely inverter data, e.g by bus_id (should be of type AggregationItem so that makeExecutemanyDataStructure() is able to operate on it)
+        self.WRhour = {}
+        # inverter day does not need to be aggregated as it is contained precisely in every inverter message
+        self.WRmonth = {}
+        self.WRyear = {}
+        self.WRmaxima = {}
+        
+        self.SmartMeterMinute = None # should be AggregationItem so that makeExecutemanyDataStructure() is able to operate on it)
+        self.SmartMeterHour = None
+        self.SmartMeterDay = None
+        self.SmartMeterMonth = None
+        self.SmartMeterYear = None
+        self.SmartMeterMaximum = None
+    
+    # this method takes a db cursor and the bus id and retrieves the latest data from the database to initialize inverter fields
+    def getInitialWRdata(self, db_cursor, busID):
+        # start with WR minute
+        try:
+            self._db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            if self._db_cursor.rowcount == 0:
+                log("There is no minutely inverter data for bus id " + str(busID))
+                self.WRminute[busID] = AggregationItem()
+            else:
+                minutely = self._db_cursor.fetchone()
+                self.WRminute[busID] = AggregationItem(minutely[1], minutely)
+        except Exception as ex:
+            log("Exception while loading minutely data: " + str(ex))
+            exit(1)
+        # hour
+        try:
+            self._db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            if self._db_cursor.rowcount == 0:
+                log("There is no hourly inverter data for bus id " + str(busID))
+                self.WRhour[busID] = AggregationItem()
+            else:
+                hourly = self._db_cursor.fetchone()
+                self.WRhour[busID] = AggregationItem(hourly[0], hourly)
+        except Exception as ex:
+            log("Exception while loading hourly data: " + str(ex))
+            exit(1)
+        # month
+        try:
+            self._db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            if self._db_cursor.rowcount == 0:
+                log("There is no monthly inverter data for bus id " + str(busID))
+                self.WRmonth[busID] = AggregationItem()
+            else:
+                monthly = self._db_cursor.fetchone()
+                self.WRmonth[busID] = AggregationItem(monthly[0], monthly)
+        except Exception as ex:
+            log("Exception while loading monthly data: " + str(ex))
+            exit(1)
+        # year
+        try:
+            self._db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            if self._db_cursor.rowcount == 0:
+                log("There is no yearly inverter data for bus id " + str(busID))
+                self.WRyear[busID] = AggregationItem()
+            else:
+                yearly = self._db_cursor.fetchone()
+                self.WRyear[busID] = AggregationItem(yearly[0], yearly)
+        except Exception as ex:
+            log("Exception while loading yearly data: " + str(ex))
+            exit(1)
+        # maximum
+        try:
+            self._db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            if self._db_cursor.rowcount == 0:
+                log("There is no maximum inverter data for bus id " + str(busID))
+                self.WRmaxima[busID] = AggregationItem()
+            else:
+                maximum = self._db_cursor.fetchone()
+                self.WRmaxima[busID] = AggregationItem(maximum[0], maximum)
+        except Exception as ex:
+            log("Exception while loading maximum data: " + str(ex))
+            exit(1)
+        log("Minutely: " + str(self.WRminute))
+        log("Hourly: " + str(self.WRhour))
+        log("Monthly: " + str(self.WRmonth))
+        log("Yearly: " + str(self.WRyear))
+        log("Mamima: " + str(self.WRmaxima))
+       
+    
+    # this method takes a db cursor and retrieves the latest data from the database to initialize smartmeter fields
+    def getInitialSmartMeterData(self, db_cursor):
+        # start with WR minute
+        try:
+            for bus_id in busIDs:
+                self._db_cursor.execute('SELECT ("time", exacttime, device_id, "lW") FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1', [bus_id])
+                if self._db_cursor.rowcount == 0:
+                    log("There is no minutely inverter data for bus id " + str(bus_id))
+                    self.WRminute[bus_id] = AggregationItem()
+                else:
+                    minutely = self._db_cursor.fetchone()
+                    self.WRminute[bus_id] = AggregationItem(minutely[0], minutely)
+        except Exception as ex:
+            log("Exception while loading minutely data: " + str(ex))
+            exit(1)
+        
+    # makes a executemany compliant nested array structure from dictionary of AggregationItems
+    def makeExecutemanyDataStructure(self, arrayOfAggregationItems):
+        return [item.data for item in arrayOfAggregationItems.values()]
+        
+
 class RLogDaemon(Daemon):
     KWHPERRING = None
     NEXTRING = None
@@ -257,12 +368,11 @@ class RLogDaemon(Daemon):
     MAX_BUS_PARTICIPANTS = None
     DISCOVERY_COUNT = None
 
-    def __init__(self,pidfile):
+    def __init__(self, pidfile):
         super(RLogDaemon, self).__init__(pidfile)
         self._smart_meter_serial_port = None
         self._WR_serial_port = None
         self._slaves = {}
-        self._slave_names = []
         self._mqttPublisher = None
 #        self._db_connection = sqlite3.connect(DATABASE)
         self._db_connection = None
@@ -273,6 +383,7 @@ class RLogDaemon(Daemon):
         self._smart_meter_enabled = False
         self._smart_meter_found = False
         self._eigenverbrauchLastSaved = time.time()
+        self._aggregator = Aggregation();
         
         self._reading_regex = re.compile("1-0:1\\.8\\.0\\*255\\(([0-9]+\\.[0-9]+)\\*kWh\\)")          # 1-0:1.8.0*255(00000.00*kWh)
         self._phase1_regex = re.compile("1-0:21\\.7\\.255\\*255\\(([0-9]+\\.[0-9]+)\\*kW\\)")       # 1-0:21.7.255*255(0000.0000*kW)
@@ -399,6 +510,9 @@ class RLogDaemon(Daemon):
                         self._mqttPublisher.publish("/devices/RLog/controls/" + candidate.model + " (" + str(candidate.bus_id) + ")/meta/type", "text", 0, True)
                     except Exception as e:
                         log("Exception while doing MQTT stuff: " + str(e))
+                    if DEBUG_ENABLED:
+                        log("Getting latest data for inverter with ID " + str(candidate.bus_id) + "from database")
+                    self._aggregator.getInitialWRdata(self._db_cursor, candidate.bus_id)
                 if missing_wrs:
                     if missing_wrs.index(self._current_discovery_id) == len(missing_wrs) - 1: # if we looked for the last one
                         self._current_discovery_id = missing_wrs[0]
@@ -460,6 +574,9 @@ class RLogDaemon(Daemon):
                 except Exception as e:
                     log("Exception while doing MQTT stuff: " + str(e))
                 statements.append((candidate.bus_id, candidate.model))
+                if DEBUG_ENABLED:
+                    log("Getting latest data for inverter with ID " + str(candidate.bus_id) + "from database")
+                self._aggregator.getInitialWRdata(self._db_cursor, candidate.bus_id)
             time.sleep(0.33)
         remaining_wr = filter(lambda x: x not in self._slaves, range(1, RLogDaemon.MAX_BUS_PARTICIPANTS + 1))
         if len(remaining_wr) == 0: # all WR have been found
@@ -608,7 +725,7 @@ class RLogDaemon(Daemon):
 		if value:
                     currentValue = float(value[0])
             newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
-            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (now(), %s)", [newValue]) # will do insert or replace because of table rule:
+            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (now(), %s)/", [newValue]) # will do insert or replace because of table rule:
 #"CREATE OR REPLACE RULE upsert_eigenverbrauch AS
 #   ON INSERT TO charts_eigenverbrauch
 #     WHERE (EXISTS (SELECT 1 FROM charts_eigenverbrauch WHERE ("time" = new."time")))
