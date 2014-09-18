@@ -311,7 +311,7 @@ class Aggregation():
                     log("There is no matching hourly inverter data for bus id " + str(busID))
             else:
                 hourly = db_cursor.fetchone()
-               if DEBUG_ENABLED:
+                if DEBUG_ENABLED:
                     log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in hourly]))
                 self.WRhour[busID] = AggregationItem(hourly, hourly[0])
         except Exception as ex:
@@ -421,6 +421,7 @@ class Aggregation():
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
             self.SmartMeterMonth = AggregationItem([thisMonth, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
             db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentrymonth WHERE time = %s LIMIT 1;', [thisMonth])
+            if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
                     log("There is no matching monthly data for smart meter")
             else:
