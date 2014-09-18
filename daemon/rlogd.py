@@ -273,12 +273,14 @@ class Aggregation():
         self.WRyear = {}
         self.WRmaxima = {}
         
-        self.SmartMeterMinute = None # should be AggregationItem so that makeExecutemanyDataStructure() is able to operate on it)
+        self.SmartMeterMinute = None # should be of type AggregationItem
         self.SmartMeterHour = None
         self.SmartMeterDay = None
         self.SmartMeterMonth = None
         self.SmartMeterYear = None
         self.SmartMeterMaximum = None
+        
+        self.Eigenverbrauch = None # should be of type AggregationItem
     
     # this method takes a db cursor and the bus id and retrieves the latest data from the database to initialize inverter fields
     def getInitialWRdata(self, db_cursor, busID):
@@ -287,37 +289,31 @@ class Aggregation():
         try:
             thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
             self.WRminute[busID] = AggregationItem([thisMinute, datetime.now(tzlocal()), busID, decimal.Decimal(0)])
-            db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisMinute])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no minutely inverter data for bus id " + str(busID))
+                    log("There is no matching minutely inverter data for bus id " + str(busID))
             else:
                 minutely = db_cursor.fetchone()
-                if minutely[0] == thisMinute:
-                    if DEBUG_ENABLED:
-                        log("There is relevant data for this minute: " + ", ".join([str(x) for x in minutely]))
-                    self.WRminute[busID] = AggregationItem(minutely, minutely[1])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated minutely inverter data from: " + str(minutely[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant data for this minute: " + ", ".join([str(x) for x in minutely]))
+                self.WRminute[busID] = AggregationItem(minutely, minutely[1])
         except Exception as ex:
             log("Exception while loading minutely inverter data: " + str(ex))
-            sys.exit(1)
+            sys.exit(1) # I really want this to work
         # hour
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
             self.WRhour[busID] = AggregationItem([thisHour, busID, decimal.Decimal(0)])
-            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisHour])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no hourly inverter data for bus id " + str(busID))
+                    log("There is no matching hourly inverter data for bus id " + str(busID))
             else:
                 hourly = db_cursor.fetchone()
-                if hourly[0] == thisHour:
-                    if DEBUG_ENABLED:
-                        log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in hourly]))
-                    self.WRhour[busID] = AggregationItem(hourly, hourly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated hourly inverter data from: " + str(hourly[0]))
+               if DEBUG_ENABLED:
+                    log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in hourly]))
+                self.WRhour[busID] = AggregationItem(hourly, hourly[0])
         except Exception as ex:
             log("Exception while loading hourly inverter data: " + str(ex))
             sys.exit(1)
@@ -325,18 +321,15 @@ class Aggregation():
         try:
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
             self.WRmonth[busID] = AggregationItem([thisMonth, busID, decimal.Decimal(0)])
-            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisMonth])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no monthly inverter data for bus id " + str(busID))
+                    log("There is no matching monthly inverter data for bus id " + str(busID))
             else:
                 monthly = db_cursor.fetchone()
-                if monthly[0] == thisMonth:
-                    if DEBUG_ENABLED:
-                        log("There is relevant inverter data for this month: " + ", ".join([str(x) for x in monthly]))
-                    self.WRmonth[busID] = AggregationItem(monthly, monthly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated monthly inverter data from: " + str(monthly[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant inverter data for this month: " + ", ".join([str(x) for x in monthly]))
+                self.WRmonth[busID] = AggregationItem(monthly, monthly[0])
         except Exception as ex:
             log("Exception while loading monthly inverter data: " + str(ex))
             sys.exit(1)
@@ -344,18 +337,15 @@ class Aggregation():
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
             self.WRyear[busID] = AggregationItem([thisYear, busID, decimal.Decimal(0)])
-            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisYear])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no yearly inverter data for bus id " + str(busID))
+                    log("There is no matching yearly inverter data for bus id " + str(busID))
             else:
                 yearly = db_cursor.fetchone()
-                if yearly[0] == thisYear:
-                    if DEBUG_ENABLED:
-                        log("There is relevant inverter data for this year: " + ", ".join([str(x) for x in yearly]))
-                    self.WRyear[busID] = AggregationItem(yearly, yearly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated yearly inverter data from: " + str(yearly[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant inverter data for this year: " + ", ".join([str(x) for x in yearly]))
+                self.WRyear[busID] = AggregationItem(yearly, yearly[0])
         except Exception as ex:
             log("Exception while loading yearly inverter data: " + str(ex))
             sys.exit(1)
@@ -363,22 +353,18 @@ class Aggregation():
         try:
             thisDay = datetime.now(tzlocal()).date()
             self.WRmaxima[busID] = AggregationItem([thisDay, busID, decimal.Decimal(0), datetime.now(tzlocal())])
-            db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
+            db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no maximum inverter data for bus id " + str(busID))
+                    log("There is no matching maximum inverter data for bus id " + str(busID))
             else:
                 maximum = db_cursor.fetchone()
-                if maximum[0] == thisDay:
-                    if DEBUG_ENABLED:
-                        log("There is relevant maximum inverter data for today: " + ", ".join([str(x) for x in maximum]))
-                    self.WRmaxima[busID] = AggregationItem(maximum, maximum[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated maximum inverter data from: " + str(maximum[0]))
-                    
+                if DEBUG_ENABLED:
+                    log("There is relevant maximum inverter data for today: " + ", ".join([str(x) for x in maximum]))
+                self.WRmaxima[busID] = AggregationItem(maximum, maximum[0])
         except Exception as ex:
             log("Exception while loading maximum inverter data: " + str(ex))
-            sys.exit(1)       
+            sys.exit(1)
     
     # this method takes a db cursor and retrieves the latest data from the database to initialize smartmeter fields
     def getInitialSmartMeterData(self, db_cursor):
@@ -386,18 +372,15 @@ class Aggregation():
         try:
             thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
             self.SmartMeterMinute = AggregationItem([thisMinute, datetime.now(tzlocal()), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", exacttime, reading, phase1, phase2, phase3 FROM charts_smartmeterentryminute ORDER BY time DESC LIMIT 1;')
+            db_cursor.execute('SELECT "time", exacttime, reading, phase1, phase2, phase3 FROM charts_smartmeterentryminute WHERE time = %s LIMIT 1;', [thisMinute])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no minutely data for smart meter")
+                    log("There is no matching minutely data for smart meter")
             else:
                 minutely = db_cursor.fetchone()
-                if minutely[0] == thisMinute:
-                    if DEBUG_ENABLED:
-                        log("There is relevant smart meter data for this minute: " + ", ".join([str(x) for x in minutely])) 
-                    self.SmartMeterMinute = AggregationItem(minutely, minutely[1])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated minutely smart meter data from: " + str(minutely[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant smart meter data for this minute: " + ", ".join([str(x) for x in minutely])) 
+                self.SmartMeterMinute = AggregationItem(minutely, minutely[1])
         except Exception as ex:
             log("Exception while loading minutely smart meter data: " + str(ex))
             sys.exit(1)
@@ -405,18 +388,15 @@ class Aggregation():
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
             self.SmartMeterHour = AggregationItem([thisHour, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryhour ORDER BY time DESC LIMIT 1;')
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryhour WHERE time = %s LIMIT 1;', [thisHour])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no hourly data for smart meter")
+                    log("There is no matching hourly data for smart meter")
             else:
                 hourly = db_cursor.fetchone()
-                if hourly[0] == thisHour:
-                    if DEBUG_ENABLED:
-                        log("There is relevant smart meter data for this hour: " + ", ".join([str(x) for x in hourly]))
-                    self.SmartMeterMinute = AggregationItem(hourly, hourly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated hourly smart meter data from: " + str(hourly[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant smart meter data for this hour: " + ", ".join([str(x) for x in hourly]))
+                self.SmartMeterMinute = AggregationItem(hourly, hourly[0])
         except Exception as ex:
             log("Exception while loading hourly smart meter data: " + str(ex))
             sys.exit(1)
@@ -424,18 +404,15 @@ class Aggregation():
         try:
             thisDay = datetime.now(tzlocal()).date()
             self.SmartMeterDay = AggregationItem([thisDay, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryday ORDER BY time DESC LIMIT 1;')
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryday WHERE time = %s LIMIT 1;', [thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no daily data for smart meter")
+                    log("There is no matching daily data for smart meter")
             else:
                 daily = db_cursor.fetchone()
-                if daily[0] == thisDay:
-                    if DEBUG_ENABLED:
-                        log("There is relevant smart meter data for this day: " + ", ".join([str(x) for x in daily]))
-                    self.SmartMeterDay = AggregationItem(daily, daily[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated daily smart meter data from: " + str(daily[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant smart meter data for this day: " + ", ".join([str(x) for x in daily]))
+                self.SmartMeterDay = AggregationItem(daily, daily[0])
         except Exception as ex:
             log("Exception while loading daily smart meter data: " + str(ex))
             sys.exit(1)
@@ -443,18 +420,14 @@ class Aggregation():
         try:
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
             self.SmartMeterMonth = AggregationItem([thisMonth, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentrymonth ORDER BY time DESC LIMIT 1;')
-            if db_cursor.rowcount == 0:
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentrymonth WHERE time = %s LIMIT 1;', [thisMonth])
                 if DEBUG_ENABLED:
-                    log("There is no monthly data for smart meter")
+                    log("There is no matching monthly data for smart meter")
             else:
                 monthly = db_cursor.fetchone()
-                if monthly[0] == thisMonth:
-                    if DEBUG_ENABLED:
-                        log("There is relevant smart meter data for this month: " + ", ".join([str(x) for x in monthly]))
-                    self.SmartMeterMonth = AggregationItem(monthly, monthly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated monthly smart meter data from: " + str(monthly[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant smart meter data for this month: " + ", ".join([str(x) for x in monthly]))
+                self.SmartMeterMonth = AggregationItem(monthly, monthly[0])
         except Exception as ex:
             log("Exception while loading monthly smart meter  data: " + str(ex))
             sys.exit(1)
@@ -462,18 +435,15 @@ class Aggregation():
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
             self.SmartMeterYear = AggregationItem([thisYear, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryyear ORDER BY time DESC LIMIT 1;')
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryyear WHERE time = %s LIMIT 1;', [thisYear])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no yearly data for smart meter")
+                    log("There is no matching yearly data for smart meter")
             else:
                 yearly = db_cursor.fetchone()
-                if yearly[0] == thisYear:
-                    if DEBUG_ENABLED:
-                        log("There is relevant smart meter data for this year: " + ", ".join([str(x) for x in yearly]))
-                    self.SmartMeterYear = AggregationItem(yearly, yearly[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated yearly smart meter data from: " + str(yearly[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant smart meter data for this year: " + ", ".join([str(x) for x in yearly]))
+                self.SmartMeterYear = AggregationItem(yearly, yearly[0])
         except Exception as ex:
             log("Exception while loading yearly smart meter data: " + str(ex))
             sys.exit(1)
@@ -481,25 +451,40 @@ class Aggregation():
         try:
             thisDay = datetime.now(tzlocal()).date()
             self.SmartMeterMaximum = AggregationItem([thisDay, datetime.now(tzlocal()), decimal.Decimal(0)])
-            db_cursor.execute('SELECT "time", exacttime, maximum FROM charts_smartmeterdailymaxima ORDER BY time DESC LIMIT 1;')
+            db_cursor.execute('SELECT "time", exacttime, maximum FROM charts_smartmeterdailymaxima WHERE time = %s LIMIT 1;', [thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
-                    log("There is no maximum data for smart meter")
+                    log("There is no matching maximum data for smart meter")
             else:
                 maximum = db_cursor.fetchone()
-                if maximum[0] == thisDay:
-                    if DEBUG_ENABLED:
-                        log("There is relevant maximum smart meter data for this day: " + ", ".join([str(x) for x in maximum]))
-                    self.SmartMeterMaximum = AggregationItem(maximum, maximum[0])
-                elif DEBUG_ENABLED:
-                    log("Ignoring outdated maximum smart meter data from: " + str(maximum[0]))
+                if DEBUG_ENABLED:
+                    log("There is relevant maximum smart meter data for this day: " + ", ".join([str(x) for x in maximum]))
+                self.SmartMeterMaximum = AggregationItem(maximum, maximum[0])
         except Exception as ex:
             log("Exception while loading maximum smart meter data: " + str(ex))
-            
+            sys.exit(1)
+    
+    # this method takes a db cursor and retrieves the latest data from the database to initialize smartmeter fields
+    def getInitialEigenverbrauchData(self, db_cursor):
+        try:
+            thisDay = datetime.now(tzlocal()).date()
+            self.Eigenverbrauch = AggregationItem([thisDay, decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", eigenverbrauch FROM charts_eigenverbrauch WHERE time = %s LIMIT 1;', [thisDay])
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no eigenverbrauch, yet")
+            else:
+                eigenverbrauch = db_cursor.fetchone()
+                if DEBUG_ENABLED:
+                    log("There is relevant eigenverbrauch data for this day: " + ", ".join([str(x) for x in eigenverbrauch]))
+                self.Eigenverbrauch = AggregationItem(eigenverbrauch, eigenverbrauch[0])
+        except Exception as ex:
+            log("Exception while loading eigenverbrauch: " + str(ex))
+            sys.exit(1)
         
     # makes a executemany compliant nested array structure from dictionary of AggregationItems
-    def makeExecutemanyDataStructure(self, arrayOfAggregationItems):
-        return [item.data for item in arrayOfAggregationItems.values()]
+    def makeExecutemanyDataStructure(self, dictionaryOfAggregationItems):
+        return [item.data for item in dictionaryOfAggregationItems.values()]
         
 class RLogDaemon(Daemon):
     KWHPERRING = None
@@ -591,6 +576,9 @@ class RLogDaemon(Daemon):
             
             log("dummy smart meter loading")
             self._aggregator.getInitialSmartMeterData(self._db_cursor)
+            
+            log("loading eigenverbrauch")
+            self._aggregator.getInitialEigenverbrauchData(self._db_cursor)
             
             log("starting normal execution")
             sys.exit(0)
@@ -735,14 +723,7 @@ class RLogDaemon(Daemon):
                 log(str(len(remaining_wr)) + " WR have not yet been discovered")
         if len(statements) > 0:
             try:
-                self._db_cursor.executemany("INSERT INTO charts_device (id, model) VALUES (%s, %s)", statements) # actually updates if exists due to database rule:
-# CREATE OR REPLACE RULE upsert_device AS
-#    ON INSERT TO charts_device
-#       WHERE (EXISTS (SELECT 1 FROM charts_device WHERE charts_device."id" = new."id"))
-#    DO INSTEAD 
-#       UPDATE charts_device SET "model" = new."model"
-#            WHERE charts_device."id" = new."id";
-
+                self._db_cursor.executemany("INSERT INTO charts_device (id, model) VALUES (%s, %s)", statements) # actually updates if exists due to database rule
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("Database is locked or some other DB error!")
@@ -874,12 +855,7 @@ class RLogDaemon(Daemon):
 		if value:
                     currentValue = float(value[0])
             newValue = currentValue + eigenverbrauch * (time.time() - self._eigenverbrauchLastSaved) / 3600 # make energy from power within last polling interval
-            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (now(), %s)/", [newValue]) # will do insert or replace because of table rule:
-#"CREATE OR REPLACE RULE upsert_eigenverbrauch AS
-#   ON INSERT TO charts_eigenverbrauch
-#     WHERE (EXISTS (SELECT 1 FROM charts_eigenverbrauch WHERE ("time" = new."time")))
-#   DO INSTEAD 
-#     UPDATE charts_eigenverbrauch SET "eigenverbrauch" = new."eigenverbrauch" WHERE ("time" = new."time");
+            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (now(), %s)/", [newValue]) # will do insert or replace because of table rule
             self._db_connection.commit()
             self._eigenverbrauchLastSaved = time.time()
         except psycopg2.OperationalError as ex:
@@ -913,9 +889,9 @@ if __name__ == "__main__":
         description='The RLog daemon handles the communication among the KACO inverters, the smartmeter and the postgresql database.')
 
     parser.add_argument('--querydelay', default = 10, type = int, help = 'Delay in seconds between two queries')
-    parser.add_argument('--participants', default = 32, type = int, help = 'Maximum ID of bus participant to discover')
-    parser.add_argument('--discoverytimer', default = 10, type = int, help = 'Every X iterations the device discovery will run on the next sequential id')
-    parser.add_argument('--smartmeter', action='store_true', help = 'Flip this switch if you also want to read a VSM-102 smart meter on the same bus')
+    parser.add_argument('--participants', default = 3, type = int, help = 'Maximum ID (inclusive) of bus participant to discover (Start id is 1)')
+    parser.add_argument('--discoverytimer', default = 10, type = int, help = 'Every X iterations the device discovery will run on the next sequential id (if necessary)')
+    parser.add_argument('--smartmeter', action='store_true', help = 'Flip this switch if you also want to read a VSM-102 smart meter (on a different bus)')
     parser.add_argument('mode', choices = ['start', 'stop', 'restart'], help = 'What should the daemon do?')
     args = parser.parse_args()
 
