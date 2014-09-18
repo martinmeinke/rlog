@@ -29,7 +29,7 @@ DEBUG_SERIAL = True
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
-DEBUG_SERIAL_PORT = "/dev/pts/3"
+DEBUG_SERIAL_PORT = "/dev/pts/4"
 MQTT_HOST = "localhost"
 
 LOCATIONX = "14.122994"
@@ -607,18 +607,16 @@ class RLogDaemon(Daemon):
         
         self._db_cursor.execute("SELECT * FROM charts_settings WHERE active = TRUE ORDER BY id DESC LIMIT 1;")
         try:
-            if self._db_cursor.rowcount == 0:
-                log("Couldn't read settings from database")
-            else:
-                sets = self._db_cursor.fetchone()
-                RLogDaemon.KWHPERRING = sets[2]
-                RLogDaemon.NEXTRING = sets[2]
-                RLogDaemon.SOUND = sets[3]
+           sets = self._db_cursor.fetchone()
+           RLogDaemon.KWHPERRING = sets[2]
+           RLogDaemon.NEXTRING = sets[2]
+           RLogDaemon.SOUND = sets[3]
         except Exception as ex:
+            log("Couldn't read settings from database. Will use defaults. Error was:")
             log(str(type(ex))+str(ex))
             RLogDaemon.KWHPERRING = 1
             RLogDaemon.NEXTRING = 1
-            RLogDaemon.SOUND = "/home/pi/git/rlog/coin.mp3"
+            RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
         except Error as err:
             log(str(type(err)))
 
