@@ -12,16 +12,16 @@ import time
 import commands
 import os
 import sys
-import datetime
 import string
 import mqtt
 from daemon import Daemon
 import argparse
 import re
 import decimal
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
-import pytz
-from tzlocal import get_localzone
+from dateutil.tz import tzlocal
+
 
 DEBUG_ENABLED = True
 DEBUG_SERIAL = True
@@ -37,7 +37,7 @@ LOCATIONY = "52.508519"
 
 def log(msg):
     stripped = str(msg).translate(string.maketrans("\n\r", "  "))
-    print "[%s]: %s" % (str(datetime.datetime.today()), stripped)
+    print "[%s]: %s" % (str(datetime.now(tzlocal())), stripped)
 
 class WR():
     def __init__(self, bus_id, serial_port):
@@ -254,7 +254,7 @@ class SmartMeter():
 
 class AggregationItem():
     def __init__(self, data = None, time = None):
-        self.timestamp = datetime.datetime.today() if time == None else time # this is going to hold the time when the data was last updated
+        self.timestamp = datetime.now(tzlocal()) if time == None else time # this is going to hold the time when the data was last updated
         self.data = [] if data == None else data # this is going to hold the actual data as psycopg2's execute() expects
     
     def __str__(self):
@@ -282,107 +282,220 @@ class Aggregation():
     
     # this method takes a db cursor and the bus id and retrieves the latest data from the database to initialize inverter fields
     def getInitialWRdata(self, db_cursor, busID):
-        # get local timezone    
-        local_tz = get_localzone()
-        # start with WR minute
+        # I don't want to use Django here because the daemon should be able to operate anywhere without django installed
+        # start with minute
         try:
-            thisMinuteNaive = datetime.datetime.today() + relativedelta(second=0, microsecond=0) # this datetime has no timezone
-            thisMinute = thisMinuteNaive.replace(tzinfo=local_tz) # we need to give it a timezone because django (and so the postgres database) uses dates with timezones
-            self.WRminute[busID] = AggregationItem([thisMinute, datetime.datetime.today(), busID, decimal.Decimal(0)])
+            thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
+            self.WRminute[busID] = AggregationItem([thisMinute, datetime.now(tzlocal()), busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
-                log("There is no minutely inverter data for bus id " + str(busID))
+                if DEBUG_ENABLED:
+                    log("There is no minutely inverter data for bus id " + str(busID))
             else:
                 minutely = db_cursor.fetchone()
                 if minutely[0] == thisMinute:
-                    log("There is relevant data for this minute:" + str(minutely[3]))
+                    if DEBUG_ENABLED:
+                        log("There is relevant data for this minute: " + ", ".join([str(x) for x in minutely]))
                     self.WRminute[busID] = AggregationItem(minutely, minutely[1])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated minutely inverter data from: " + str(minutely[0]))
         except Exception as ex:
-            log("Exception while loading minutely data: " + str(ex))
+            log("Exception while loading minutely inverter data: " + str(ex))
             sys.exit(1)
         # hour
         try:
-            thisHourNaive = datetime.datetime.today() + relativedelta(minute=0, second=0, microsecond=0)
-            thisHour = thisHourNaive.replace(tzinfo=local_tz)
+            thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
             self.WRhour[busID] = AggregationItem([thisHour, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
-                log("There is no hourly inverter data for bus id " + str(busID))
+                if DEBUG_ENABLED:
+                    log("There is no hourly inverter data for bus id " + str(busID))
             else:
                 hourly = db_cursor.fetchone()
                 if hourly[0] == thisHour:
-                    log("There is relevant data for this hour:" + str(hourly[2]))
+                    if DEBUG_ENABLED:
+                        log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in hourly]))
                     self.WRhour[busID] = AggregationItem(hourly, hourly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated hourly inverter data from: " + str(hourly[0]))
         except Exception as ex:
-            log("Exception while loading hourly data: " + str(ex))
+            log("Exception while loading hourly inverter data: " + str(ex))
             sys.exit(1)
         # month
         try:
-            thisMonth = (datetime.datetime.today() + relativedelta(day=1)).date()
+            thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
             self.WRmonth[busID] = AggregationItem([thisMonth, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
-                log("There is no monthly inverter data for bus id " + str(busID))
+                if DEBUG_ENABLED:
+                    log("There is no monthly inverter data for bus id " + str(busID))
             else:
                 monthly = db_cursor.fetchone()
                 if monthly[0] == thisMonth:
-                    log("There is relevant data for this month:" + str(monthly[2]))
+                    if DEBUG_ENABLED:
+                        log("There is relevant inverter data for this month: " + ", ".join([str(x) for x in monthly]))
                     self.WRmonth[busID] = AggregationItem(monthly, monthly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated monthly inverter data from: " + str(monthly[0]))
         except Exception as ex:
-            log("Exception while loading monthly data: " + str(ex))
+            log("Exception while loading monthly inverter data: " + str(ex))
             sys.exit(1)
         # year
         try:
-            thisYear = (datetime.datetime.today() + relativedelta(month=1, day=1)).date()
+            thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
             self.WRyear[busID] = AggregationItem([thisYear, busID, decimal.Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
-                log("There is no yearly inverter data for bus id " + str(busID))
+                if DEBUG_ENABLED:
+                    log("There is no yearly inverter data for bus id " + str(busID))
             else:
                 yearly = db_cursor.fetchone()
                 if yearly[0] == thisYear:
-                    log("There is relevant data for this year:" + str(yearly[2]))
+                    if DEBUG_ENABLED:
+                        log("There is relevant inverter data for this year: " + ", ".join([str(x) for x in yearly]))
                     self.WRyear[busID] = AggregationItem(yearly, yearly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated yearly inverter data from: " + str(yearly[0]))
         except Exception as ex:
-            log("Exception while loading yearly data: " + str(ex))
+            log("Exception while loading yearly inverter data: " + str(ex))
             sys.exit(1)
         # maximum
         try:
-            thisDay = datetime.datetime.today().date()
-            self.WRmaxima[busID] = AggregationItem([thisDay, busID, decimal.Decimal(0), datetime.datetime.today()])
+            thisDay = datetime.now(tzlocal()).date()
+            self.WRmaxima[busID] = AggregationItem([thisDay, busID, decimal.Decimal(0), datetime.now(tzlocal())])
             db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima where device_id = %s ORDER BY time DESC LIMIT 1;', [busID])
             if db_cursor.rowcount == 0:
-                log("There is no maximum inverter data for bus id " + str(busID))
+                if DEBUG_ENABLED:
+                    log("There is no maximum inverter data for bus id " + str(busID))
             else:
                 maximum = db_cursor.fetchone()
                 if maximum[0] == thisDay:
-                    log("There is relevant maximum data for today:" + str(maximum[2]))
+                    if DEBUG_ENABLED:
+                        log("There is relevant maximum inverter data for today: " + ", ".join([str(x) for x in maximum]))
                     self.WRmaxima[busID] = AggregationItem(maximum, maximum[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated maximum inverter data from: " + str(maximum[0]))
+                    
         except Exception as ex:
-            log("Exception while loading maximum data: " + str(ex))
-            sys.exit(1)
-        log("Minutely: " + str(self.WRminute))
-        log("Hourly: " + str(self.WRhour))
-        log("Monthly: " + str(self.WRmonth))
-        log("Yearly: " + str(self.WRyear))
-        log("Maxima: " + str(self.WRmaxima))
-       
+            log("Exception while loading maximum inverter data: " + str(ex))
+            sys.exit(1)       
     
     # this method takes a db cursor and retrieves the latest data from the database to initialize smartmeter fields
     def getInitialSmartMeterData(self, db_cursor):
-        # start with WR minute
+        # minute
         try:
-            for bus_id in busIDs:
-                db_cursor.execute('SELECT ("time", exacttime, device_id, "lW") FROM charts_solarentryminute where device_id = %s ORDER BY time DESC LIMIT 1', [bus_id])
-                if db_cursor.rowcount == 0:
-                    log("There is no minutely inverter data for bus id " + str(bus_id))
-                    self.WRminute[bus_id] = AggregationItem()
-                else:
-                    minutely = db_cursor.fetchone()
-                    self.WRminute[bus_id] = AggregationItem(minutely[0], minutely)
+            thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
+            self.SmartMeterMinute = AggregationItem([thisMinute, datetime.now(tzlocal()), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", exacttime, reading, phase1, phase2, phase3 FROM charts_smartmeterentryminute ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no minutely data for smart meter")
+            else:
+                minutely = db_cursor.fetchone()
+                if minutely[0] == thisMinute:
+                    if DEBUG_ENABLED:
+                        log("There is relevant smart meter data for this minute: " + ", ".join([str(x) for x in minutely])) 
+                    self.SmartMeterMinute = AggregationItem(minutely, minutely[1])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated minutely smart meter data from: " + str(minutely[0]))
         except Exception as ex:
-            log("Exception while loading minutely data: " + str(ex))
+            log("Exception while loading minutely smart meter data: " + str(ex))
             sys.exit(1)
+        # hour
+        try:
+            thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
+            self.SmartMeterHour = AggregationItem([thisHour, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryhour ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no hourly data for smart meter")
+            else:
+                hourly = db_cursor.fetchone()
+                if hourly[0] == thisHour:
+                    if DEBUG_ENABLED:
+                        log("There is relevant smart meter data for this hour: " + ", ".join([str(x) for x in hourly]))
+                    self.SmartMeterMinute = AggregationItem(hourly, hourly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated hourly smart meter data from: " + str(hourly[0]))
+        except Exception as ex:
+            log("Exception while loading hourly smart meter data: " + str(ex))
+            sys.exit(1)
+        # day
+        try:
+            thisDay = datetime.now(tzlocal()).date()
+            self.SmartMeterDay = AggregationItem([thisDay, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryday ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no daily data for smart meter")
+            else:
+                daily = db_cursor.fetchone()
+                if daily[0] == thisDay:
+                    if DEBUG_ENABLED:
+                        log("There is relevant smart meter data for this day: " + ", ".join([str(x) for x in daily]))
+                    self.SmartMeterDay = AggregationItem(daily, daily[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated daily smart meter data from: " + str(daily[0]))
+        except Exception as ex:
+            log("Exception while loading daily smart meter data: " + str(ex))
+            sys.exit(1)
+        # month
+        try:
+            thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
+            self.SmartMeterMonth = AggregationItem([thisMonth, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentrymonth ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no monthly data for smart meter")
+            else:
+                monthly = db_cursor.fetchone()
+                if monthly[0] == thisMonth:
+                    if DEBUG_ENABLED:
+                        log("There is relevant smart meter data for this month: " + ", ".join([str(x) for x in monthly]))
+                    self.SmartMeterMonth = AggregationItem(monthly, monthly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated monthly smart meter data from: " + str(monthly[0]))
+        except Exception as ex:
+            log("Exception while loading monthly smart meter  data: " + str(ex))
+            sys.exit(1)
+        # year
+        try:
+            thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
+            self.SmartMeterYear = AggregationItem([thisYear, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryyear ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no yearly data for smart meter")
+            else:
+                yearly = db_cursor.fetchone()
+                if yearly[0] == thisYear:
+                    if DEBUG_ENABLED:
+                        log("There is relevant smart meter data for this year: " + ", ".join([str(x) for x in yearly]))
+                    self.SmartMeterYear = AggregationItem(yearly, yearly[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated yearly smart meter data from: " + str(yearly[0]))
+        except Exception as ex:
+            log("Exception while loading yearly smart meter data: " + str(ex))
+            sys.exit(1)
+        # maximum
+        try:
+            thisDay = datetime.now(tzlocal()).date()
+            self.SmartMeterMaximum = AggregationItem([thisDay, datetime.now(tzlocal()), decimal.Decimal(0)])
+            db_cursor.execute('SELECT "time", exacttime, maximum FROM charts_smartmeterdailymaxima ORDER BY time DESC LIMIT 1;')
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no maximum data for smart meter")
+            else:
+                maximum = db_cursor.fetchone()
+                if maximum[0] == thisDay:
+                    if DEBUG_ENABLED:
+                        log("There is relevant maximum smart meter data for this day: " + ", ".join([str(x) for x in maximum]))
+                    self.SmartMeterMaximum = AggregationItem(maximum, maximum[0])
+                elif DEBUG_ENABLED:
+                    log("Ignoring outdated maximum smart meter data from: " + str(maximum[0]))
+        except Exception as ex:
+            log("Exception while loading maximum smart meter data: " + str(ex))
+            
         
     # makes a executemany compliant nested array structure from dictionary of AggregationItems
     def makeExecutemanyDataStructure(self, arrayOfAggregationItems):
@@ -425,7 +538,7 @@ class RLogDaemon(Daemon):
     def connectToDatabase(self):
         self._db_connection = psycopg2.connect("dbname='rlog' user='stephan'")
         self._db_cursor = self._db_connection.cursor()
-        self._db_cursor.tzinfo_factory = psycopg2.tz.LocalTimezone
+        # self._db_cursor.tzinfo_factory = psycopg2.tz.LocalTimezone # not necessary because the dbms has the time zone set correctly
         log("database conencted")
 
     def run(self):
@@ -475,6 +588,10 @@ class RLogDaemon(Daemon):
         if(self._WR_serial_port != None):
             log("looking for WR")
             self.findWRs()
+            
+            log("dummy smart meter loading")
+            self._aggregator.getInitialSmartMeterData(self._db_cursor)
+            
             log("starting normal execution")
             sys.exit(0)
 
@@ -645,6 +762,7 @@ class RLogDaemon(Daemon):
                 log("Exception while doing MQTT stuff: " + str(e))
             self._smart_meter_found = True
             self._smart_meter = candidate
+            self._aggregator.getInitialSmartMeterData(self._db_cursor)
             return True
         return False
         
