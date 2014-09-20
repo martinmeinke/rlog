@@ -479,7 +479,7 @@ class Aggregation():
                 hourly = db_cursor.fetchone()
                 if DEBUG_ENABLED:
                     log("There is relevant smart meter data for this hour: " + ", ".join([str(x) for x in hourly]))
-                self.SmartMeterMinute = AggregationItem(list(hourly))
+                self.SmartMeterHour = AggregationItem(list(hourly))
         except Exception as ex:
             log("Exception while loading hourly smart meter data: " + str(ex))
             sys.exit(1)
@@ -589,7 +589,7 @@ class Aggregation():
             self.Eigenverbrauch.data[1] = increment  # first value of today
         self.Eigenverbrauch.timestamp = now
     
-    # aggredates minutely, hourly, daily, monthly and yearly data
+    # aggregates minutely, hourly, daily, monthly and yearly data
     # expects input (except budID) to be Decimal
     def updateInverter(self, busID, lW, dailyTotal):
         # prepare timestamps
@@ -615,7 +615,7 @@ class Aggregation():
         self.WRyearDayBefore[busID].timestamp = now
         
         # OK, hacky things are done now let's start with the minute aggregation (data order: time, exacttime, device_id, "lW")
-        if self.WRminute[busID].data[0] < thisMinute: # if a new minute has started estimate the energy for this minute by expeting that the same power is drawn for 60 seconds
+        if self.WRminute[busID].data[0] < thisMinute: # if a new minute has started estimate the energy for this minute by expecting that the same power is drawn for 60 seconds
             self.WRminute[busID].data[3] = lW / 60 # the consumed energy in this minute assuming that the consumption stays constant
         else: # we already have an estimate for this minute
             timePassedInThisMinute = Decimal((now - self.WRminute[busID].timestamp).total_seconds()) # self.WRminute[busID].timestamp should be the same as self.WRminute[busID].data[1] (which is exacttime) but requires one array access less!
@@ -628,12 +628,12 @@ class Aggregation():
         
         # the hour aggregation. data order: time, device_id, "lW"
         # this might be inaccurate because of rounding (decimal is accurate to 28 digits by default).
-        # Maybe I'll use a trigger to iron that out for the day befor in the database every midnight but I don't think the difference appears in the database at all because the precision is only 3 digits there)
+        # Maybe I'll use a trigger to iron that out for the day before in the database every midnight but I don't think the difference appears in the database at all because the precision is only 3 digits there)
         if self.WRhour[busID].data[0] < thisHour: # if a new hour has started
             self.WRhour[busID].data[2] = Decimal(0) # clear aggregation if a new hour has started
         timePassedSinceLastHourUpdate = Decimal((now - self.WRhour[busID].timestamp).total_seconds())
         self.WRhour[busID].data[0] = thisHour
-        self.WRhour[busID].data[2] += lW * timePassedSinceLastUpdate / 3600  # add the the consumed energy since the last update
+        self.WRhour[busID].data[2] += lW * timePassedSinceLastHourUpdate / 3600  # add the the consumed energy since the last update
         self.WRhour[busID].timestamp = now
         
         # day 'aggregation'. data order: time, device_id, "lW" (it is not really aggregation as we read the aggregated value every time and don't need to compute anything)
@@ -656,12 +656,14 @@ class Aggregation():
             self.WRmaxima[busID].data[0] = thisDay
             self.WRmaxima[busID].data[2] = Decimal(0)           
             self.WRmaxima[busID].data[3] = now
+            self.WRmaxima[busID].timestamp = now # actualy unused (remove this assignment if you want to save some cycles but I leave it here for completeness)
         if lW > self.WRmaxima[busID].data[2]:
             self.WRmaxima[busID].data[0] = thisDay # this should not be necessary as the first condition MUST hold once a day
             self.WRmaxima[busID].data[2] = lW
             self.WRmaxima[busID].data[3] = now
+            self.WRmaxima[busID].timestamp = now
     
-    # aggredates minutely, hourly, daily, monthly and yearly data
+    # aggregates minutely, hourly, daily, monthly and yearly data
     # expects input (except budID) to be Decimal
     def updateSmartMeter(self, phase1Float, phase2Float, phase3, reading):
         # prepare timestamps
@@ -671,6 +673,48 @@ class Aggregation():
         thisDay = now.date()
         thisMonth = (now + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
         thisYear = (now + relativedelta(month=1, day=1)).date()
+        
+        # start with the minute aggregation (data order: "time", exacttime, reading, phase1, phase2, phase3)
+        if self.SmartMeterMinute.data[0] < thisMinute: # if a new minute has started estimate the energy for this minute by expecting that the same power is drawn for 60 seconds
+            self.SmartMeterMinute.data[3] = phase1 / 60 # the consumed energy in this minute assuming that the consumption stays constant
+            self.SmartMeterMinute.data[4] = phase2 / 60 
+            self.SmartMeterMinute.data[5] = phase3 / 60 
+        else: # we already have an estimate for this minute
+            timePassedInThisMinute = Decimal((now - self.SmartMeterMinute.timestamp).total_seconds()) # self.WRminute[busID].timestamp should be the same as self.WRminute[busID].data[1] (which is exacttime) but requires one array access less!
+            timeLeftInThisMinute = 60 - timePassedInThisMinute
+            self.SmartMeterMinute.data[3] = (self.SmartMeterMinute.data[3] * timePassedInThisMinute + phase1 * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
+            self.SmartMeterMinute.data[4] = (self.SmartMeterMinute.data[4] * timePassedInThisMinute + phase2 * timeLeftInThisMinute) / 60
+            self.SmartMeterMinute.data[5] = (self.SmartMeterMinute.data[5] * timePassedInThisMinute + phase3 * timeLeftInThisMinute) / 60
+        # fill in the remaining fields that need to be updated the same, no matter whether it is the same minute or a new one
+        self.SmartMeterMinute.data[0] = thisMinute
+        self.SmartMeterMinute.data[1] = now # actually not used any more because my datastructur has an exact timestamp but says in here for historical reasons
+        self.SmartMeterMinute.data[2] = reading
+        self.SmartMeterMinute.timestamp = now
+        
+        # the hour aggregation. data order: "time", reading, phase1, phase2, phase3
+        # this might be inaccurate because of rounding (decimal is accurate to 28 digits by default).
+        # Maybe I'll use a trigger to iron that out for the day before in the database every midnight but I don't think the difference appears in the database at all because the precision is only 3 digits there)
+        if self.SmartMeterHour.data[0] < thisHour: # if a new hour has started
+            self.SmartMeterHour.data[2] = Decimal(0) # clear aggregation if a new hour has started
+            self.SmartMeterHour.data[3] = Decimal(0)
+            self.SmartMeterHour.data[4] = Decimal(0)
+        timePassedSinceLastHourUpdate = Decimal((now - self.SmartMeterHour.timestamp).total_seconds())
+        self.SmartMeterHour.data[0] = thisHour
+        self.SmartMeterHour.data[1] = reading
+        self.SmartMeterHour.data[2] += phase1 * timePassedSinceLastHourUpdate / 3600  # add the the consumed energy since the last update
+        self.SmartMeterHour.data[2] += phase2 * timePassedSinceLastHourUpdate / 3600
+        self.SmartMeterHour.data[2] += phase3 * timePassedSinceLastHourUpdate / 3600
+        self.SmartMeterHour.timestamp = now
+        
+        
+        
+        
+        # self.SmartMeterMinute = None # should be of type AggregationItem
+        # self.SmartMeterHour = None
+        # self.SmartMeterDay = None
+        # self.SmartMeterMonth = None
+        # self.SmartMeterYear = None
+        # self.SmartMeterMaximum = None
         
 class RLogDaemon(Daemon):
     KWHPERRING = None
