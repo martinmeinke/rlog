@@ -632,6 +632,8 @@ class Aggregation():
         if self.WRhour[busID].data[0] < thisHour: # if a new hour has started
             self.WRhour[busID].data[2] = Decimal(0) # clear aggregation if a new hour has started
         timePassedSinceLastHourUpdate = Decimal((now - self.WRhour[busID].timestamp).total_seconds())
+        if timePassedSinceLastHourUpdate > 10 * Decimal(RLogDaemon.DELAY): # in case the inverter starts in the morning with a non-zero reading we would account the entire night for it which is wrong
+            timePassedSinceLastHourUpdate = Decimal(RLogDaemon.DELAY) # so we limit it to one polling interval
         self.WRhour[busID].data[0] = thisHour
         self.WRhour[busID].data[2] += lW * timePassedSinceLastHourUpdate / 3600  # add the the consumed energy since the last update
         self.WRhour[busID].timestamp = now
@@ -665,7 +667,7 @@ class Aggregation():
     
     # aggregates minutely, hourly, daily, monthly and yearly data
     # expects input (except budID) to be Decimal
-    def updateSmartMeter(self, phase1Float, phase2Float, phase3, reading):
+    def updateSmartMeter(self, phase1, phase2, phase3, reading):
         # prepare timestamps
         now = datetime.now(tzlocal())
         thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
@@ -691,30 +693,78 @@ class Aggregation():
         self.SmartMeterMinute.data[2] = reading
         self.SmartMeterMinute.timestamp = now
         
+        timePassedSinceLastUpdate = Decimal((now - self.SmartMeterHour.timestamp).total_seconds()) # the time passed is the same for all aggregation periods.
+        # Therefore, we save us from computing it from every AggregationItem's timestamp as it would be the same every time and take the hourly as example.
+        # We also don't apply the same sanity check to the passed time because we expect it to run continuously 
+        # (and if not then we'd just account for the stuff we missed (but unfortunately write it in only one inverval))
+        phase1Increment = phase1 * timePassedSinceLastUpdate / 3600 # the energy in Wh computed from timePassedSinceLastUpdate seconds with phase1 Watts power consumption
+        phase2Increment = phase2 * timePassedSinceLastUpdate / 3600
+        phase3Increment = phase3 * timePassedSinceLastUpdate / 3600
+        
         # the hour aggregation. data order: "time", reading, phase1, phase2, phase3
         # this might be inaccurate because of rounding (decimal is accurate to 28 digits by default).
         # Maybe I'll use a trigger to iron that out for the day before in the database every midnight but I don't think the difference appears in the database at all because the precision is only 3 digits there)
+        # And the worst thing to know is that is is accumulating errors and I can't make up for it (only thing I have is a constantly increasing total reading for all phases together)
         if self.SmartMeterHour.data[0] < thisHour: # if a new hour has started
             self.SmartMeterHour.data[2] = Decimal(0) # clear aggregation if a new hour has started
             self.SmartMeterHour.data[3] = Decimal(0)
             self.SmartMeterHour.data[4] = Decimal(0)
-        timePassedSinceLastHourUpdate = Decimal((now - self.SmartMeterHour.timestamp).total_seconds())
-        self.SmartMeterHour.data[0] = thisHour
+        self.SmartMeterHour.data[0] = thisHour # this could also be done only once in the if clause above
         self.SmartMeterHour.data[1] = reading
-        self.SmartMeterHour.data[2] += phase1 * timePassedSinceLastHourUpdate / 3600  # add the the consumed energy since the last update
-        self.SmartMeterHour.data[2] += phase2 * timePassedSinceLastHourUpdate / 3600
-        self.SmartMeterHour.data[2] += phase3 * timePassedSinceLastHourUpdate / 3600
+        self.SmartMeterHour.data[2] += phase1Increment # add the the consumed energy since the last update
+        self.SmartMeterHour.data[3] += phase2Increment
+        self.SmartMeterHour.data[4] += phase3Increment
         self.SmartMeterHour.timestamp = now
         
+        # the day aggregation. data order: "time", reading, phase1, phase2, phase3
+        # same thougths here (and on the following periods) as stated above
+        if self.SmartMeterDay.data[0] < thisDay:
+            self.SmartMeterDay.data[2] = Decimal(0)
+            self.SmartMeterDay.data[3] = Decimal(0)
+            self.SmartMeterDay.data[4] = Decimal(0)
+        self.SmartMeterDay.data[0] = thisDay
+        self.SmartMeterDay.data[1] = reading
+        self.SmartMeterDay.data[2] += phase1Increment
+        self.SmartMeterDay.data[3] += phase2Increment
+        self.SmartMeterDay.data[4] += phase3Increment
+        self.SmartMeterDay.timestamp = now # acutally unused as the timePassedSinceLastUpdate is computed from the hourly period only (so this can be remoced but i keep it for completeness)
         
+        # the month aggregation. data order: "time", reading, phase1, phase2, phase3
+        if self.SmartMeterMonth.data[0] < thisMonth:
+            self.SmartMeterMonth.data[2] = Decimal(0)
+            self.SmartMeterMonth.data[3] = Decimal(0)
+            self.SmartMeterMonth.data[4] = Decimal(0)
+        self.SmartMeterMonth.data[0] = thisMonth 
+        self.SmartMeterMonth.data[1] = reading
+        self.SmartMeterMonth.data[2] += phase1Increment
+        self.SmartMeterMonth.data[3] += phase2Increment
+        self.SmartMeterMonth.data[4] += phase3Increment
+        self.SmartMeterMonth.timestamp = now
         
+        # the year aggregation. data order: "time", reading, phase1, phase2, phase3
+        if self.SmartMeterYear.data[0] < thisMonth:
+            self.SmartMeterYear.data[2] = Decimal(0)
+            self.SmartMeterYear.data[3] = Decimal(0)
+            self.SmartMeterYear.data[4] = Decimal(0)
+        self.SmartMeterYear.data[0] = thisMonth 
+        self.SmartMeterYear.data[1] = reading
+        self.SmartMeterYear.data[2] += phase1Increment
+        self.SmartMeterYear.data[3] += phase2Increment
+        self.SmartMeterYear.data[4] += phase3Increment
+        self.SmartMeterYear.timestamp = now
         
-        # self.SmartMeterMinute = None # should be of type AggregationItem
-        # self.SmartMeterHour = None
-        # self.SmartMeterDay = None
-        # self.SmartMeterMonth = None
-        # self.SmartMeterYear = None
-        # self.SmartMeterMaximum = None
+        # so, finally the maximum. data order: "time", exacttime, maximum
+        if self.SmartMeterMaximum.data[0] < thisDay: # if a new day has started
+            self.SmartMeterMaximum.data[0] = thisDay
+            self.SmartMeterMaximum.data[1] = now
+            self.SmartMeterMaximum.data[2] = Decimal(0)
+            self.SmartMeterMaximum.timestamp = now # actualy unused (remove this assignment if you want to save some cycles but I leave it here for completeness)
+        totalConsumption = phase1 + phase2 + phase3 # this was computed as sumUsed before so it might be faster to pass it as parameter instead of calculating it here again
+        if totalConsumption > self.SmartMeterMaximum.data[2]:
+            self.SmartMeterMaximum.data[0] = thisDay # this should not be necessary as the first condition MUST hold once a day
+            self.SmartMeterMaximum.data[3] = now
+            self.SmartMeterMaximum.data[2] = totalConsumption
+            self.SmartMeterMaximum.timestamp = now
         
 class RLogDaemon(Daemon):
     KWHPERRING = None
@@ -888,7 +938,7 @@ class RLogDaemon(Daemon):
 
     def sleep_to_delay(self, t1, t2):
         if DEBUG_ENABLED:
-            log("poll delay is : "+str(RLogDaemon.DELAY))
+            log("poll delay is : " + str(RLogDaemon.DELAY))
         sleepduration = RLogDaemon.DELAY - (t2 - t1)
         if sleepduration <= 0:
           log("Timing problem (discovery?): %f" % sleepduration)
