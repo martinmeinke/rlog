@@ -590,10 +590,9 @@ class Aggregation():
         self.Eigenverbrauch.timestamp = now
     
     # aggregates minutely, hourly, daily, monthly and yearly data
-    # expects input (except budID) to be Decimal
-    def updateInverter(self, busID, lW, dailyTotal):
+    # expects input (except busID and now ehich are int and datetime) to be Decimal
+    def updateInverter(self, busID, now, lW, dailyTotal):
         # prepare timestamps
-        now = datetime.now(tzlocal())
         thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
         thisHour = now + relativedelta(minute=0, second=0, microsecond=0)
         thisDay = now.date()
@@ -667,9 +666,8 @@ class Aggregation():
     
     # aggregates minutely, hourly, daily, monthly and yearly data
     # expects input (except budID) to be Decimal
-    def updateSmartMeter(self, phase1, phase2, phase3, reading):
+    def updateSmartMeter(self, now, reading, phase1, phase2, phase3):
         # prepare timestamps
-        now = datetime.now(tzlocal())
         thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
         thisHour = now + relativedelta(minute=0, second=0, microsecond=0)
         thisDay = now.date()
@@ -762,7 +760,7 @@ class Aggregation():
         totalConsumption = phase1 + phase2 + phase3 # this was computed as sumUsed before so it might be faster to pass it as parameter instead of calculating it here again
         if totalConsumption > self.SmartMeterMaximum.data[2]:
             self.SmartMeterMaximum.data[0] = thisDay # this should not be necessary as the first condition MUST hold once a day
-            self.SmartMeterMaximum.data[3] = now
+            self.SmartMeterMaximum.data[1] = now
             self.SmartMeterMaximum.data[2] = totalConsumption
             self.SmartMeterMaximum.timestamp = now
         
@@ -771,7 +769,7 @@ class RLogDaemon(Daemon):
     NEXTRING = None
     SOUND = None
     DELAY = None
-    BELLCOUNTER = 0
+    BELLCOUNTER = Decimal(0)
     MAX_BUS_PARTICIPANTS = None
     DISCOVERY_COUNT = None
 
@@ -909,13 +907,7 @@ class RLogDaemon(Daemon):
                 if candidate.does_exist():
                     self._slaves[self._current_discovery_id] = candidate
                     try:
-                        self._db_cursor.execute("INSERT INTO charts_device (id, model) VALUES (%s, %s)", (candidate.bus_id, candidate.model)) # actually updates if exists due to database rule:
-# CREATE OR REPLACE RULE upsert_device AS
-#    ON INSERT TO charts_device
-#       WHERE (EXISTS (SELECT 1 FROM charts_device WHERE charts_device."id" = new."id"))
-#    DO INSTEAD 
-#       UPDATE charts_device SET "model" = new."model"
-#            WHERE charts_device."id" = new."id";
+                        self._db_cursor.execute("INSERT INTO charts_device (id, model) VALUES (%s, %s)", (candidate.bus_id, candidate.model)) # actually upserts if exists due to database rule
                         self._db_connection.commit()
                     except psycopg2.OperationalError as ex:
                         log("Database Operational Error!")
@@ -948,7 +940,7 @@ class RLogDaemon(Daemon):
     # try all device starting with DEVICE_NAME_BASE and try to talk to the smart meter if it exists (if smart meter is enabled).
     # if smart meter is found (or smartmeter is not enabled) try the first device starting with DEVICE_NAME_BASE and assume it is the rs485 adapter for the WR (make sure to skip smart meter adapter if present)
     def discover_device(self):
-        smart_meter_device = -1 # to be excluded in the second run
+        smart_meter_device = -1 # to be excluded in the second run of 'for device_id in range(0, 100):'
         if self._smart_meter_enabled:
             log("Searching for device where the smart meter responds")
             for device_id in range(0, 100):
@@ -1036,27 +1028,36 @@ class RLogDaemon(Daemon):
             data = wr.request_data()
             if DEBUG_ENABLED:
                 log("Read row %s" % data)
-            if data:
+            if data: # looks like "\n*030   5 242.9  0.14    40 230.4  0.27    38  26   1925 Z 3501xi\r"
+                tmp = [datetime.now(tzlocal()), str(wr.bus_id)]
                 cols = data.split()
+                tmp.extend(cols[2:10])
+                statements.append(tmp)
                 try:
                   linePower = cols[7]
                   sumProduced += Decimal(linePower) # add together production
                   self.update_bell_counter(linePower)
                 except Exception as e:
                    log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
-                tmp = [str(wr.bus_id)]
-                tmp.extend(cols[2:10])
-                statements.append(tmp)
+                # aggregate stuff (arguments are busID, time of reading, lW and total of day
+                self._aggregator.updateInverter(wr.bus_id, tmp[0], Decimal(cols[7]), Decimal(cols[9]))
+                # try to publish via MQTT
                 try:
-                    self._mqttPublisher.publish("/devices/RLog/controls/" + wr.model + " (" + str(wr.bus_id) + ")", tmp[-3], 0, True)
+                    self._mqttPublisher.publish("/devices/RLog/controls/" + wr.model + " (" + str(wr.bus_id) + ")", cols[7], 0, True) # cols[7] is line power but I saved the str() method on that Decimal as in cols are already strings
                 except Exception as e:
-                    log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + tmp[-3])
+                    log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + cols[7])
                 if DEBUG_ENABLED:
                     log("adding: "+ ", ".join(tmp) + " to transaction")
                 time.sleep(0.33)
         if statements:
             try:
-                self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (now(), %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
+                self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
+                self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
+                self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
+                self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("WR: Database Operational Error!")
@@ -1083,7 +1084,7 @@ class RLogDaemon(Daemon):
                 
                 if DEBUG_ENABLED:
                     log("Smart Meter datagram: %s" % datagram)
-                values = [] # list of Decimals that is going to be passed to ececute()
+                values = [datetime.now(tzlocal())] # appended by list of Decimals. is going to be passed to execute()
                 match = self._reading_regex.search(datagram)
                 if match:
                     values.append(Decimal(match.group(1)))
@@ -1111,9 +1112,19 @@ class RLogDaemon(Daemon):
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (3)", str(values[-1]), 0, True)
                     except Exception as e:
                         log("MQTT cause exception in poll_devices(): " + str(e))
-                if len(values) == 4:
+                if len(values) == 5:
+                    # aggregate stuff (arguments are time of reading, reading, phase1, phase2, phase3
+                    self._aggregator.updateSmartMeter(values[0], values[1], values[2], values[3], values[4])
+                    # saving everything to database (hopefully that works or I need to do everything in its own try-catch block and transaction
+                    # every insert is acutally an upsert due to database rules
                     try:
-                        self._db_cursor.execute("INSERT INTO charts_smartmeterentrytick (time, reading, phase1, phase2, phase3) VALUES (now(), %s, %s, %s, %s)", values)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentrytick ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', values)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryminute ("time", exacttime, reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s, %s)', self._aggregator.SmartMeterMinute.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryhour ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterHour.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryday ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterDay.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentrymonth ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterMonth.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryyear ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterYear.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterdailymaxima ("time", exacttime, maximum) VALUES (%s, %s, %s)', self._aggregator.SmartMeterMaximum.data)
                         self._db_connection.commit()
                     except psycopg2.OperationalError as ex:
                         log("Smart Meter: Database Operational Error!")
@@ -1127,14 +1138,15 @@ class RLogDaemon(Daemon):
         try:
             self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (%s, %s);", self._aggregator.Eigenverbrauch.data) # will do upsert because of table rule
             self._db_connection.commit()
-            log("Saving Eigenverbrauch: " + str(self._aggregator.Eigenverbrauch.data))
+            if DEBUG_ENABLED:
+                log("saving eigenverbrauch: " + str(self._aggregator.Eigenverbrauch.data))
         except Exception as ex:
-            log("Error saving Sigenverbrauch:")
+            log("Error saving eigenverbrauch:")
             log(str(type(ex)) + str(ex))
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
-        RLogDaemon.BELLCOUNTER += (Decimal(val) / 360000)
+        RLogDaemon.BELLCOUNTER += val / 360000)
         
         if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
             self.ring_bell()
