@@ -17,7 +17,7 @@ import mqtt
 from daemon import Daemon
 import argparse
 import re
-import decimal
+from decimal import Decimal
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzlocal
@@ -279,7 +279,7 @@ class Aggregation():
         # In order to aggregate for month and year, I want to add the values excluding the current day to the reading for that current day (as this reading is constatnly rising thougout the day).
         # This means that whenever a day passes, the production of this day must be added to the 'day before' values, but only if the new date is in the same period.
         # So I'm going to use that data part of the AggregationItem 
-        #     to store just the decimal.Decimal holding the value 
+        #     to store just the Decimal holding the value 
         #     (no list that execute() could deal with) and the timestamp 
         #     in order to later find out whether the corresponding period 
         #     has passed and the value can be zeroed again.
@@ -302,7 +302,7 @@ class Aggregation():
         # start with minute
         try:
             thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
-            self.WRminute[busID] = AggregationItem([thisMinute, datetime.now(tzlocal()), busID, decimal.Decimal(0)])
+            self.WRminute[busID] = AggregationItem([thisMinute, datetime.now(tzlocal()), busID, Decimal(0)])
             db_cursor.execute('SELECT time, exacttime, device_id, "lW" FROM charts_solarentryminute WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisMinute])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -318,7 +318,7 @@ class Aggregation():
         # hour
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
-            self.WRhour[busID] = AggregationItem([thisHour, busID, decimal.Decimal(0)])
+            self.WRhour[busID] = AggregationItem([thisHour, busID, Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryhour WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisHour])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -336,7 +336,7 @@ class Aggregation():
             # let's do the month thing first
             thisDay = datetime.now(tzlocal()).date()
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date()
-            self.WRmonthDayBefore[busID] = AggregationItem(decimal.Decimal(0))
+            self.WRmonthDayBefore[busID] = AggregationItem(Decimal(0))
             db_cursor.execute('SELECT SUM("lW") FROM charts_solarentryday WHERE "time" >= %s AND time < %s AND device_id = %s;', [thisMonth, thisDay, busID])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -357,7 +357,7 @@ class Aggregation():
             # now do the year thing similarly
             thisDay = datetime.now(tzlocal()).date()
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
-            self.WRyearDayBefore[busID] = AggregationItem(decimal.Decimal(0))
+            self.WRyearDayBefore[busID] = AggregationItem(Decimal(0))
             db_cursor.execute('SELECT SUM("lW") FROM charts_solarentryday WHERE "time" >= %s AND time < %s AND device_id = %s;', [thisYear, thisDay, busID])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -378,7 +378,7 @@ class Aggregation():
         # month
         try:
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
-            self.WRmonth[busID] = AggregationItem([thisMonth, busID, decimal.Decimal(0)])
+            self.WRmonth[busID] = AggregationItem([thisMonth, busID, Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentrymonth WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisMonth])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -394,7 +394,7 @@ class Aggregation():
         # year
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
-            self.WRyear[busID] = AggregationItem([thisYear, busID, decimal.Decimal(0)])
+            self.WRyear[busID] = AggregationItem([thisYear, busID, Decimal(0)])
             db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryyear WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisYear])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -410,7 +410,7 @@ class Aggregation():
         # maximum
         try:
             thisDay = datetime.now(tzlocal()).date()
-            self.WRmaxima[busID] = AggregationItem([thisDay, busID, decimal.Decimal(0), datetime.now(tzlocal())])
+            self.WRmaxima[busID] = AggregationItem([thisDay, busID, Decimal(0), datetime.now(tzlocal())])
             db_cursor.execute('SELECT time, device_id, "lW", exacttime FROM charts_solardailymaxima WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -429,7 +429,7 @@ class Aggregation():
         # minute
         try:
             thisMinute = datetime.now(tzlocal()) + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
-            self.SmartMeterMinute = AggregationItem([thisMinute, datetime.now(tzlocal()), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            self.SmartMeterMinute = AggregationItem([thisMinute, datetime.now(tzlocal()), Decimal(0), Decimal(0), Decimal(0), Decimal(0)])
             db_cursor.execute('SELECT "time", exacttime, reading, phase1, phase2, phase3 FROM charts_smartmeterentryminute WHERE time = %s LIMIT 1;', [thisMinute])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -445,7 +445,7 @@ class Aggregation():
         # hour
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
-            self.SmartMeterHour = AggregationItem([thisHour, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            self.SmartMeterHour = AggregationItem([thisHour, Decimal(0), Decimal(0), Decimal(0), Decimal(0)])
             db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryhour WHERE time = %s LIMIT 1;', [thisHour])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -461,7 +461,7 @@ class Aggregation():
         # day
         try:
             thisDay = datetime.now(tzlocal()).date()
-            self.SmartMeterDay = AggregationItem([thisDay, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            self.SmartMeterDay = AggregationItem([thisDay, Decimal(0), Decimal(0), Decimal(0), Decimal(0)])
             db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryday WHERE time = %s LIMIT 1;', [thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -477,7 +477,7 @@ class Aggregation():
         # month
         try:
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
-            self.SmartMeterMonth = AggregationItem([thisMonth, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            self.SmartMeterMonth = AggregationItem([thisMonth, Decimal(0), Decimal(0), Decimal(0), Decimal(0)])
             db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentrymonth WHERE time = %s LIMIT 1;', [thisMonth])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -493,7 +493,7 @@ class Aggregation():
         # year
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
-            self.SmartMeterYear = AggregationItem([thisYear, decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0), decimal.Decimal(0)])
+            self.SmartMeterYear = AggregationItem([thisYear, Decimal(0), Decimal(0), Decimal(0), Decimal(0)])
             db_cursor.execute('SELECT "time", reading, phase1, phase2, phase3 FROM charts_smartmeterentryyear WHERE time = %s LIMIT 1;', [thisYear])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -509,7 +509,7 @@ class Aggregation():
         # maximum
         try:
             thisDay = datetime.now(tzlocal()).date()
-            self.SmartMeterMaximum = AggregationItem([thisDay, datetime.now(tzlocal()), decimal.Decimal(0)])
+            self.SmartMeterMaximum = AggregationItem([thisDay, datetime.now(tzlocal()), Decimal(0)])
             db_cursor.execute('SELECT "time", exacttime, maximum FROM charts_smartmeterdailymaxima WHERE time = %s LIMIT 1;', [thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -527,7 +527,7 @@ class Aggregation():
     def fetchInitialEigenverbrauchData(self, db_cursor):
         try:
             thisDay = datetime.now(tzlocal()).date()
-            self.Eigenverbrauch = AggregationItem([thisDay, decimal.Decimal(0)])
+            self.Eigenverbrauch = AggregationItem([thisDay, Decimal(0)])
             db_cursor.execute('SELECT "time", eigenverbrauch FROM charts_eigenverbrauch WHERE time = %s LIMIT 1;', [thisDay])
             if db_cursor.rowcount == 0:
                 if DEBUG_ENABLED:
@@ -546,12 +546,13 @@ class Aggregation():
     def makeExecutemanyDataStructure(self, dictionaryOfAggregationItems):
         return [item.data for item in dictionaryOfAggregationItems.values()]
     
-    
+    # aggregates daily eigenverbrauch
+    # expects input to be Decimal
     def updateEigenverbrauch(self, sumProduced, sumUsed):
         now = datetime.now(tzlocal())
-        eigenverbrauch = decimal.Decimal(sumUsed if sumProduced > sumUsed else sumProduced)
+        eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         thisDay = now.date()
-        increment = eigenverbrauch * decimal.Decimal((now - self.Eigenverbrauch.timestamp).total_seconds()) / decimal.Decimal(3600)
+        increment = eigenverbrauch * Decimal((now - self.Eigenverbrauch.timestamp).total_seconds()) / Decimal(3600)
         if self.Eigenverbrauch.timestamp.date() == thisDay:
             self.Eigenverbrauch.data[1] += increment # add to current day's eigenverbrauch (the time is still valid)
         else:        
@@ -559,6 +560,27 @@ class Aggregation():
             self.Eigenverbrauch.data[1] = increment  # first value of today
         self.Eigenverbrauch.timestamp = now
     
+    # aggredates minutely, hourly, daily, monthly and yearly data
+    # expects input (except budID) to be Decimal
+    def updateInverter(self, busID, lW, dailyTotal):
+        # prepare timestamps
+        now = datetime.now(tzlocal())
+        thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
+        thisHour = now + relativedelta(minute=0, second=0, microsecond=0)
+        thisDay = now.date()
+        thisMonth = (now + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
+        thisYear = (now + relativedelta(month=1, day=1)).date()
+    
+    # aggredates minutely, hourly, daily, monthly and yearly data
+    # expects input (except budID) to be Decimal
+    def updateSmartMeter(self, phase1Float, phase2Float, phase3, reading):
+        # prepare timestamps
+        now = datetime.now(tzlocal())
+        thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
+        thisHour = now + relativedelta(minute=0, second=0, microsecond=0)
+        thisDay = now.date()
+        thisMonth = (now + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
+        thisYear = (now + relativedelta(month=1, day=1)).date()
         
 class RLogDaemon(Daemon):
     KWHPERRING = None
@@ -608,14 +630,14 @@ class RLogDaemon(Daemon):
         self._db_cursor.execute("SELECT * FROM charts_settings WHERE active = TRUE ORDER BY id DESC LIMIT 1;")
         try:
            sets = self._db_cursor.fetchone()
-           RLogDaemon.KWHPERRING = sets[2]
-           RLogDaemon.NEXTRING = sets[2]
+           RLogDaemon.KWHPERRING = Decimal(sets[2]) # not sure it is already decimal
+           RLogDaemon.NEXTRING = Decimal(sets[2])
            RLogDaemon.SOUND = sets[3]
         except Exception as ex:
             log("Couldn't read settings from database. Will use defaults. Error was:")
             log(str(type(ex))+str(ex))
-            RLogDaemon.KWHPERRING = 1
-            RLogDaemon.NEXTRING = 1
+            RLogDaemon.KWHPERRING = Decimal(1)
+            RLogDaemon.NEXTRING = Decimal(1)
             RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
         except Error as err:
             log(str(type(err)))
@@ -822,10 +844,10 @@ class RLogDaemon(Daemon):
 
     def poll_devices(self):
         # variables for Eigenverbrauch
-        sumProduced = 0
-        sumUsed = 0
+        sumProduced = Decimal(0)
+        sumUsed = Decimal(0)
         # poll the WR
-        statements = []
+        statements = [] # list of string lists that is going to be passed to executemany()
         for (bus_id, wr) in self._slaves.iteritems():
             data = wr.request_data()
             if DEBUG_ENABLED:
@@ -834,7 +856,7 @@ class RLogDaemon(Daemon):
                 cols = data.split()
                 try:
                   linePower = cols[7]
-                  sumProduced += float(linePower) # add together production
+                  sumProduced += Decimal(linePower) # add together production
                   self.update_bell_counter(linePower)
                 except Exception as e:
                    log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
@@ -859,7 +881,6 @@ class RLogDaemon(Daemon):
                 log("integrity error shit is going on\n" + str(e))
         # poll the smart meter (if it's there)
         if self._smart_meter:
-            statements = []
             datagram = self._smart_meter.request_data()
             if datagram:
                 # looks like this:
@@ -878,13 +899,13 @@ class RLogDaemon(Daemon):
                 
                 if DEBUG_ENABLED:
                     log("Smart Meter datagram: %s" % datagram)
-                values = []
+                values = [] # list of Decimals that is going to be passed to ececute()
                 match = self._reading_regex.search(datagram)
                 if match:
-                    values.append(float(match.group(1)))
+                    values.append(Decimal(match.group(1)))
                 match = self._phase1_regex.search(datagram)
                 if match:
-                    values.append(float(match.group(1)) * 1000)
+                    values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (1)", str(values[-1]), 0, True)
@@ -892,7 +913,7 @@ class RLogDaemon(Daemon):
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 match = self._phase2_regex.search(datagram)
                 if match:
-                    values.append(float(match.group(1)) * 1000)
+                    values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (2)", str(values[-1]), 0, True)
@@ -900,7 +921,7 @@ class RLogDaemon(Daemon):
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 match = self._phase3_regex.search(datagram)
                 if match:
-                    values.append(float(match.group(1)) * 1000)
+                    values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
                         self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (3)", str(values[-1]), 0, True)
@@ -920,7 +941,7 @@ class RLogDaemon(Daemon):
         # insert Eigenverbrauch into database
         self._aggregator.updateEigenverbrauch(sumProduced, sumUsed)
         try:
-            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (%s, %s);", self._aggregator.Eigenverbrauch.data) # will do upsertbecause of table rule
+            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (%s, %s);", self._aggregator.Eigenverbrauch.data) # will do upsert because of table rule
             self._db_connection.commit()
             log("Saving Eigenverbrauch: " + str(self._aggregator.Eigenverbrauch.data))
         except Exception as ex:
@@ -929,13 +950,13 @@ class RLogDaemon(Daemon):
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
-        RLogDaemon.BELLCOUNTER += (float(val) / 360000)
+        RLogDaemon.BELLCOUNTER += (Decimal(val) / 360000)
         
         if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
             self.ring_bell()
             RLogDaemon.NEXTRING = RLogDaemon.NEXTRING + RLogDaemon.KWHPERRING
         if DEBUG_ENABLED:
-            log("""Bellcount: %s Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER),str(RLogDaemon.NEXTRING)))
+            log("""Bellcount: %s Nextring: %s""" % (str(RLogDaemon.BELLCOUNTER), str(RLogDaemon.NEXTRING)))
 
     #trigger playsound tool 
     def ring_bell(self):
