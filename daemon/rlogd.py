@@ -257,6 +257,7 @@ class AggregationItem():
         self.data = [] if data == None else data # this is going to hold the data as psycopg2's execute() expects it
         self.timestamp = datetime.now(tzlocal()) if time == None else time # this is going to hold the exact datetime when self.data was last updated
     
+    # debugging helpers :)
     def __str__(self):
         return "time: " + str(self.timestamp) + " data: " + str(self.data)
 
@@ -268,7 +269,7 @@ class Aggregation():
     def __init__(self):
         self.WRminute = {} # dictionary for the minutely inverter data, e.g by bus_id (should be of type AggregationItem so that makeExecutemanyDataStructure() is able to operate on it)
         self.WRhour = {}
-        # inverter day does not need to be aggregated as it is contained precisely in every inverter message
+        self.WRday = {} # inverter day does not need to be aggregated as it is contained precisely in every inverter message. But I still need to save it to be able to do the hacky stuff and pass it to execute()
         self.WRmonth = {}
         self.WRyear = {}
         self.WRmaxima = {}
@@ -276,14 +277,15 @@ class Aggregation():
         # now this is hacky:
         # those additional AggregationItem dictionaries should make the inverter month and year aggregation more accurate:
         # There is a precise daily production counter in every inverter message (which gets stored in charts_solarentryday).
-        # In order to aggregate for month and year, I want to add the values excluding the current day to the reading for that current day (as this reading is constatnly rising thougout the day).
+        # In order to aggregate for month and year, I want to add the values excluding the current day, to the reading for that current day (as this reading is constatnly rising thougout the day).
         # This means that whenever a day passes, the production of this day must be added to the 'day before' values, but only if the new date is in the same period.
         # So I'm going to use that data part of the AggregationItem 
         #     to store just the Decimal holding the value 
-        #     (no list that execute() could deal with) and the timestamp 
+        #     (no list that execute() could deal with)
+        #     and the timestamp 
         #     in order to later find out whether the corresponding period 
         #     has passed and the value can be zeroed again.
-        # Puh, triggers doing sums were not that bad I guess ... 
+        # Puh, database triggers doing sums were not that bad I guess ... 
         self.WRmonthDayBefore = {}
         self.WRyearDayBefore = {}
         
@@ -315,6 +317,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading minutely inverter data: " + str(ex))
             sys.exit(1) # I really want this to work
+        
         # hour
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
@@ -331,6 +334,24 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading hourly inverter data: " + str(ex))
             sys.exit(1)
+        
+        # day
+        try:
+            thisDay = datetime.now(tzlocal()).date()
+            self.WRday[busID] = AggregationItem([thisDay, busID, Decimal(0)])
+            db_cursor.execute('SELECT time, device_id, "lW" FROM charts_solarentryday WHERE device_id = %s AND time = %s LIMIT 1;', [busID, thisDay])
+            if db_cursor.rowcount == 0:
+                if DEBUG_ENABLED:
+                    log("There is no matching daily inverter data for bus id " + str(busID))
+            else:
+                daily = db_cursor.fetchone()
+                if DEBUG_ENABLED:
+                    log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in daily]))
+                self.WRday[busID] = AggregationItem(list(daily))
+        except Exception as ex:
+            log("Exception while loading daily inverter data: " + str(ex))
+            sys.exit(1)
+        
         # hacky dayBefore stuff
         try:
             # let's do the month thing first
@@ -374,6 +395,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading sum for current year except today: " + str(ex))
             sys.exit(1)
+        
         # end of hacky dayBefore stuff
         # month
         try:
@@ -391,6 +413,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading monthly inverter data: " + str(ex))
             sys.exit(1)
+        
         # year
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
@@ -407,6 +430,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading yearly inverter data: " + str(ex))
             sys.exit(1)
+        
         # maximum
         try:
             thisDay = datetime.now(tzlocal()).date()
@@ -442,6 +466,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading minutely smart meter data: " + str(ex))
             sys.exit(1)
+        
         # hour
         try:
             thisHour = datetime.now(tzlocal()) + relativedelta(minute=0, second=0, microsecond=0)
@@ -458,6 +483,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading hourly smart meter data: " + str(ex))
             sys.exit(1)
+        
         # day
         try:
             thisDay = datetime.now(tzlocal()).date()
@@ -474,6 +500,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading daily smart meter data: " + str(ex))
             sys.exit(1)
+        
         # month
         try:
             thisMonth = (datetime.now(tzlocal()) + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
@@ -490,6 +517,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading monthly smart meter  data: " + str(ex))
             sys.exit(1)
+        
         # year
         try:
             thisYear = (datetime.now(tzlocal()) + relativedelta(month=1, day=1)).date()
@@ -506,6 +534,7 @@ class Aggregation():
         except Exception as ex:
             log("Exception while loading yearly smart meter data: " + str(ex))
             sys.exit(1)
+        
         # maximum
         try:
             thisDay = datetime.now(tzlocal()).date()
@@ -552,7 +581,7 @@ class Aggregation():
         now = datetime.now(tzlocal())
         eigenverbrauch = sumUsed if sumProduced > sumUsed else sumProduced
         thisDay = now.date()
-        increment = eigenverbrauch * Decimal((now - self.Eigenverbrauch.timestamp).total_seconds()) / Decimal(3600)
+        increment = eigenverbrauch * Decimal((now - self.Eigenverbrauch.timestamp).total_seconds()) / 3600 # energy in Wh since the last update
         if self.Eigenverbrauch.timestamp.date() == thisDay:
             self.Eigenverbrauch.data[1] += increment # add to current day's eigenverbrauch (the time is still valid)
         else:        
@@ -570,6 +599,67 @@ class Aggregation():
         thisDay = now.date()
         thisMonth = (now + relativedelta(day=1)).date() # local time zone corrected date (I hope so!)
         thisYear = (now + relativedelta(month=1, day=1)).date()
+        
+        # care about the hacky day before stuff (needs to be done before self.WRday[busID] gets updated)
+        oldMonthlyAggregationDate = self.WRmonthDayBefore[busID].timestamp.date()
+        if oldMonthlyAggregationDate != thisDay: # I only expect it to be either exatly the same or at most one day off but I'm too lazy to really assert that
+            self.WRmonthDayBefore[busID].data += self.WRday[busID].data[1] # add yesterdays value to the monthly accumulated day- before- sum
+            if oldMonthlyAggregationDate < thisMonth:
+                self.WRmonthDayBefore[busID].data = Decimal(0) # clear the montly day-before-sum when the month changes
+        self.WRmonthDayBefore[busID].timestamp = now
+        oldYearlyAggregationDate = WRyearDayBefore[busID].timestamp.date()
+        if oldMonthlyAggregationDate != thisDay: # actually, this should be in sync with the hacky monthly stuff (as all aggregated values use the same now- timestamp)
+            self.WRyearDayBefore[busID].data += self.WRday[busID].data[1]
+            if oldYearlyAggregationDate < thisYear:
+                self.WRyearDayBefore[busID].data = Decimal(0)
+        self.WRyearDayBefore[busID].timestamp = now
+        
+        # OK, hacky things are done now let's start with the minute aggregation (data order: time, exacttime, device_id, "lW")
+        if self.WRminute[busID].data[0] < thisMinute: # if a new minute has started estimate the energy for this minute by expeting that the same power is drawn for 60 seconds
+            self.WRminute[busID].data[3] = lW / 60 # the consumed energy in this minute assuming that the consumption stays constant
+        else: # we already have an estimate for this minute
+            timePassedInThisMinute = Decimal((now - self.WRminute[busID].timestamp).total_seconds()) # self.WRminute[busID].timestamp should be the same as self.WRminute[busID].data[1] (which is exacttime) but requires one array access less!
+            timeLeftInThisMinute = 60 - timePassedInThisMinute
+            self.WRminute[busID].data[3] = (self.WRminute[busID].data[3] * timePassedInThisMinute + lW * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
+        # fill in the remaining fields that need to be updated the same, no matter whether it is the same minute or a new one
+        self.WRminute[busID].data[0] = thisMinute
+        self.WRminute[busID].data[1] = now # this entry exists for historical reasons and I'm affraid of removing it :(
+        self.WRminute[busID].timestamp = now
+        
+        # the hour aggregation. data order: time, device_id, "lW"
+        # this might be inaccurate because of rounding (decimal is accurate to 28 digits by default).
+        # Maybe I'll use a trigger to iron that out for the day befor in the database every midnight but I don't think the difference appears in the database at all because the precision is only 3 digits there)
+        if self.WRhour[busID].data[0] < thisHour: # if a new hour has started
+            self.WRhour[busID].data[2] = Decimal(0) # clear aggregation if a new hour has started
+        timePassedSinceLastHourUpdate = Decimal((now - self.WRhour[busID].timestamp).total_seconds())
+        self.WRhour[busID].data[0] = thisHour
+        self.WRhour[busID].data[2] += lW * timePassedSinceLastUpdate / 3600  # add the the consumed energy since the last update
+        self.WRhour[busID].timestamp = now
+        
+        # day 'aggregation'. data order: time, device_id, "lW" (it is not really aggregation as we read the aggregated value every time and don't need to compute anything)
+        self.WRday[busID].data[0] = thisDay
+        self.WRday[busID].data[2] = dailyTotal
+        self.WRday[busID].timestamp = now # actually nobody cares about that (delete it in case of performance issues :) )
+        
+        # month agregation. data order: time, device_id, "lW" (we are using hacky day before stuff here)
+        self.WRmonth[busID].data[0] = thisMonth
+        self.WRmonth[busID].data[2] += self.WRmonthDayBefore[busID].data + self.WRday[busID].data[0] # add the accumulation until (and including yesterday) and the current daily total
+        self.WRmonth[busID].timestamp = now
+        
+        # year agregation. data order: time, device_id, "lW"
+        self.WRyear[busID].data[0] = thisYear
+        self.WRyear[busID].data[2] += self.WRyearDayBefore[busID].data + self.WRday[busID].data[0] # add the accumulation until (and including yesterday) and the current daily total
+        self.WRyear[busID].timestamp = now
+        
+        # so, finally the maximum. data order: time, device_id, "lW", exacttime
+        if self.WRmaxima[busID].data[0] < thisDay: # if a new day has started
+            self.WRmaxima[busID].data[0] = thisDay
+            self.WRmaxima[busID].data[2] = Decimal(0)           
+            self.WRmaxima[busID].data[3] = now
+        if lW > self.WRmaxima[busID].data[2]:
+            self.WRmaxima[busID].data[0] = thisDay # this should not be necessary as the first condition MUST hold once a day
+            self.WRmaxima[busID].data[2] = lW
+            self.WRmaxima[busID].data[3] = now
     
     # aggredates minutely, hourly, daily, monthly and yearly data
     # expects input (except budID) to be Decimal
