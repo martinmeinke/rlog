@@ -3,8 +3,9 @@ from django.shortcuts import render_to_response
 from chart import Chart
 from live_chart import LiveChart
 import datetime
+from dateutil.tz import tzlocal
 import calendar
-import json
+from django.core.serializers.json import json, DjangoJSONEncoder
 from charts.forms import StatsForm, CustomStatsForm
 from dateutil.relativedelta import relativedelta
 from django.template import RequestContext
@@ -38,15 +39,15 @@ def liveData(request):
             graphs.append({"data": chart.fetchTimeSeriesLiveView(device.id, ticksWR)})
         # smart meter data
         ticksSM = SmartMeterEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
-        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
-        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
-        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase1) for tick in ticksSM]})
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase2) for tick in ticksSM]})
+        graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase3) for tick in ticksSM]})
         
-        return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs))
+        return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs), cls=DjangoJSONEncoder)
     
     else:
-        start = datetime.datetime.today()-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
-        end = datetime.datetime.today()
+        start = datetime.datetime.now(tzlocal())-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+        end = datetime.datetime.now(tzlocal())
         ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         
@@ -55,12 +56,12 @@ def liveData(request):
             label = "Erzeugung WR %s (ID: %s)" % (device.model, device.id)
             graphs.append({"label": label, "data":timetuples})
         
-        graphs.append({"label" : "Nutzung VSM-102 Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM]})
-        graphs.append({"label" : "Nutzung VSM-102 Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM]})
-        graphs.append({"label" : "Nutzung VSM-102 Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM]})
+        graphs.append({"label" : "Nutzung VSM-102 Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase1) for tick in ticksSM]})
+        graphs.append({"label" : "Nutzung VSM-102 Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase2) for tick in ticksSM]})
+        graphs.append({"label" : "Nutzung VSM-102 Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase3) for tick in ticksSM]})
 
-        timeseries = json.dumps(graphs)
-        plotsettings = json.dumps(chart.chartOptionsLiveView())
+        timeseries = json.dumps(graphs, cls=DjangoJSONEncoder)
+        plotsettings = json.dumps(chart.chartOptionsLiveView(), cls=DjangoJSONEncoder)
         return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
 def stats(request, timeframe_url):
@@ -78,8 +79,8 @@ def stats(request, timeframe_url):
             if(timeframe == "timeframe_cus"):
                 custom_stats_form = CustomStatsForm(request.POST)
                 if custom_stats_form.is_valid():
-                    start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
-                    end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.today()), "%m/%d/%Y")
+                    start = datetime.datetime.strptime(request.POST.get('startfrom', datetime.datetime.now(tzlocal())+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)), "%m/%d/%Y")
+                    end = datetime.datetime.strptime(request.POST.get('endby', datetime.datetime.now(tzlocal())), "%m/%d/%Y")
                     
                     custom_form.fields["startfrom"].initial = start
                     custom_form.fields["endby"].initial = end
@@ -94,16 +95,16 @@ def stats(request, timeframe_url):
                     return render_to_response('charts/stats.html', vars(), RequestContext(request))
             else:
                 if timeframe == "timeframe_hrs":
-                    start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
-                    end = datetime.datetime.today()
+                    start = datetime.datetime.now(tzlocal())+relativedelta(minute=0, second=0, microsecond=0)
+                    end = datetime.datetime.now(tzlocal())
                 elif timeframe == "timeframe_day":
-                    start = datetime.datetime.today() + relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                    start = datetime.datetime.now(tzlocal()) + relativedelta(hour=0, minute=0, second=0, microsecond=0)
                     end = start + relativedelta(hour = 23, minute = 59)
                 elif timeframe == "timeframe_mon":
-                    start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    start = datetime.datetime.now(tzlocal())+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
                     end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 elif timeframe == "timeframe_yrs":
-                    start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                    start = datetime.datetime.now(tzlocal())+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                     end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
         else:
             print "Invalid form input"
@@ -118,19 +119,19 @@ def stats(request, timeframe_url):
         #determine start and end date for the chart
         if timeframe != "timeframe_cus":
             if timeframe == "timeframe_hrs":
-                start = datetime.datetime.today()+relativedelta(minute=0, second=0, microsecond=0)
-                end = datetime.datetime.today()
+                start = datetime.datetime.now(tzlocal())+relativedelta(minute=0, second=0, microsecond=0)
+                end = datetime.datetime.now(tzlocal())
                 period = 'period_min'
             elif timeframe == "timeframe_day":
-                start = datetime.datetime.today()-relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.now(tzlocal())-relativedelta(hour=0, minute=0, second=0, microsecond=0)
                 end = start + relativedelta(hour = 23, minute = 59)
                 period = 'period_hrs'
             elif timeframe == "timeframe_mon":
-                start = datetime.datetime.today()+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.now(tzlocal())+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
                 end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_day'
             elif timeframe == "timeframe_yrs":
-                start = datetime.datetime.today()+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                start = datetime.datetime.now(tzlocal())+relativedelta(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 end = start + relativedelta(month = 12, day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
                 period = 'period_mon'  
         else:
@@ -155,17 +156,17 @@ def stats(request, timeframe_url):
         graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "lines": {"fillColor": "rgba(0,255,0,0.3)"}, "stack":"WR", "bars": {"order": "0"}})
     
     ticksSM = chart.getSmartMeterTimeSeries()
-
-    graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase1)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
-    graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase2)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
-    graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, float(tick.phase3)) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
+    if len(ticksSM) > 0:
+        graphs.append({"label" : "Nutzung Phase 1", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase1) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
+        graphs.append({"label" : "Nutzung Phase 2", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase2) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
+        graphs.append({"label" : "Nutzung Phase 3", "data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase3) for tick in ticksSM], "lines": {"fillColor": "rgba(255,0,0,0.3)"}, "stack":"SmartMeter", "bars": {"order": "1"}})
 
     #sets the boundaries for plotting
     chart.setChartBoundaries()
-    timeseries = json.dumps(graphs)
+    timeseries = json.dumps(graphs, cls=DjangoJSONEncoder)
 
     #print timeseries
-    plotsettings = json.dumps(chart.chartOptions())
+    plotsettings = json.dumps(chart.chartOptions(), cls=DjangoJSONEncoder)
 
     #TODO: the next couple of lines are pretty ugly
     stat_items = chart.getStatItems()

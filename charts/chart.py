@@ -6,13 +6,15 @@ Created on Oct 6, 2012
 '''
 from django.conf import settings
 from dateutil.relativedelta import relativedelta
-import datetime
+from datetime import datetime, timedelta
+from dateutil.tz import tzlocal
 import time
 import locale
 import random
 import calendar
 from charts.models import * 
 from django.db.models import Sum
+from decimal import Decimal
 
 class StatsItem(object):
     def __init__(self, pLabel, pValue):
@@ -44,8 +46,8 @@ class Chart(object):
             self.__devices.append(device.id)
 
         self.__bar_scale_factor = 0.9
-        self.__totalSupply = 0
-        self.__rewardTotal = 0
+        self.__totalSupply = Decimal(0) 
+        self.__rewardTotal = Decimal(0)
 
         self.__rowarray_list = {}
         
@@ -126,9 +128,6 @@ class Chart(object):
         return sum(v_rewards)
 
     def fetchTimeSeries(self, deviceID):
-        #self.__startdate = datetime.datetime.utcnow()-relativedelta(minutes=30, second=0, microsecond=0)
-        #self.__enddate = datetime.datetime.utcnow()
-
         if self.__period == "period_min":
             ticks = SolarEntryMinute.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
@@ -153,7 +152,7 @@ class Chart(object):
         self.__rowarray_list.update({deviceID : []})
 
         for tick in ticks:
-            self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, float(tick.lW)))
+            self.__rowarray_list[deviceID].append((calendar.timegm(tick.time.timetuple()) * 1000, tick.lW))
 
         return 0
    
@@ -275,7 +274,7 @@ class Chart(object):
                 time__range=(self.__startdate, self.__enddate), 
                 device = deviceID).order_by('-lW')[:1]
             try:
-                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0:.2f}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
             except Exception as e: # probably is index error when there are no values
                 items.append(StatsItem("Maximum WR {0}:".format(deviceID), "keine Daten"))
 
@@ -284,20 +283,19 @@ class Chart(object):
                 time__range=(self.__startdate, self.__enddate), 
                 device = deviceID).aggregate(Sum('lW'))
             try:
-                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0}Wh".format(round(ticks["lW__sum"]), 2)))
+                items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "{0:.2f}Wh".format(ticks["lW__sum"])))
                 self.__totalSupply += ticks["lW__sum"]
             except Exception as e:
                 items.append(StatsItem("Erzeugung WR {0}:".format(deviceID), "keine Daten"))
                 
-        kws = round(self.__totalSupply, 2)                
-        items.append(StatsItem("Insgesamt erzeugt: ", str(kws) + "Wh"))
+        items.append(StatsItem("Insgesamt erzeugt: ", "{0:.2f}Wh".format(self.__totalSupply)))
         
-        eigenverbrauchInPeriod = 0
+        eigenverbrauchInPeriod = Decimal(0) 
         try:
             eigenverbrauchTicks = EigenVerbrauch.objects.filter(time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
-            eigenverbrauchInPeriod = round(eigenverbrauchTicks["eigenverbrauch__sum"])
-            items.append(StatsItem("Eigenverbrauch: ", "{0}Wh".format(eigenverbrauchInPeriod, 2)))
-            items.append(StatsItem("Einspeisung: ", "{0}Wh".format(kws - eigenverbrauchInPeriod, 2)))
+            eigenverbrauchInPeriod = eigenverbrauchTicks["eigenverbrauch__sum"]
+            items.append(StatsItem("Eigenverbrauch: ", "{0:.2f}Wh".format(eigenverbrauchInPeriod)))
+            items.append(StatsItem("Einspeisung: ", "{0:.2f}Wh".format(self.__totalSupply - eigenverbrauchInPeriod)))
         except Exception as e:
             items.append(StatsItem("Eigenverbrauch: ", "keine Daten"))
             items.append(StatsItem("Einspeisung: ", "keine Daten"))
@@ -306,60 +304,60 @@ class Chart(object):
             smartMeterTotal = SmartMeterEntryDay.objects.filter(
                 time__range=(self.__startdate, self.__enddate)).aggregate(Sum(phase))
             try:
-                items.append(StatsItem("Verbrauch Phase {0}:".format(phase[-1]), "{0}Wh".format(round(smartMeterTotal[phase + "__sum"]), 2)))
+                items.append(StatsItem("Verbrauch Phase {0}:".format(phase[-1]), "{0:.2f}Wh".format(smartMeterTotal[phase + "__sum"])))
             except Exception as e:
                 items.append(StatsItem("Verbrauch Phase {0}:".format(phase[-1]), "keine Daten"))
         
-        theDayBeforeStart = self.__startdate - datetime.timedelta(days=1)
+        theDayBeforeStart = self.__startdate - timedelta(days=1)
         smartMeterDayBefore = None
         dayBeforeReading = SmartMeterEntryDay.objects.filter(time=theDayBeforeStart)[:1]
         if dayBeforeReading:
-            smartMeterDayBefore = float(dayBeforeReading[0].reading)
+            smartMeterDayBefore = dayBeforeReading[0].reading
         smartMeterNow = None
-        nowReading = SmartMeterEntryDay.objects.filter(time=self.__enddate).order_by('-time')[:1] # TODO: this is faulty
+        nowReading = None
+        if self.__enddate.date() < datetime.now(tzlocal()).date():
+            nowReading = SmartMeterEntryDay.objects.filter(time=self.__enddate).order_by('-time')[:1]
+        else:
+            nowReading = SmartMeterEntryDay.objects.order_by('-time')[:1]
         if nowReading:
-            smartMeterNow = float(nowReading[0].reading)
+            smartMeterNow = nowReading[0].reading
         eneryConsumptionInPeriod = None
         try:
             eneryConsumptionInPeriod = smartMeterNow - smartMeterDayBefore
-            items.append(StatsItem("Gesamtverbrauch: ", str(eneryConsumptionInPeriod * 1000) + "Wh"))
+            items.append(StatsItem("Gesamtverbrauch: ", "{0:.2f}Wh".format(eneryConsumptionInPeriod * 1000)))
         except:
             items.append(StatsItem("Gesamtverbrauch: ", "keine Daten")) 
         try:
             bezug = eneryConsumptionInPeriod * 1000 - eigenverbrauchInPeriod
-            items.append(StatsItem("Bezug: ", "{0}Wh".format(bezug if bezug > 0 else 0, 2)))
+            items.append(StatsItem("Bezug: ", "{0:.2f}Wh".format(bezug if bezug > 0 else 0, 2)))
         except Exception as e:
             items.append(StatsItem("Bezug: ", "keine Daten"))
 
         smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
         try:
-            items.append(StatsItem("Verbrauchsmaximum:", "{0}W ({1})".format(float(smartMeterMaximum[0].maximum), smartMeterMaximum[0].exacttime)))
+            items.append(StatsItem("Verbrauchsmaximum:", "{0:.2f}W ({1})".format(smartMeterMaximum[0].maximum, smartMeterMaximum[0].exacttime)))
         except Exception as e:
             items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
-        items.append(StatsItem("Zählerstand Start:", str(smartMeterDayBefore) + "kWh"))
-        items.append(StatsItem("Aktueller Zählerstand:", str(smartMeterNow) + "kWh"))
-             
-
-        avgsp = None
         try:
-            avgsp = round((self.__totalSupply/self.getNumPoints()),2)
+            items.append(StatsItem("Zählerstand Start:", "{0:.2f}kWh".format(smartMeterDayBefore)))
+        except:
+            items.append(StatsItem("Zählerstand Start:", "keine Daten"))
+        try:
+            items.append(StatsItem("Zählerstand Ende (bzw. aktuell):", "{0:.2f}kWh".format(smartMeterNow)))
+        except:
+            items.append(StatsItem("Zählerstand Ende (bzw. aktuell):", "keine Daten"))
+
+        try:
+            numPoints = self.getNumPoints()
+            avgsp = self.__totalSupply / numPoints
+            self.calc_total_reward()
+            rwrdtotal = locale.currency(self.__rewardTotal / 100)
+            avgrwrd = locale.currency(self.__rewardTotal / numPoints / 100)
+            items.append(StatsItem("Durchschnitt Einspeisung / Periode", "{0:.2f}".format(avgsp)))
+            items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
+            items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
         except:
             pass
-        
-        self.calc_total_reward()
-        rwrdtotal = locale.currency(self.__rewardTotal/100)
-
-        avgrwrd = None
-        try:
-            avgrwrd = locale.currency(self.__rewardTotal/self.getNumPoints()/100)
-        except:
-            pass
-
-        
-        items.append(StatsItem("Durchschnitt Einspeisung / Periode", avgsp))
-        items.append(StatsItem("Einspeisevergütung: ", rwrdtotal))
-        items.append(StatsItem("Durchschnittliche Einspeisevergütung: ", avgrwrd))
-
         return items
        
     
@@ -375,7 +373,7 @@ class Chart(object):
     #doing it the lazy way now ;)
     def get_reward_for_tick(self, t):        
         for r in self.__rewards:
-            if isinstance(t.time, datetime.datetime):
+            if isinstance(t.time, datetime):
                 if r.time.date() < t.time.date():
                     return r.value * t.lW / 1000
             else:

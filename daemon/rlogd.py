@@ -29,7 +29,7 @@ DEBUG_SERIAL = True
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
-DEBUG_SERIAL_PORT = "/dev/pts/4"
+DEBUG_SERIAL_PORT = "/dev/pts/3"
 MQTT_HOST = "localhost"
 
 LOCATIONX = "14.122994"
@@ -346,7 +346,7 @@ class Aggregation():
             else:
                 daily = db_cursor.fetchone()
                 if DEBUG_ENABLED:
-                    log("There is relevant inverter data for this hour: " + ", ".join([str(x) for x in daily]))
+                    log("There is relevant inverter data for this day: " + ", ".join([str(x) for x in daily]))
                 self.WRday[busID] = AggregationItem(list(daily))
         except Exception as ex:
             log("Exception while loading daily inverter data: " + str(ex))
@@ -602,13 +602,13 @@ class Aggregation():
         # care about the hacky day before stuff (needs to be done before self.WRday[busID] gets updated)
         oldMonthlyAggregationDate = self.WRmonthDayBefore[busID].timestamp.date()
         if oldMonthlyAggregationDate != thisDay: # I only expect it to be either exatly the same or at most one day off but I'm too lazy to really assert that
-            self.WRmonthDayBefore[busID].data += self.WRday[busID].data[1] # add yesterdays value to the monthly accumulated day- before- sum
+            self.WRmonthDayBefore[busID].data += self.WRday[busID].data[2] # add yesterdays value to the monthly accumulated day- before- sum
             if oldMonthlyAggregationDate < thisMonth:
                 self.WRmonthDayBefore[busID].data = Decimal(0) # clear the montly day-before-sum when the month changes
         self.WRmonthDayBefore[busID].timestamp = now
-        oldYearlyAggregationDate = WRyearDayBefore[busID].timestamp.date()
+        oldYearlyAggregationDate = self.WRyearDayBefore[busID].timestamp.date()
         if oldMonthlyAggregationDate != thisDay: # actually, this should be in sync with the hacky monthly stuff (as all aggregated values use the same now- timestamp)
-            self.WRyearDayBefore[busID].data += self.WRday[busID].data[1]
+            self.WRyearDayBefore[busID].data += self.WRday[busID].data[2]
             if oldYearlyAggregationDate < thisYear:
                 self.WRyearDayBefore[busID].data = Decimal(0)
         self.WRyearDayBefore[busID].timestamp = now
@@ -644,12 +644,12 @@ class Aggregation():
         
         # month agregation. data order: time, device_id, "lW" (we are using hacky day before stuff here)
         self.WRmonth[busID].data[0] = thisMonth
-        self.WRmonth[busID].data[2] += self.WRmonthDayBefore[busID].data + self.WRday[busID].data[0] # add the accumulation until (and including yesterday) and the current daily total
+        self.WRmonth[busID].data[2] = self.WRmonthDayBefore[busID].data + self.WRday[busID].data[2] # add the accumulation until (and including yesterday) and the current daily total
         self.WRmonth[busID].timestamp = now
         
         # year agregation. data order: time, device_id, "lW"
         self.WRyear[busID].data[0] = thisYear
-        self.WRyear[busID].data[2] += self.WRyearDayBefore[busID].data + self.WRday[busID].data[0] # add the accumulation until (and including yesterday) and the current daily total
+        self.WRyear[busID].data[2] = self.WRyearDayBefore[busID].data + self.WRday[busID].data[2] # add the accumulation until (and including yesterday) and the current daily total
         self.WRyear[busID].timestamp = now
         
         # so, finally the maximum. data order: time, device_id, "lW", exacttime
@@ -1034,8 +1034,8 @@ class RLogDaemon(Daemon):
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 try:
-                  linePower = cols[7]
-                  sumProduced += Decimal(linePower) # add together production
+                  linePower = Decimal(cols[7])
+                  sumProduced += linePower # add toRether production
                   self.update_bell_counter(linePower)
                 except Exception as e:
                    log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
@@ -1047,23 +1047,39 @@ class RLogDaemon(Daemon):
                 except Exception as e:
                     log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + cols[7])
                 if DEBUG_ENABLED:
-                    log("adding: "+ ", ".join(tmp) + " to transaction")
+                    log("adding: "+ ", ".join([str(x) for x in tmp]) + " to transaction")
                 time.sleep(0.33)
         if statements:
             try:
                 self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
+                if DEBUG_ENABLED:
+                    log("storing minutely WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
+                if DEBUG_ENABLED:
+                    log("storing hourly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
+                if DEBUG_ENABLED:
+                    log("storing daily WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
+                if DEBUG_ENABLED:
+                    log("storing monthly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
+                if DEBUG_ENABLED:
+                    log("storing yearly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
+                if DEBUG_ENABLED:
+                    log("storing maximum WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima)))
                 self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("WR: Database Operational Error!")
                 log(str(type(ex))+str(ex))
             except psycopg2.IntegrityError as e:
-                log("integrity error shit is going on\n" + str(e))
+                log("integrity error shit is going on: " + str(e))
+            except psycopg2.DataError as e:
+                log("data error shit is going on: " + str(e))
+            except psycopg2.InternalError as e:
+                log("internal database error: " + str(e))
         # poll the smart meter (if it's there)
         if self._smart_meter:
             datagram = self._smart_meter.request_data()
@@ -1130,7 +1146,11 @@ class RLogDaemon(Daemon):
                         log("Smart Meter: Database Operational Error!")
                         log(str(type(ex))+str(ex))
                     except psycopg2.IntegrityError as e:
-                        log("Integrity shit is going on\n" + str(e))
+                        log("Integrity shit is going on: " + str(e))
+                    except psycopg2.DataError as e:
+                        log("data error shit is going on: " + str(e))
+                    except psycopg2.InternalError as e:
+                        log("internal database error: " + str(e))
                 else:
                     log("Can't read all values from smart meter: " + str(values))
         # insert Eigenverbrauch into database
@@ -1146,7 +1166,7 @@ class RLogDaemon(Daemon):
                 
     #check if we need to play the sound
     def update_bell_counter(self, val):
-        RLogDaemon.BELLCOUNTER += val / 360000)
+        RLogDaemon.BELLCOUNTER += val / 360000
         
         if RLogDaemon.BELLCOUNTER > RLogDaemon.NEXTRING:
             self.ring_bell()
