@@ -9,7 +9,7 @@ class Device(models.Model):
 
 
 class SolarEntryTick(models.Model):
-    time = models.DateTimeField()
+    time = models.DateTimeField(db_index=True)
     device = models.ForeignKey(Device)
     gV = models.DecimalField(max_digits=9, decimal_places=3)
     gA = models.DecimalField(max_digits=9, decimal_places=3)
@@ -36,7 +36,7 @@ class SolarEntryTick(models.Model):
 
 
 class SolarEntryMinute(models.Model):
-    time = models.DateTimeField()
+    time = models.DateTimeField(db_index=True)
     exacttime = models.DateTimeField(null = True)
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
@@ -55,7 +55,7 @@ class SolarEntryMinute(models.Model):
         
 
 class SolarEntryHour(models.Model):
-    time = models.DateTimeField()
+    time = models.DateTimeField(db_index=True)
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
 
@@ -65,7 +65,7 @@ class SolarEntryHour(models.Model):
 
 #day can be directly updated from the RS485 data
 class SolarEntryDay(models.Model):
-    time = models.DateField()
+    time = models.DateField(db_index=True)
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
 
@@ -74,7 +74,7 @@ class SolarEntryDay(models.Model):
 
 
 class SolarEntryMonth(models.Model):
-    time = models.DateField()
+    time = models.DateField(db_index=True)
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
 
@@ -83,7 +83,7 @@ class SolarEntryMonth(models.Model):
 
 
 class SolarEntryYear(models.Model):
-    time = models.DateField()
+    time = models.DateField(db_index=True)
     device = models.ForeignKey(Device)
     lW = models.DecimalField(max_digits=9, decimal_places=3)
 
@@ -92,7 +92,7 @@ class SolarEntryYear(models.Model):
 
 
 class SolarDailyMaxima(models.Model):
-  time = models.DateField()
+  time = models.DateField(db_index=True)
   device = models.ForeignKey(Device)
   lW = models.DecimalField(max_digits=9, decimal_places=3)
   exacttime = models.DateTimeField()
@@ -104,7 +104,7 @@ class SolarDailyMaxima(models.Model):
 ##############
 
 class SmartMeterEntryTick(models.Model):
-    time = models.DateTimeField()
+    time = models.DateTimeField(db_index=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -120,8 +120,8 @@ class SmartMeterEntryTick(models.Model):
 
 
 class SmartMeterEntryMinute(models.Model):
-    time = models.DateTimeField(primary_key=True)
-    exacttime = models.DateTimeField(null = True)
+    time = models.DateTimeField(primary_key=True, db_index=True)
+    exacttime = models.DateTimeField(null=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -137,7 +137,7 @@ class SmartMeterEntryMinute(models.Model):
         
 
 class SmartMeterEntryHour(models.Model):
-    time = models.DateTimeField(primary_key=True)
+    time = models.DateTimeField(primary_key=True, db_index=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -145,7 +145,7 @@ class SmartMeterEntryHour(models.Model):
 
 
 class SmartMeterEntryDay(models.Model):
-    time = models.DateField(primary_key=True)
+    time = models.DateField(primary_key=True, db_index=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -153,7 +153,7 @@ class SmartMeterEntryDay(models.Model):
 
 
 class SmartMeterEntryMonth(models.Model):
-    time = models.DateField(primary_key=True)
+    time = models.DateField(primary_key=True, db_index=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -161,7 +161,7 @@ class SmartMeterEntryMonth(models.Model):
 
 
 class SmartMeterEntryYear(models.Model):
-    time = models.DateField(primary_key=True)
+    time = models.DateField(primary_key=True, db_index=True)
     reading = models.DecimalField(max_digits=9, decimal_places=3)
     phase1 = models.DecimalField(max_digits=9, decimal_places=3)
     phase2 = models.DecimalField(max_digits=9, decimal_places=3)
@@ -169,7 +169,7 @@ class SmartMeterEntryYear(models.Model):
 
 
 class SmartMeterDailyMaxima(models.Model):
-    time = models.DateField(primary_key=True)
+    time = models.DateField(primary_key=True, db_index=True)
     exacttime = models.DateTimeField()
     maximum = models.DecimalField(max_digits=9, decimal_places=3)
                
@@ -179,7 +179,7 @@ class SmartMeterDailyMaxima(models.Model):
 ###############
 
 class EigenVerbrauch(models.Model):
-    time = models.DateField(primary_key=True)
+    time = models.DateField(primary_key=True, db_index=True)
     eigenverbrauch = models.DecimalField(max_digits=9, decimal_places=3) 
   
 class Reward(models.Model):
