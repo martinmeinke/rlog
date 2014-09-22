@@ -16,12 +16,10 @@ int main(int argc, char *argv[]) {
 	grantpt(pt);
 	unlockpt(pt);
 
-	fprintf(stderr, "Slave device: %s\n", ptsname(pt));
+	fprintf(stderr, "Inverter device: %s\n", ptsname(pt));
 
 	while (1) {
-		write(pt,
-				"\n*030   5 242.9  0.14    40 230.4  0.27    38  26   1925 Z 3501xi\r",
-				66);
+		write(pt, "\n*030   5 172.1  0.10    22 230.4  0.05    20  26   1925 C 3501xi\r", 66);
 		sleep(2);
 	}
 
