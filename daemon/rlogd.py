@@ -608,7 +608,7 @@ class Aggregation():
         else: # we already have an estimate for this minute
             timePassedInThisMinute = Decimal((now - self.WRminute[busID].timestamp).total_seconds()) # self.WRminute[busID].timestamp should be the same as self.WRminute[busID].data[1] (which is exacttime) but requires one array access less!
             timeLeftInThisMinute = 60 - timePassedInThisMinute
-            self.WRminute[busID].data[3] = (self.WRminute[busID].data[3] * timePassedInThisMinute + lW * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
+            self.WRminute[busID].data[3] = (self.WRminute[busID].data[3] * timePassedInThisMinute + (lW / 60) * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
         # fill in the remaining fields that need to be updated the same, no matter whether it is the same minute or a new one
         self.WRminute[busID].data[0] = thisMinute
         self.WRminute[busID].data[1] = now # this entry exists for historical reasons and I'm affraid of removing it :(
@@ -671,9 +671,9 @@ class Aggregation():
         else: # we already have an estimate for this minute
             timePassedInThisMinute = Decimal((now - self.SmartMeterMinute.timestamp).total_seconds()) # self.WRminute[busID].timestamp should be the same as self.WRminute[busID].data[1] (which is exacttime) but requires one array access less!
             timeLeftInThisMinute = 60 - timePassedInThisMinute
-            self.SmartMeterMinute.data[3] = (self.SmartMeterMinute.data[3] * timePassedInThisMinute + phase1 * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
-            self.SmartMeterMinute.data[4] = (self.SmartMeterMinute.data[4] * timePassedInThisMinute + phase2 * timeLeftInThisMinute) / 60
-            self.SmartMeterMinute.data[5] = (self.SmartMeterMinute.data[5] * timePassedInThisMinute + phase3 * timeLeftInThisMinute) / 60
+            self.SmartMeterMinute.data[3] = (self.SmartMeterMinute.data[3] * timePassedInThisMinute + (phase1 / 60) * timeLeftInThisMinute) / 60 # let's continue our estimation with the current value (until we get another update). Therefore, make a weighted sum based on time.
+            self.SmartMeterMinute.data[4] = (self.SmartMeterMinute.data[4] * timePassedInThisMinute + (phase2 / 60) * timeLeftInThisMinute) / 60
+            self.SmartMeterMinute.data[5] = (self.SmartMeterMinute.data[5] * timePassedInThisMinute + (phase3 / 60) * timeLeftInThisMinute) / 60
         # fill in the remaining fields that need to be updated the same, no matter whether it is the same minute or a new one
         self.SmartMeterMinute.data[0] = thisMinute
         self.SmartMeterMinute.data[1] = now # actually not used any more because my datastructur has an exact timestamp but says in here for historical reasons
