@@ -802,16 +802,19 @@ class RLogDaemon(Daemon):
         
         self._db_cursor.execute("SELECT * FROM charts_settings WHERE active = TRUE ORDER BY id DESC LIMIT 1;")
         try:
-           sets = self._db_cursor.fetchone()
-           RLogDaemon.KWHPERRING = Decimal(sets[2]) # not sure it is already decimal
-           RLogDaemon.NEXTRING = Decimal(sets[2])
-           RLogDaemon.SOUND = sets[3]
+            if self._db_cursor.rowcount > 0:
+                sets = self._db_cursor.fetchone()
+           	RLogDaemon.KWHPERRING = Decimal(sets[2]) # not sure it is already decimal
+           	RLogDaemon.NEXTRING = Decimal(sets[2])
+           	RLogDaemon.SOUND = sets[3]
+            else:
+                 log("no settings in database. using defaults")
+                 RLogDaemon.KWHPERRING = Decimal(1)
+                 RLogDaemon.NEXTRING = Decimal(1)
+                 RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
         except Exception as ex:
-            log("Couldn't read settings from database. Will use defaults. Error was:")
+            log("Couldn't read settings from database. Error was:")
             log(str(type(ex))+str(ex))
-            RLogDaemon.KWHPERRING = Decimal(1)
-            RLogDaemon.NEXTRING = Decimal(1)
-            RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
         except Error as err:
             log(str(type(err)))
 
@@ -929,6 +932,8 @@ class RLogDaemon(Daemon):
                 if self.findSmartMeter():
                     log("Using %s for smart meter" % RLogDaemon.DEBUG_SMARTMETER_PORT)
                     smart_meter_device = int(RLogDaemon.DEBUG_SMARTMETER_PORT[-1])
+                else:
+                    log("problem using debug smart meter port: %s" % RLogDaemon.DEBUG_SMARTMETER_PORT)
             else:
                 log("Searching for device where the smart meter responds")
                 for device_id in range(0, 100):

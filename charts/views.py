@@ -47,8 +47,8 @@ def liveData(request):
     
     else:
         start = datetime.datetime.now(tzlocal())-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
-        if request.GET["timeframe"] == "1440":
-             start = datetime.datetime.now(tzlocal())-relativedelta(hours=0, minutes=0, second=0, microsecond=0)
+        if int(request.GET["timeframe"]) == 1440:
+             start = datetime.datetime.now(tzlocal()) + relativedelta(hour=0, minute=0, second=0, microsecond=0)
         end = datetime.datetime.now(tzlocal())
         ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
