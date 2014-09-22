@@ -43,10 +43,12 @@ def liveData(request):
         graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase2) for tick in ticksSM]})
         graphs.append({"data": [(calendar.timegm(tick.time.timetuple()) * 1000, tick.phase3) for tick in ticksSM]})
         
-        return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs), cls=DjangoJSONEncoder)
+        return HttpResponse("{\"timeseries\": %s}" % json.dumps(graphs, cls=DjangoJSONEncoder))
     
     else:
         start = datetime.datetime.now(tzlocal())-relativedelta(minutes=int(request.GET["timeframe"]), second=0, microsecond=0)
+        if request.GET["timeframe"] == "1440":
+             start = datetime.datetime.now(tzlocal())-relativedelta(hours=0, minutes=0, second=0, microsecond=0)
         end = datetime.datetime.now(tzlocal())
         ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')

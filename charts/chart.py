@@ -274,7 +274,7 @@ class Chart(object):
                 time__range=(self.__startdate, self.__enddate), 
                 device = deviceID).order_by('-lW')[:1]
             try:
-                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0:.2f}W ({1})".format(ticks[0].lW, ticks[0].exacttime)))
+                items.append(StatsItem("Maximum WR {0}:".format(deviceID), "{0:.2f}W ({1})".format(ticks[0].lW, ticks[0].exacttime.strftime("%x %X"))))
             except Exception as e: # probably is index error when there are no values
                 items.append(StatsItem("Maximum WR {0}:".format(deviceID), "keine Daten"))
 
@@ -335,7 +335,7 @@ class Chart(object):
 
         smartMeterMaximum = SmartMeterDailyMaxima.objects.filter(time__range=(self.__startdate, self.__enddate)).order_by('-maximum')[:1]
         try:
-            items.append(StatsItem("Verbrauchsmaximum:", "{0:.2f}W ({1})".format(smartMeterMaximum[0].maximum, smartMeterMaximum[0].exacttime)))
+            items.append(StatsItem("Verbrauchsmaximum:", "{0:.2f}W ({1})".format(smartMeterMaximum[0].maximum, smartMeterMaximum[0].exacttime.strftime("%x %X"))))
         except Exception as e:
             items.append(StatsItem("Verbrauchsmaximum:", "keine Daten"))
         try:

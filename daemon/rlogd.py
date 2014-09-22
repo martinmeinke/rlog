@@ -925,8 +925,10 @@ class RLogDaemon(Daemon):
         smart_meter_device = -1 # to be excluded in the second run of 'for device_id in range(0, 100):'
         if self._smart_meter_enabled:
             if RLogDaemon.DEBUG_SMARTMETER_PORT:
-                self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_SMARTMETER_PORT, 9600, timeout = 1)
-                smart_meter_device = int(RLogDaemon.DEBUG_SMARTMETER_PORT[-1])
+                self._smart_meter_serial_port = serial.Serial(RLogDaemon.DEBUG_SMARTMETER_PORT, 9600, timeout = 1)
+                if self.findSmartMeter():
+                    log("Using %s for smart meter" % RLogDaemon.DEBUG_SMARTMETER_PORT)
+                    smart_meter_device = int(RLogDaemon.DEBUG_SMARTMETER_PORT[-1])
             else:
                 log("Searching for device where the smart meter responds")
                 for device_id in range(0, 100):
@@ -941,6 +943,7 @@ class RLogDaemon(Daemon):
                             break
         if RLogDaemon.DEBUG_INVERTER_PORT:
             self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_INVERTER_PORT, 9600, timeout = 1)
+            log("Using device: %s" % RLogDaemon.DEBUG_INVERTER_PORT)
         else:
             log("Searching rs485 device for WR")           
             for device_id in range(0, 100):
@@ -1182,8 +1185,8 @@ if __name__ == "__main__":
     parser.add_argument('--participants', default = 3, type = int, help = 'Maximum ID (inclusive) of bus participant to discover (Start id is 1, 0 means no inverters)')
     parser.add_argument('--discoverytimer', default = 10, type = int, help = 'Every X iterations the device discovery will run on the next sequential id (if necessary)')
     parser.add_argument('--smartmeter', action='store_true', help = 'Flip this switch if you also want to read a VSM-102 smart meter (on a different bus)')
-    parser.add_argument('--debugInverterPort', default = '', type = string, help = 'Take this serial port to read inverters instead of auto discovery')
-    parser.add_argument('--debugSmartMeterPort', default = '', type = string, help = 'Take this serial port to read smart meter instead of auto discovery')
+    parser.add_argument('--debugInverterPort', default = '', help = 'Take this serial port to read inverters instead of auto discovery')
+    parser.add_argument('--debugSmartMeterPort', default = '', help = 'Take this serial port to read smart meter instead of auto discovery')
     parser.add_argument('mode', choices = ['start', 'stop', 'restart'], help = 'What should the daemon do?')
     args = parser.parse_args()
 
@@ -1195,6 +1198,8 @@ if __name__ == "__main__":
     RLogDaemon.MAX_BUS_PARTICIPANTS = args.participants
     RLogDaemon.DELAY = args.querydelay
     RLogDaemon.DISCOVERY_COUNT = args.discoverytimer
+    RLogDaemon.DEBUG_INVERTER_PORT = args.debugInverterPort
+    RLogDaemon.DEBUG_SMARTMETER_PORT = args.debugSmartMeterPort
     daemon._discovery_credit = RLogDaemon.DISCOVERY_COUNT
     daemon._smart_meter_enabled = args.smartmeter
 
