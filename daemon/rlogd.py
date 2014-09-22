@@ -1045,6 +1045,7 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
+                # every insert is acutally an upsert due to database rules
                 self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
                 if DEBUG_ENABLED:
                     log("storing minutely WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute)))
@@ -1129,11 +1130,23 @@ class RLogDaemon(Daemon):
                     # every insert is acutally an upsert due to database rules
                     try:
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentrytick ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', values)
+                        if DEBUG_ENABLED:
+                            log("storing minutely smartmeter data: " + str(self._aggregator.SmartMeterMinute.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentryminute ("time", exacttime, reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s, %s)', self._aggregator.SmartMeterMinute.data)
+                        if DEBUG_ENABLED:
+                            log("storing hourly smartmeter data: " + str(self._aggregator.SmartMeterHour.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentryhour ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterHour.data)
+                        if DEBUG_ENABLED:
+                            log("storing daily smartmeter data: " + str(self._aggregator.SmartMeterDay.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentryday ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterDay.data)
+                        if DEBUG_ENABLED:
+                            log("storing monthly smartmeter data: " + str(self._aggregator.SmartMeterMonth.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentrymonth ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterMonth.data)
+                        if DEBUG_ENABLED:
+                            log("storing yearly smartmeter data: " + str(self._aggregator.SmartMeterYear.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentryyear ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterYear.data)
+                        if DEBUG_ENABLED:
+                            log("storing maximum smartmeter data: " + str(self._aggregator.SmartMeterMaximum.data))
                         self._db_cursor.execute('INSERT INTO charts_smartmeterdailymaxima ("time", exacttime, maximum) VALUES (%s, %s, %s)', self._aggregator.SmartMeterMaximum.data)
                         self._db_connection.commit()
                     except psycopg2.OperationalError as ex:
