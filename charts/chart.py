@@ -44,6 +44,7 @@ class Chart(object):
         distinct_devices = Device.objects.distinct()
         for device in distinct_devices:
             self.__devices.append(device.id)
+        self.__devices.sort()
 
         self.__bar_scale_factor = 0.9
         self.__totalSupply = Decimal(0) 
