@@ -1,6 +1,7 @@
 plot = null;
 data = [];
 options = {};
+original_options = {};
 latestPosition = null;
 last_time_rendered = 0;
 oneTimeStuffDone = false;
@@ -75,11 +76,11 @@ function applySettings(json) {
 	//alert(JSON.stringify(json));
 	//	alert(lB);
 	//	options["series"] = json;
-	options["xaxis"]["min"] = eval(options["xaxis"]["min"]);
+	options["xaxis"]["min"] = eval(options["xaxis"]["min"]); /* WOOHOOO this is eval :) */
 	options["xaxis"]["max"] = eval(options["xaxis"]["max"]);	
 	//document.write(JSON.stringify(options));
 	//console.log("Optionen", options);
-
+    original_options = options
 }
 
 function getLatestTick()
@@ -119,11 +120,11 @@ function autoUpdateInitial(minutes)
 		if(!oneTimeStuffDone){
 		  oneTimeStuffDone = true;
 
-	    $(".chart").bind("plothover",  function (event, pos, item) {
+	    $(".chart").bind("plothover", function (event, pos, item) {
 	      latestPosition = pos;
 	      if(new Date().getTime() - last_time_rendered > 77)
-          updateLegend();
-      });
+            updateLegend();
+       });
 
       window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
     }
@@ -181,7 +182,8 @@ function autoUpdate()
 			    i++;
 		    });
         drawPlot();
-		  	window.setTimeout(autoUpdate, 3000);
+        updateLegend();
+		window.setTimeout(autoUpdate, 3000);
 	    }).error(function() { 
         console.log("Server Error"); 
         window.setTimeout(autoUpdate, 3000);

@@ -197,8 +197,15 @@ class Chart(object):
         settings["series"] = {}
 
         if self.use_line_chart():
-            settings["series"]["lines"] = {"show" : "true", "fill" : "true", "lineWidth": "2"}
+            settings["series"]["lines"] = {
+                "show" : "true",
+                "fill" : "true",
+                "lineWidth": "2"
+            }
             # settings["series"]["points"] = {"show" : "true"}
+            settings["selection"] = {
+                "mode" : "x"
+            }
         else:
             settings["series"]["bars"] = {
                 "show": "true",

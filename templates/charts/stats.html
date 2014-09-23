@@ -22,6 +22,18 @@ $(document).ready(function() {
         if(new Date().getTime() - last_time_rendered > 77)
             updateLegend();
     });
+    $(".chart").bind("plotselected", function (event, ranges) {
+        console.log("hier");
+        plot = $.plot($(".chart")[0], data,
+            $.extend(true, {}, options, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+            }));
+       });
+
+    $(".chart").bind("plotunselected", function (event) {
+        console.log("da");
+        plot = $.plot($(".chart")[0], data, original_options);
+    });
     $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
     window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
 });
