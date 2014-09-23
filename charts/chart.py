@@ -99,7 +99,6 @@ class Chart(object):
     def setChartBoundaries(self):
         shift_seconds = 0
         if (not self.use_line_chart()):
-            num_vals = len(self.__rowarray_list[self.getDeviceIDList()[0]])
             if self.__period == "period_min":
                 shift_seconds = self.SECONDS_PER_MINUTE / 2
             elif self.__period == "period_hrs":
@@ -174,6 +173,8 @@ class Chart(object):
     # TODO: consider performing this kind of tasks on the client machine, 
     # maybe giving the decision in the users hand.
     def use_line_chart(self):
+        if len(self.getDeviceIDList()) == 0:
+            return False
         maximum_ticks = max(len(self.__rowarray_list[self.getDeviceIDList()[0]]), len(self.__smartMeterData))
 
         #compute based on period + timeframe
