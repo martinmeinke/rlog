@@ -28,6 +28,7 @@ class LiveChart(object):
         settings["legend"] = {"backgroundOpacity" : "0.5", "position" : "nw"}
         settings["crosshair"] = {"mode" : "x", "color": "rgba(0, 170, 0, 0.80)"}
         settings["grid"] = {"hoverable" : "true", "autoHighlight" : "false"}
-        
+        settings["selection"] = {"mode" : "x"}
+
         return settings
 

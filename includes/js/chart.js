@@ -124,7 +124,19 @@ function autoUpdateInitial(minutes)
 	      latestPosition = pos;
 	      if(new Date().getTime() - last_time_rendered > 77)
             updateLegend();
-       });
+        });
+
+        $(".chart").bind("plotselected", function (event, ranges) {
+            options = $.extend(true, {}, options, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+            });
+            plot = $.plot($(".chart")[0], data, options);
+        });
+
+        $(".chart").bind("plotunselected", function (event) {
+            options = original_options;
+            plot = $.plot($(".chart")[0], data, options);
+        });
 
       window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
     }
@@ -153,7 +165,7 @@ function autoUpdate()
     	},
     	function(newData) {
     		console.log("newData is :"+JSON.stringify(newData));
-      	var i = 0;
+      	    var i = 0;
 		    jQuery.each(data, function(){
 	    		if(newData["timeseries"][i]["data"].length > 0)
 	    		{
@@ -181,16 +193,16 @@ function autoUpdate()
 			    }
 			    i++;
 		    });
-        drawPlot();
-        updateLegend();
-		window.setTimeout(autoUpdate, 3000);
+            drawPlot();
+            updateLegend();
+		    window.setTimeout(autoUpdate, 3000);
 	    }).error(function() { 
-        console.log("Server Error"); 
-        window.setTimeout(autoUpdate, 3000);
+            console.log("Server Error"); 
+            window.setTimeout(autoUpdate, 3000);
       });
 	}else{
-    drawPlot();
-	  window.setTimeout(autoUpdate, 500);
+        drawPlot();
+	    window.setTimeout(autoUpdate, 500);
 	}
 }
 

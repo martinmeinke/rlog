@@ -54,8 +54,11 @@ class Chart(object):
         
         self.__smartMeterData = None
         
-        
-        if self.__period == "period_min":
+        if self.__period == "period_tick":
+            self._formatstring = "%d.%m.%Y %H:%M:%S"
+            self.__flot_formatstring = "%H:%M:%S"
+            self.__barwidth = 1000
+        elif self.__period == "period_min":
             self._formatstring = "%d.%m.%Y %H:%M"
             self.__flot_formatstring = "%H:%M"
             self.__barwidth = 1000*60
@@ -76,10 +79,12 @@ class Chart(object):
             self.__flot_formatstring = "%Y"
             self.__barwidth = 1000*60*60*24*30*12
             
-            
-        if self.__period == "period_min":
+        if self.__period == "period_tick":
+            self.__smartMeterData = SmartMeterEntryTick.objects.filter(
+                time__range=(self.__startdate, self.__enddate)).order_by("time")[:50000] # somewhat sane limit
+        elif self.__period == "period_min":
             self.__smartMeterData = SmartMeterEntryMinute.objects.filter(
-                time__range=(self.__startdate, self.__enddate)).order_by("time")
+                time__range=(self.__startdate, self.__enddate)).order_by("time")[:50000] # here too
         elif self.__period == "period_hrs":
             self.__smartMeterData = SmartMeterEntryHour.objects.filter(
                 time__range=(self.__startdate, self.__enddate)).order_by("time")
@@ -99,8 +104,10 @@ class Chart(object):
     def setChartBoundaries(self):
         shift_seconds = 0
         if (not self.use_line_chart()):
-            if self.__period == "period_min":
-                shift_seconds = self.SECONDS_PER_MINUTE / 2
+            if self.__period == "period_tick":
+                shift_seconds = .5 # actually this will never be used because because we WILL use a line chart!
+            elif self.__period == "period_min":
+                shift_seconds = self.SECONDS_PER_MINUTE / 2 # same here
             elif self.__period == "period_hrs":
                 shift_seconds = self.SECONDS_PER_HOUR / 2
             elif self.__period == "period_day":
@@ -128,10 +135,14 @@ class Chart(object):
         return sum(v_rewards)
 
     def fetchTimeSeries(self, deviceID):
-        if self.__period == "period_min":
+        if self.__period == "period_tick":
+            ticks = SolarEntryTick.objects.filter(
+                time__range=(self.__startdate, self.__enddate), 
+                device = str(deviceID)).order_by("time")[:50000]
+        elif self.__period == "period_min":
             ticks = SolarEntryMinute.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID)).order_by("time")
+                device = str(deviceID)).order_by("time")[:50000]
         elif self.__period == "period_hrs":
             ticks = SolarEntryHour.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
@@ -175,8 +186,11 @@ class Chart(object):
     def use_line_chart(self):
         if len(self.getDeviceIDList()) == 0:
             return False
-        maximum_ticks = max(len(self.__rowarray_list[self.getDeviceIDList()[0]]), len(self.__smartMeterData))
+        if self.__period == "period_tick":
+            return True
 
+        maximum_ticks = max(len(self.__rowarray_list[self.getDeviceIDList()[0]]), len(self.__smartMeterData))
+        
         #compute based on period + timeframe
         delta = self.__enddate - self.__startdate
         seconds = (delta.seconds + delta.days*60*60*24)
@@ -304,7 +318,7 @@ class Chart(object):
             eigenverbrauchTicks = EigenVerbrauch.objects.filter(time__range=(self.__startdate, self.__enddate)).aggregate(Sum('eigenverbrauch'))
             eigenverbrauchInPeriod = eigenverbrauchTicks["eigenverbrauch__sum"]
             items.append(StatsItem("Eigenverbrauch: ", "{0:.2f}Wh".format(eigenverbrauchInPeriod)))
-            items.append(StatsItem("Einspeisung: ", "{0:.2f}Wh".format(self.__totalSupply - eigenverbrauchInPeriod)))
+            items.append(StatsItem("Einspeisung: ", "{0:.2f}Wh".format(self.__totalSupply - eigenverbrauchInPeriod if self.__totalSupply - eigenverbrauchInPeriod > 0 else 0)))
         except Exception as e:
             items.append(StatsItem("Eigenverbrauch: ", "keine Daten"))
             items.append(StatsItem("Einspeisung: ", "keine Daten"))
@@ -379,7 +393,7 @@ class Chart(object):
     def getDeviceIDList(self):
         return self.__devices
 
-    #doing it the lazy way now ;)
+    # doing it the lazy way now ;)
     def get_reward_for_tick(self, t):        
         for r in self.__rewards:
             if isinstance(t.time, datetime):

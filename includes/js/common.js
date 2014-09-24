@@ -70,13 +70,15 @@ create the choices
 */
 function update_period_choices(timeframe, set_current, period)
 {
-	var hrsOptions = {
-	    "period_min" : "Minuetlich"
+	var hrsOptions = { // actually  unused
+        "period_tick" : "Tick",
+	    "period_min"  : "Minuetlich"
 	};
 
 	var dayOptions = {
-	    "period_min" : "Minuetlich",
-        "period_hrs" : "Stuendlich"
+        "period_tick" : "Tick",
+	    "period_min"  : "Minuetlich",
+        "period_hrs"  : "Stuendlich"
 	};
 
 	var monOptions = {
@@ -90,11 +92,12 @@ function update_period_choices(timeframe, set_current, period)
 	};
 
 	var cusOptions = {
-	    "period_min" : "Minuetlich",
-        "period_hrs" : "Stuendlich",
-        "period_day" : "Taeglich",
-        "period_mon" : "Monatlich",
-        "period_yrs" : "Jaehrlich"
+        "period_tick" : "Tick",
+	    "period_min"  : "Minuetlich",
+        "period_hrs"  : "Stuendlich",
+        "period_day"  : "Taeglich",
+        "period_mon"  : "Monatlich",
+        "period_yrs"  : "Jaehrlich"
 	};
 
 	var select = $('#id_period');

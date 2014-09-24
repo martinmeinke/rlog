@@ -96,7 +96,7 @@ def stats(request, timeframe_url):
                     print form.errors
                     return render_to_response('charts/stats.html', vars(), RequestContext(request))
             else:
-                if timeframe == "timeframe_hrs":
+                if timeframe == "timeframe_hrs": # I think this has been kicked out
                     start = datetime.datetime.now(tzlocal())+relativedelta(minute=0, second=0, microsecond=0)
                     end = datetime.datetime.now(tzlocal())
                 elif timeframe == "timeframe_day":
@@ -155,7 +155,8 @@ def stats(request, timeframe_url):
     for i in chart.getDeviceIDList():
         chart.fetchTimeSeries(i)
         timetuples = chart.getTimeSeries(i)
-        graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "lines": {"fillColor": "rgba(0,255,0,0.3)"}, "stack":"WR", "bars": {"order": "0"}})
+        if len(timetuples) > 0:
+            graphs.append({"label":_("Erzeugung WR"+str(i)), "data":timetuples, "lines": {"fillColor": "rgba(0,255,0,0.3)"}, "stack":"WR", "bars": {"order": "0"}})
     
     ticksSM = chart.getSmartMeterTimeSeries()
     if len(ticksSM) > 0:

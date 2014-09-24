@@ -23,7 +23,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzlocal
 
 
-DEBUG_ENABLED = True
+DEBUG_ENABLED = False
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
@@ -851,7 +851,7 @@ class RLogDaemon(Daemon):
             self.run_discovery_if_required()
             t2 = time.time()
             if DEBUG_ENABLED:
-                log("befor poll: {0}\nafter poll: {1}\n after discovery: {2}".format(t1, t15, t2))
+                log("before poll: {0} after poll: {1}  after discovery: {2}".format(t1, t15, t2))
             self.sleep_to_delay(t1, t2)
         else:
             try:

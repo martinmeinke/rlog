@@ -17,6 +17,7 @@ class StatsForm(forms.Form):
     )    
     period = forms.ChoiceField(
     	choices = [
+                ["period_tick", "Ticks"],
     		["period_min", "Minuetlich"],
     		["period_hrs", "Stuendlich"],
     		["period_day", "Taeglich"],
