@@ -186,7 +186,7 @@ class SmartMeter():
         # in my test there where 11 elements
         if len(data_string.split("\n")) != 11:
             if DEBUG_ENABLED:
-                log("Read smart meter datagram with invalid structure. datagram is: " + data_string + "number of elements (should be 11): " + len(data_string.split("\n")))
+                log("Read smart meter datagram with invalid structure. datagram is: " + data_string + "number of elements (should be 11): " + str(len(data_string.split("\n"))))
             return False
         return True
         
@@ -1042,7 +1042,7 @@ class RLogDaemon(Daemon):
                 self._aggregator.updateInverter(wr.bus_id, tmp[0], Decimal(cols[7]), Decimal(cols[9]))
                 # try to publish via MQTT
                 try:
-                    self._mqttPublisher.publish("/devices/RLog/controls/" + wr.model + " (" + str(wr.bus_id) + ")", cols[7], 0, True) # cols[7] is line power but I saved the str() method on that Decimal as in cols are already strings
+                    self._mqttPublisher.publish("/devices/RLog/controls/{0} ({1})".format(wr.model, wr.bus_id), cols[7], 0, True) # cols[7] is line power. I saved the str() method on that Decimal as cols are still strings
                 except Exception as e:
                     log("MQTT cause exception in poll_devices(): " + str(e) + " value to publish was: " + cols[7])
                 if DEBUG_ENABLED:
@@ -1109,7 +1109,7 @@ class RLogDaemon(Daemon):
                     values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
-                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (1)", str(values[-1]), 0, True)
+                        self._mqttPublisher.publish("/devices/RLog/controls/{0} (1)".format(self._smart_meter.model), "{0:.1f}".format(values[-1]), 0, True)
                     except Exception as e:
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 match = self._phase2_regex.search(datagram)
@@ -1117,7 +1117,7 @@ class RLogDaemon(Daemon):
                     values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
-                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (2)", str(values[-1]), 0, True)
+                        self._mqttPublisher.publish("/devices/RLog/controls/{0} (2)".format(self._smart_meter.model), "{0:.1f}".format(values[-1]), 0, True)
                     except Exception as e:
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 match = self._phase3_regex.search(datagram)
@@ -1125,7 +1125,7 @@ class RLogDaemon(Daemon):
                     values.append(Decimal(match.group(1)) * 1000)
                     sumUsed += values[-1]
                     try:
-                        self._mqttPublisher.publish("/devices/RLog/controls/" + self._smart_meter.model + " (3)", str(values[-1]), 0, True)
+                        self._mqttPublisher.publish("/devices/RLog/controls/{0} (3)".format(self._smart_meter.model), "{0:.1f}".format(values[-1]), 0, True)
                     except Exception as e:
                         log("MQTT cause exception in poll_devices(): " + str(e))
                 if len(values) == 5:
