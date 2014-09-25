@@ -87,8 +87,7 @@ class WR():
     # checks checksum in type message
     def type_valid(self, typ_string):
         if len(typ_string) != 15: # so lang sind meine typen normalerweise
-            if DEBUG_ENABLED:
-                log("Read type message with invalid length. message is: " + typ_string + " length was: " + str(len(typ_string)))
+            log("Read type message with invalid length. message is: " + typ_string + " length was: " + str(len(typ_string)))
             return False
         if int(typ_string[2:4]) != self.__bus_id:
             log("Read type message from wrong inverter. Should be ID {0} but message is: {1}".format(self.__bus_id, typ_string))
