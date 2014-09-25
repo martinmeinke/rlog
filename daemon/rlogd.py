@@ -90,12 +90,14 @@ class WR():
             if DEBUG_ENABLED:
                 log("Read type message with invalid length. message is: " + typ_string + " length was: " + str(len(typ_string)))
             return False
+        if int(typ_string[2:4]) != self.__bus_id:
+            log("Read type message from wrong inverter. Should be ID {0} but message is: {1}".format(self.__bus_id, typ_string))
+            return False
         summe = 0
         for i in range(1, len(typ_string) - 2): # 2. zeichen von hinten ist pruefsumme bei mir
             summe += ord(typ_string[i])
         if ord(typ_string[-2]) != summe % 256:
-            if DEBUG_ENABLED:
-                log("Read invalid type message: " + typ_string)
+            log("Read invalid type message: " + typ_string)
             return False
         return True
 
@@ -104,6 +106,10 @@ class WR():
         if len(data_string) != 66: # so lang sind meine daten normalerweise
             if DEBUG_ENABLED:
                 log("Read data message with invalid length. message is: " + data_string + " length was: " + str(len(data_string)))
+            return False
+        if int(data_string[2:4]) != self.__bus_id:
+            if DEBUG_ENABLED:
+                log("Read data message from wrong inverter. Should be ID {0} but message is: {1}".format(self.__bus_id, data_string))
             return False
         summe = 0
         for i in range(1, len(data_string) - 9): # 9. zeichen von hinten ist pruefsumme bei mir
