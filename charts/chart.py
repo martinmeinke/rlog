@@ -81,10 +81,10 @@ class Chart(object):
             
         if self.__period == "period_tick":
             self.__smartMeterData = SmartMeterEntryTick.objects.filter(
-                time__range=(self.__startdate, self.__enddate)).order_by("time")[:50000] # somewhat sane limit
+                time__range=(self.__startdate, self.__enddate)).order_by("time")[:20000] # somewhat sane limit
         elif self.__period == "period_min":
             self.__smartMeterData = SmartMeterEntryMinute.objects.filter(
-                time__range=(self.__startdate, self.__enddate)).order_by("time")[:50000] # here too
+                time__range=(self.__startdate, self.__enddate)).order_by("time")[:20000] # here too
         elif self.__period == "period_hrs":
             self.__smartMeterData = SmartMeterEntryHour.objects.filter(
                 time__range=(self.__startdate, self.__enddate)).order_by("time")
@@ -138,11 +138,11 @@ class Chart(object):
         if self.__period == "period_tick":
             ticks = SolarEntryTick.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID)).order_by("time")[:50000]
+                device = str(deviceID)).order_by("time")[:20000]
         elif self.__period == "period_min":
             ticks = SolarEntryMinute.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 
-                device = str(deviceID)).order_by("time")[:50000]
+                device = str(deviceID)).order_by("time")[:20000]
         elif self.__period == "period_hrs":
             ticks = SolarEntryHour.objects.filter(
                 time__range=(self.__startdate, self.__enddate), 

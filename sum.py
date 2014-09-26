@@ -1,7 +1,7 @@
 #! /usr/bin/python
 import mqtt, time
 
-MQTT_HOST = "192.168.11.50"
+MQTT_HOST = "192.168.11.54"
 WRs = {"dummy" : 0}
 SMs = {"dummy" : 0}
 
