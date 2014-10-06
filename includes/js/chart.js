@@ -187,10 +187,12 @@ function autoUpdate() {
     	function(newData) {
     		console.log("newData is :" + JSON.stringify(newData));
 		    $.each(plotdata, function(idx, data){
-		        // sanity check
+		        /*
+		        // sanity check (currently impossible because labels are not transmitted again)
 		        if(newData["timeseries"][idx]["label"] != data.label)
 		            console.log("WHOOPS: label don't match! idx = " + idx + "data.label = " + data.label + "newData[idx].label = " + newData["timeseries"][idx]["label"]);
-		        // contine bussiness
+		        // contine bussiness		        
+		        */
 	    		if(newData["timeseries"][idx]["data"].length > 0){ // if there is new data for this device
 	    		    if(data.length > 0){ // if there is old data for this device
 			            var oldestTick = data[0][0];

@@ -53,7 +53,7 @@ def liveData(request):
         ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         
-        for device in Device.objects.distinct():
+        for device in sorted(Device.objects.distinct()):
             timetuples = chart.fetchTimeSeriesLiveView(device.id, ticksWR)
             label = "Erzeugung WR %s (ID: %s)" % (device.model, device.id)
             graphs.append({"label": label, "data":timetuples})
@@ -173,8 +173,8 @@ def stats(request, timeframe_url):
 
     #TODO: the next couple of lines are pretty ugly
     stat_items = chart.getStatItems()
-    ui_begin = _("Begin: "+start.strftime(chart._formatstring))
-    ui_end = _("End: "+end.strftime(chart._formatstring))
+    ui_begin = _("Begin: " + start.strftime(chart._formatstring))
+    ui_end = _("End: " + end.strftime(chart._formatstring))
     
     return render_to_response('charts/stats.html', vars(), RequestContext(request))
 
