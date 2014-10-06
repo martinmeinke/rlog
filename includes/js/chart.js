@@ -30,10 +30,10 @@ function drawPlot(event) {
     }
     
     // add overlay if necessary
-    if(plot != null && data != null){
+    if(plot != null){
         max_len = 0;
-        jQuery.each(data, function(){
-            max_len = this.data.length > max_len ? this.data.length : max_len;
+        jQuery.each(currentData, function(){
+            max_len = currentData.length > max_len ? currentData.length : max_len;
         });
         if(max_len == 0){
             add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
@@ -187,14 +187,20 @@ function autoUpdate() {
     	function(newData) {
     		console.log("newData is :" + JSON.stringify(newData));
 		    $.each(plotdata, function(idx, data){
-	    		if(newData["timeseries"][idx]["data"].length > 0){
-			        var oldestTick = data[0][0];
-			        var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
-			        var oldestTickDeadline = new Date().getTime() - timeframeInMs;
+		        // sanity check
+		        if(newData["timeseries"][idx]["label"] != data.label)
+		            console.log("WHOOPS: label don't match! idx = " + idx + "data.label = " + data.label + "newData[idx].label = " + newData["timeseries"][idx]["label"]);
+		        // contine bussiness
+	    		if(newData["timeseries"][idx]["data"].length > 0){ // if there is new data for this device
+	    		    if(data.length > 0){ // if there is old data for this device
+			            var oldestTick = data[0][0];
+			            var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
+			            var oldestTickDeadline = new Date().getTime() - timeframeInMs;
 
-			        while(data["data"].length > 0 && oldestTick < oldestTickDeadline){
-				        data["data"].shift();
-				        oldestTick = data["data"][0][0];
+			            while(data["data"].length > 0 && oldestTick < oldestTickDeadline){
+				            data["data"].shift();
+				            oldestTick = data["data"][0][0];
+			            }
 			        }
                     data["data"].concat(newData["timeseries"][idx]["data"]);
 			        data["data"] = data["data"].sort(comparator);
