@@ -183,8 +183,9 @@ function removeDuplicates() {
 function autoUpdate() {
     console.log("autoUpdate");
 	var d = new Date();
-	if(getLatestTick() != 0){
-		console.log("lastTick is: " + getLatestTick());
+	var lastTickTimeStamp = getLatestTick();
+	if(lastTickTimeStamp != 0){
+		console.log("lastTick is: " + lastTickTimeStamp);
 	  	$.getJSON('liveData', {
 		  	lastTick: getLatestTick()
     	},
@@ -198,17 +199,17 @@ function autoUpdate() {
 		        // contine bussiness		        
 		        */
 	    		if(newData["timeseries"][idx]["data"].length > 0){ // if there is new data for this device
-	    		    if(data["data"].length > 0){ // if there is old data for this device
-			            var oldestTick = data["data"][0][0];
+	    		    if(data.data.length > 0){ // if there is old data for this device
+			            var oldestTick = data.data[0][0];
 			            var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
-			            var oldestTickDeadline = new Date().getTime() - timeframeInMs;
+			            var oldestTickDeadline = lastTickTimeStamp - timeframeInMs;
 
-			            while(data["data"].length > 0 && oldestTick < oldestTickDeadline){
-				            data["data"].shift();
-				            oldestTick = data["data"][0][0];
+			            while(data.data.length > 0 && oldestTick < oldestTickDeadline){
+				            data.data.shift();
+				            oldestTick = data.data[0][0];
 			            }
 			        }
-                    var updatedData = data["data"].concat(newData["timeseries"][idx]["data"]);
+                    var updatedData = data.data.concat(newData["timeseries"][idx]["data"]);
 			        plotdata[idx]["data"] = updatedData.sort(comparator);
 			    }
 		    });
