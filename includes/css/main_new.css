@@ -29,6 +29,14 @@ footer{
   left:0;
 }
 
+.legendLabel{
+    padding-top: 7px;
+}
+
+.legendLabel *{
+    float: left;
+}
+
 .stats_form
 {
   background-color:#DADADA;
