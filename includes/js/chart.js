@@ -192,8 +192,8 @@ function autoUpdate() {
 			        var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
 			        var oldestTickDeadline = new Date().getTime() - timeframeInMs;
 
-			        while(data["data").length > 0 && oldestTick < oldestTickDeadline){
-				        data["data").shift();
+			        while(data["data"].length > 0 && oldestTick < oldestTickDeadline){
+				        data["data"].shift();
 				        oldestTick = data["data"][0][0];
 			        }
                     data["data"].concat(newData["timeseries"][idx]["data"]);
