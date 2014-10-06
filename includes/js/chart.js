@@ -1,39 +1,59 @@
 plot = null;
-data = [];
+plotdata = [];
 options = {};
 original_options = {};
 latestPosition = null;
 last_time_rendered = 0;
-oneTimeStuffDone = false;
+checkedItems = {};
 
 function addPlot(json) {
-  data = json;
+  plotdata = json;
 }
 
-function drawPlot() {
-  if(plot != null && data != null)
-  {
-  	plot.setData(data);
-  	plot.setupGrid()
-  	plot.draw(); 
+function drawPlot(event) {
+    var currentData = [];
+    if(event)
+	    checkedItems[event.target.dataset["id"]] = event.target.checked;
     
-    max_len = 0;
-    
-    jQuery.each(data, function(){
-        max_len = this.data.length > max_len ? this.data.length : max_len;
-    });
-		
-    if(max_len == 0)
-    {
-        add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
-    }else{
-        remove_overlay();
+    $.each(plotdata, function(idx, data) {
+		if (checkedItems[data.label] == true) {
+		    currentData.push(data);
+		} else {
+			currentData.push({label: data.label, data: []});
+		}
+	});
+			
+
+	if (currentData.length > 0) {
+        plot = $.plot($(".chart")[0], currentData, options);
+        insertCheckboxes();
     }
-  }
+    
+    // add overlay if necessary
+    if(plot != null && data != null){
+        max_len = 0;
+        jQuery.each(data, function(){
+            max_len = this.data.length > max_len ? this.data.length : max_len;
+        });
+        if(max_len == 0){
+            add_disabled_overlay("Es sind momentan keine Daten zur Anzeige verfügbar")
+        }else{
+            remove_overlay();
+        }
+    }
 }
 
-function add_disabled_overlay(message)
-{
+function insertCheckboxes(){
+    $.each(plotdata, function(idx, data) {
+        var checked = checkedItems[data.label] == true ? "checked='checked' " : "";
+        $(".legendLabel")[idx].innerHTML = "<input type='checkbox' name='" + data.label + "' " + 
+            checked + "id='id" + data.label + "' data-id='" + data.label + "'></input>" +
+		    "<label for='id" + data.label + "'>" + data.label + "</label> <span></span>";
+    });
+    $(".legend").find("input").click(drawPlot);
+}
+
+function add_disabled_overlay(message) {
     var msg_width = message.length * 8;
     var msg_height = 50;
 
@@ -55,19 +75,18 @@ function add_disabled_overlay(message)
     var msg_box_y = canvas_height / 2 - msg_height / 2;
 
     ctx.fillStyle = "rgba(200, 200, 200, 0.7)";
-    ctx.fillRect(0,0,canvas_width,canvas_height);
+    ctx.fillRect(0, 0, canvas_width, canvas_height);
 
     ctx.fillStyle = "rgba(27, 27, 27, 1)";
     ctx.fillRect(msg_box_x, msg_box_y, msg_width, msg_height);
 
     ctx.fillStyle = "rgba(255, 255, 255, 1)";
     ctx.font = "16px Arial";
-    ctx.fillText(message, msg_box_x+10, msg_box_y+30);
+    ctx.fillText(message, msg_box_x + 10, msg_box_y + 30);
     return 0;
 }
 
-function remove_overlay()
-{
+function remove_overlay() {
     $('.chart_overlay').remove();
 }
 
@@ -83,143 +102,133 @@ function applySettings(json) {
     original_options = options
 }
 
-function getLatestTick()
-{
+function getLatestTick(){
 	var current = 0;
-	jQuery.each(data, function()
-	{
-		jQuery.each(this["data"], function()
-		{
-			if(this[0] > current)
-			{
-				current = this[0];
+	$.each(plotdata, function(idx, data) { // data sets
+	    if(data["data"].length > 0){
+			if(data["data"][data["data"].length -1][0] > current){
+				current = data["data"][data["data"].length -1][0];
 			}
-		});
+		}
 	});
-
 	return current;
 }
 
-function autoUpdateInitial(minutes)
-{
-  $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">');
-	$.getJSON('liveData', 
-	{
-		//last x minutes
-		timeframe: minutes
-  	},
-  	function(returnedJson) {
-		data = returnedJson["timeseries"];	
-		applySettings(returnedJson["settings"]);
+function autoUpdateInitial(minutes) {
+    $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF">');
+	$.getJSON('liveData', {
+		    timeframe: minutes
+  	    },
+  	    function(returnedJson) {
+		    plotdata = returnedJson["timeseries"];	
+		    applySettings(returnedJson["settings"]);
 
-		for (i = 0; i < data.length; i++)
-		  data[i]["data"] = data[i]["data"].sort(comparator);
+		    for (i = 0; i < data.length; i++)
+		      data[i]["data"] = data[i]["data"].sort(comparator);
+		      
+		    // fill the checkedItems object
+		    $.each(plotdata, function(idx, data) {
+		        checkedItems[data.label] = true;
+		    });
+			
+		    drawPlot(null);
 
-		plot = $.plot($(".chart")[0], data, options);
+	        oneTimeStuffDone = true;
 
-		if(!oneTimeStuffDone){
-		  oneTimeStuffDone = true;
-
-	    $(".chart").bind("plothover", function (event, pos, item) {
-	      latestPosition = pos;
-	      if(new Date().getTime() - last_time_rendered > 77)
-            updateLegend();
-        });
-
-        $(".chart").bind("plotselected", function (event, ranges) {
-            options = $.extend(true, {}, options, {
-                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+            $(".chart").bind("plothover", function (event, pos, item) {
+              latestPosition = pos;
+              if(new Date().getTime() - last_time_rendered > 77)
+                updateLegend();
             });
-            plot = $.plot($(".chart")[0], data, options);
-        });
 
-        $(".chart").bind("plotunselected", function (event) {
-            options = original_options;
-            plot = $.plot($(".chart")[0], data, options);
-        });
+            $(".chart").bind("plotselected", function (event, ranges) {
+                options = $.extend(true, {}, options, {
+                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                });
+                drawPlot(null);
+            });
 
-      window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
-    }
-    drawPlot();
-    initialSet = true;
-    $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
-	});
+            $(".chart").bind("plotunselected", function (event) {
+                options = original_options;
+                drawPlot(null);
+            });
+
+            window.onbeforeunload = function () { $('.loadingGIF')[0].style.display = "block"; };
+            
+            $('.chart').append('<img src="/static/img/ajax-loader.gif" alt="loading ..." class="loadingGIF" style="display: none;">');
+	    });
 }
 
 function comparator(a, b){
-  if (a[0] < b[0]) return -1;
-  if (a[0] > b[0]) return 1;
-  return 0;
+    if (a[0] < b[0]) return -1;
+    if (a[0] > b[0]) return 1;
+    return 0;
 }
 
-function autoUpdate()
-{
-  console.log("autoUpdate");
+// actually this should not be necessary as there are no dups
+function removeDuplicates() {
+    $.each(plotdata, function(idx, data){
+        var dupFree = [];
+        $.each(data["data"], function(i, el) {
+            if($.inArray(el, dupFree) === -1) dupFree.push(el);
+        });
+        data["data"] = dupFree;
+    });
+}
+
+function autoUpdate() {
+    console.log("autoUpdate");
 	var d = new Date();
 	if(getLatestTick() != 0){
-		console.log("lastTick is: "+getLatestTick());
-	  	$.getJSON('liveData', 
-	  	{
-		  	//get the last tick timestamp from current plot
+		console.log("lastTick is: " + getLatestTick());
+	  	$.getJSON('liveData', {
 		  	lastTick: getLatestTick()
     	},
     	function(newData) {
-    		console.log("newData is :"+JSON.stringify(newData));
-      	    var i = 0;
-		    jQuery.each(data, function(){
-	    		if(newData["timeseries"][i]["data"].length > 0)
-	    		{
-			        //console.log($("#live_timeframe").val());
-			        var oldestTick = this["data"][0][0];
-			        var timeframeInMs = $("#live_timeframe").val()*60*1000;
-			        var newestTickMinusTimeframe = newData["timeseries"][i]["data"][0][0]-timeframeInMs;
+    		console.log("newData is :" + JSON.stringify(newData));
+		    $.each(plotdata, function(idx, data){
+	    		if(newData["timeseries"][idx]["data"].length > 0){
+			        var oldestTick = data[0][0];
+			        var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
+			        var oldestTickDeadline = new Date().getTime() - timeframeInMs;
 
-			        /*console.log("Oldest: "+oldestTick);
-			        console.log("Timeframeinms: "+timeframeInMs);
-			        console.log("Newest: "+newestTickMinusTimeframe);*/
-
-			        while(oldestTick < newestTickMinusTimeframe)
-			        {
-				        this["data"].shift();
-				        oldestTick = this["data"][this["data"].length-1][0];
+			        while(data["data").length > 0 && oldestTick < oldestTickDeadline){
+				        data["data").shift();
+				        oldestTick = data["data"][0][0];
 			        }
-
-			        var y = 0;
-			        for(; y < newData["timeseries"][i]["data"].length; y++)
-			        {
-				        data[i]["data"].unshift(newData["timeseries"][i]["data"][y]);
-			        }
-			        data[i]["data"] = data[i]["data"].sort(comparator);
+                    data["data"].concat(newData["timeseries"][idx]["data"]);
+			        data["data"] = data["data"].sort(comparator);
 			    }
-			    i++;
 		    });
-            drawPlot();
+		    removeDuplicates();
+            drawPlot(null);
             updateLegend();
 		    window.setTimeout(autoUpdate, 3000);
 	    }).error(function() { 
             console.log("Server Error"); 
             window.setTimeout(autoUpdate, 3000);
       });
-	}else{
-        drawPlot();
+	} else {
+        drawPlot(null);
 	    window.setTimeout(autoUpdate, 500);
 	}
 }
 
-function updateLegend() {    
+function updateLegend() {
     var pos = latestPosition;
     
     var axes = plot.getAxes();
     
-   /* if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
+    /* if (pos.x < axes.xaxis.min || pos.x > axes.xaxis.max ||
         pos.y < axes.yaxis.min || pos.y > axes.yaxis.max)
-        return;*/
+        return;
+     */
 
     var i, j, dataset = plot.getData();
     for (i = 0; i < dataset.length; ++i) {
         var series = dataset[i];
        
-       if(series.data.length != 0){
+       if(series.data.length != 0 && pos != null){
           // find first time that is later than pos.x
           for (j = 0; j < series.data.length && series.data[j][0] < pos.x; ++j);
 
@@ -272,9 +281,9 @@ function updateLegend() {
              newtimestamp += " Uhr";
 
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $(".legendLabel")[i].innerHTML = dataset[i].label + " am " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
+         $(".legendLabel span")[i].innerHTML = " am " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
-         $(".legendLabel")[i].innerHTML = dataset[i].label + "Keine Daten vorhanden";
+         $(".legendLabel span")[i].innerHTML = " Keine Daten vorhanden";
     }
     last_time_rendered = new Date().getTime();
 }

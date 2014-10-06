@@ -34,8 +34,8 @@ def liveData(request):
     if 'lastTick' in request.GET:
         last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
         # WR data
-        ticksWR = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
-        for device in Device.objects.distinct():
+        ticksWR = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("time")
+        for device in sorted(Device.objects.distinct()):
             graphs.append({"data": chart.fetchTimeSeriesLiveView(device.id, ticksWR)})
         # smart meter data
         ticksSM = SmartMeterEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
