@@ -26,7 +26,7 @@ function drawPlot(event) {
 
 	if (currentData.length > 0) {
         plot = $.plot($(".chart")[0], currentData, options);
-        insertCheckboxes();
+        insertCheckboxesIfApplicable();
     }
     
     // add overlay if necessary
@@ -43,12 +43,16 @@ function drawPlot(event) {
     }
 }
 
-function insertCheckboxes(){
+function insertCheckboxesIfApplicable(){
     $.each(plotdata, function(idx, data) {
-        var checked = checkedItems[data.label] == true ? "checked='checked' " : "";
-        $(".legendLabel")[idx].innerHTML = "<input type='checkbox' name='" + data.label + "' " + 
-            checked + "id='id" + data.label + "' data-id='" + data.label + "'></input>" +
-		    "<label for='id" + data.label + "'>" + data.label + "</label> <span></span>";
+        if("bars" in original_options.series){ // disable line selection when using barchart because orderBars.js can't handle missing bars right now
+            $(".legendLabel")[idx].innerHTML = data.label + " <span></span>"
+        } else {
+            var checked = checkedItems[data.label] == true ? "checked='checked' " : "";
+            $(".legendLabel")[idx].innerHTML = "<input type='checkbox' name='" + data.label + "' " + 
+                checked + "id='id" + data.label + "' data-id='" + data.label + "'></input>" +
+		        "<label for='id" + data.label + "'>" + data.label + "</label> <span></span>";
+		}
     });
     $(".legend").find("input").click(drawPlot);
 }
@@ -205,7 +209,7 @@ function autoUpdate() {
 			            }
 			        }
                     data["data"].concat(newData["timeseries"][idx]["data"]);
-			        data["data"] = data["data"].sort(comparator);
+			        plotdata[idx]["data"] = data["data"].sort(comparator);
 			    }
 		    });
 		    removeDuplicates();
