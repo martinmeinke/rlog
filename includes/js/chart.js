@@ -198,8 +198,8 @@ function autoUpdate() {
 		        // contine bussiness		        
 		        */
 	    		if(newData["timeseries"][idx]["data"].length > 0){ // if there is new data for this device
-	    		    if(data.length > 0){ // if there is old data for this device
-			            var oldestTick = data[0][0];
+	    		    if(data["data"].length > 0){ // if there is old data for this device
+			            var oldestTick = data["data"][0][0];
 			            var timeframeInMs = $("#live_timeframe").val() * 60 * 1000;
 			            var oldestTickDeadline = new Date().getTime() - timeframeInMs;
 
@@ -208,8 +208,8 @@ function autoUpdate() {
 				            oldestTick = data["data"][0][0];
 			            }
 			        }
-                    data["data"].concat(newData["timeseries"][idx]["data"]);
-			        plotdata[idx]["data"] = data["data"].sort(comparator);
+                    var updatedData = data["data"].concat(newData["timeseries"][idx]["data"]);
+			        plotdata[idx]["data"] = updatedData.sort(comparator);
 			    }
 		    });
 		    removeDuplicates();
