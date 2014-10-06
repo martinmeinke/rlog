@@ -123,8 +123,8 @@ function autoUpdateInitial(minutes) {
 		    plotdata = returnedJson["timeseries"];	
 		    applySettings(returnedJson["settings"]);
 
-		    for (i = 0; i < data.length; i++)
-		      data[i]["data"] = data[i]["data"].sort(comparator);
+		    for (i = 0; i < plotdata.length; i++)
+		      plotdata[i]["data"] = plotdata[i]["data"].sort(comparator);
 		      
 		    // fill the checkedItems object
 		    $.each(plotdata, function(idx, data) {
