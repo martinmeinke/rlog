@@ -35,6 +35,7 @@ footer{
 
 .legendLabel *{
     float: left;
+    margin-left: 3px;
 }
 
 .stats_form
