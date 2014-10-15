@@ -35,7 +35,7 @@ def liveData(request):
         last_tick_provided = datetime.datetime.utcfromtimestamp(int(request.GET["lastTick"])/1000)
         # WR data
         ticksWR = SolarEntryTick.objects.filter(time__gt=last_tick_provided).order_by("time")
-        for device in sorted(Device.objects.distinct()):
+        for device in Device.objects.order_by("id").distinct():
             graphs.append({"data": chart.fetchTimeSeriesLiveView(device.id, ticksWR)})
         # smart meter data
         ticksSM = SmartMeterEntryTick.objects.filter(time__gt=last_tick_provided).order_by("-time")
@@ -53,7 +53,7 @@ def liveData(request):
         ticksWR = SolarEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         ticksSM = SmartMeterEntryTick.objects.filter(time__range=(start, end)).order_by('-time')
         
-        for device in sorted(Device.objects.distinct()):
+        for device in Device.objects.order_by("id").distinct():
             timetuples = chart.fetchTimeSeriesLiveView(device.id, ticksWR)
             label = "Erzeugung WR %s (ID: %s)" % (device.model, device.id)
             graphs.append({"label": label, "data":timetuples})
