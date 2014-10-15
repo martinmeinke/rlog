@@ -4,8 +4,8 @@ import os
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.60']
-DEBUG = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.54', 'wdat.ddns.net']
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
