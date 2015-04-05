@@ -12,6 +12,8 @@ ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
 
+ADMIN_ENABLED = False
+
 MANAGERS = ADMINS
 
 DATABASES = {
@@ -126,7 +128,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'charts',
     # Uncomment the next line to enable the admin:
-    'django.contrib.admin',
+    # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )

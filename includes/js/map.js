@@ -91,10 +91,16 @@ function Map(containerName){
       self.connect(); 
     };
     this.connect = function(){
-      self.mqttClient = new Messaging.Client(location.hostname, 18883, "rlog-web-"+Math.random().toString(36).substring(6));
+      if (location.protocol === 'https:')
+        self.mqttClient = new Messaging.Client(location.hostname, 8883, "rlog-web-"+Math.random().toString(36).substring(6));
+      else
+        self.mqttClient = new Messaging.Client(location.hostname, 18883, "rlog-web-"+Math.random().toString(36).substring(6));
       self.mqttClient.onConnectionLost = self.connectionLost;
       self.mqttClient.onMessageArrived = self.messageArrived;
-      self.mqttClient.connect({onSuccess:self.connected});
+      if (location.protocol === 'https:')
+        self.mqttClient.connect({onSuccess:self.connected, useSSL: true});
+      else
+        self.mqttClient.connect({onSuccess:self.connected, useSSL: false});
     };
     this.connected = function(response){
       self.mqttClient.subscribe('/devices/+/controls/+/meta/+', 0);
