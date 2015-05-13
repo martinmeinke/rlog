@@ -584,7 +584,7 @@ class Aggregation():
         self.Eigenverbrauch.timestamp = now
     
     # aggregates minutely, hourly, daily, monthly and yearly data
-    # expects input (except busID and now ehich are int and datetime) to be Decimal
+    # expects input (except busID and now which are int and datetime) to be Decimal
     def updateInverter(self, busID, now, lW, dailyTotal):
         # prepare timestamps
         thisMinute = now + relativedelta(second=0, microsecond=0) # this is localtime (with correct timezone as there is in the database)
@@ -734,11 +734,11 @@ class Aggregation():
         self.SmartMeterMonth.timestamp = now
         
         # the year aggregation. data order: "time", reading, phase1, phase2, phase3
-        if self.SmartMeterYear.data[0] < thisMonth:
+        if self.SmartMeterYear.data[0] < thisYear:
             self.SmartMeterYear.data[2] = Decimal(0)
             self.SmartMeterYear.data[3] = Decimal(0)
             self.SmartMeterYear.data[4] = Decimal(0)
-        self.SmartMeterYear.data[0] = thisMonth 
+        self.SmartMeterYear.data[0] = thisYear
         self.SmartMeterYear.data[1] = reading
         self.SmartMeterYear.data[2] += phase1Increment
         self.SmartMeterYear.data[3] += phase2Increment

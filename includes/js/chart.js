@@ -46,12 +46,12 @@ function drawPlot(event) {
 function insertCheckboxesIfApplicable(){
     $.each(plotdata, function(idx, data) {
         if("bars" in original_options.series){ // disable line selection when using barchart because orderBars.js can't handle missing bars right now
-            $(".legendLabel")[idx].innerHTML = data.label + " <span></span>"
+            $(".legendLabel")[idx].innerHTML = "<span>" + data.label + "</span><span class='labelContent'></span>"
         } else {
             var checked = checkedItems[data.label] == true ? "checked='checked' " : "";
             $(".legendLabel")[idx].innerHTML = "<input type='checkbox' name='" + data.label + "' " + 
                 checked + "id='id" + data.label + "' data-id='" + data.label + "'></input>" +
-		        "<label for='id" + data.label + "'>" + data.label + "</label> <span></span>";
+		        "<label for='id" + data.label + "'>" + data.label + "</label> <span class='labelContent'></span>";
 		}
     });
     $(".legend").find("input").click(drawPlot);
@@ -294,9 +294,9 @@ function updateLegend() {
              newtimestamp += " Uhr";
 
          //console.log(dataset[i].label + ": time: " + newtimestamp + ", value: " + y);
-         $(".legendLabel span")[i].innerHTML = " am " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
+         $(".legendLabel .labelContent")[i].innerHTML = " am " + newtimestamp + ": " + Math.round(p[1] * 100) / 100;
        } else
-         $(".legendLabel span")[i].innerHTML = " Keine Daten vorhanden";
+         $(".legendLabel .labelContent")[i].innerHTML = " Keine Daten vorhanden";
     }
     last_time_rendered = new Date().getTime();
 }
