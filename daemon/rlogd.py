@@ -6,10 +6,8 @@ Created on Oct 10, 2012
 @author: martin and stephan
 '''
 import serial
-#import sqlite3
 import psycopg2
 import time
-import commands
 import os
 import sys
 import string
@@ -28,6 +26,7 @@ DEBUG_ENABLED = False
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
+DEBUG_INVERTER_PORT = "/dev/pts/6"
 MQTT_HOST = "localhost"
 
 LOCATIONX = "14.122994"
@@ -81,7 +80,7 @@ class WR():
                 if time.time() - start_zeit > timeout:
                     return response
         except serial.SerialException as e:
-            log("RS45 problem while reading from WR")
+            log("RS45 problem while reading from WR: " + str(e))
         return response
       
     # checks checksum in type message
@@ -125,7 +124,7 @@ class WR():
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "9\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
-            log("RS45 problem while requesting WR type")
+            log("RS45 problem while requesting WR type: " + str(e))
         typ = self.read_line()
         if self.type_valid(typ):
             return typ
@@ -137,7 +136,7 @@ class WR():
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
         except serial.SerialException as e:
-            log("RS45 problem while requesting WR data") 
+            log("RS45 problem while requesting WR data:" + str(e)) 
         daten = self.read_line()
         if self.data_valid(daten):
             return daten
@@ -218,7 +217,7 @@ class SmartMeter():
                 if time.time() - start_zeit > timeout:
                     return response
         except serial.SerialException as e:
-            log("RS45 problem while reading from WR")
+            log("RS45 problem while reading from WR: " + str(e))
         return response
         
     # returns the data message or None
@@ -230,7 +229,7 @@ class SmartMeter():
             self.__serial_port.write(chr(6) + "050\r\n")
             self.__serial_port.flush()
         except serial.SerialException as e:
-            log("RS45 problem while requesting smart meter data") 
+            log("RS45 problem while requesting smart meter data: " + str(e)) 
         daten = self.read_datagram()
         if self.data_valid(daten):
             return daten
@@ -809,19 +808,19 @@ class RLogDaemon(Daemon):
         try:
             if self._db_cursor.rowcount > 0:
                 sets = self._db_cursor.fetchone()
-           	RLogDaemon.KWHPERRING = Decimal(sets[2]) # not sure it is already decimal
-           	RLogDaemon.NEXTRING = Decimal(sets[2])
-           	RLogDaemon.SOUND = sets[3]
+                RLogDaemon.KWHPERRING = Decimal(sets[2]) # not sure it is already decimal
+                RLogDaemon.NEXTRING = Decimal(sets[2])
+                RLogDaemon.SOUND = sets[3]
             else:
-                 log("no settings in database. using defaults")
-                 RLogDaemon.KWHPERRING = Decimal(1)
-                 RLogDaemon.NEXTRING = Decimal(1)
-                 RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
+                log("no settings in database. using defaults")
+                RLogDaemon.KWHPERRING = Decimal(1)
+                RLogDaemon.NEXTRING = Decimal(1)
+                RLogDaemon.SOUND = "/home/stephan/git/rlog/coin.mp3"
         except Exception as ex:
             log("Couldn't read settings from database. Error was:")
             log(str(type(ex))+str(ex))
-        except Error as err:
-            log(str(type(err)))
+        except:
+            log("Unexpected error: " + str(sys.exc_info()[0]))
 
         log("""Using Parameters:
     KWHPERRING: %s
@@ -923,9 +922,9 @@ class RLogDaemon(Daemon):
             log("poll delay is : " + str(RLogDaemon.DELAY))
         sleepduration = RLogDaemon.DELAY - (t2 - t1)
         if sleepduration <= 0:
-          log("Timing problem (discovery?): %f" % sleepduration)
+            log("Timing problem (discovery?): %f" % sleepduration)
         else:
-          time.sleep(sleepduration)
+            time.sleep(sleepduration)
 
     # try all device starting with DEVICE_NAME_BASE and try to talk to the smart meter if it exists (if smart meter is enabled).
     # if smart meter is found (or smartmeter is not enabled) try the first device starting with DEVICE_NAME_BASE and assume it is the rs485 adapter for the WR (make sure to skip smart meter adapter if present)
@@ -1028,7 +1027,7 @@ class RLogDaemon(Daemon):
         sumUsed = Decimal(0)
         # poll the WR
         statements = [] # list of string lists that is going to be passed to executemany()
-        for (bus_id, wr) in self._slaves.iteritems():
+        for (_bus_id, wr) in self._slaves.iteritems():
             data = wr.request_data()
             if DEBUG_ENABLED:
                 log("Read row %s" % data)
@@ -1038,11 +1037,11 @@ class RLogDaemon(Daemon):
                 tmp.extend(cols[2:10])
                 statements.append(tmp)
                 try:
-                  linePower = Decimal(cols[7])
-                  sumProduced += linePower # add toRether production
-                  self.update_bell_counter(linePower)
+                    linePower = Decimal(cols[7])
+                    sumProduced += linePower # add toRether production
+                    self.update_bell_counter(linePower)
                 except Exception as e:
-                   log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
+                    log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
                 # aggregate stuff (arguments are busID, time of reading, lW and total of day
                 self._aggregator.updateInverter(wr.bus_id, tmp[0], Decimal(cols[7]), Decimal(cols[9]))
                 # try to publish via MQTT
