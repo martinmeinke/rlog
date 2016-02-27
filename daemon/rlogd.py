@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzlocal
 
 
-DEBUG_ENABLED = False
+DEBUG_ENABLED = True
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
@@ -1067,19 +1067,19 @@ class RLogDaemon(Daemon):
                 self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET exacttime=EXCLUDED.exacttime, "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
                 if DEBUG_ENABLED:
                     log("storing hourly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
                 if DEBUG_ENABLED:
                     log("storing daily WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
                 if DEBUG_ENABLED:
                     log("storing monthly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
+                self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
                 if DEBUG_ENABLED:
                     log("storing yearly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
                 if DEBUG_ENABLED:
                     log("storing maximum WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima)))
-                self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW", exacttime=EXCLUDED.exacttime', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
+                self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lW"=EXCLUDED."lW", exacttime=EXCLUDED.exacttime', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("WR: Database Operational Error!")
