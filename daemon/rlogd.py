@@ -135,7 +135,7 @@ class WR():
     # returns the data message or None
     def request_data(self):
         if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
-            return "\n*030   5 172.1  0.10    22 230.4  0.05    20  26   1925 C 3501xi\r"
+            return "\n*030   5 172.1  0.10    22 230.4  0.05    {0}  26   1925 C 3501xi\r".format(self.__bus_id * 100)
         try:
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
@@ -902,7 +902,7 @@ class RLogDaemon(Daemon):
                 if candidate.does_exist():
                     self._slaves[self._current_discovery_id] = candidate
                     try:
-                        self._db_cursor.execute("INSERT INTO charts_device (id, model) VALUES (%s, %s)", (candidate.bus_id, candidate.model)) # actually upserts if exists due to database rule
+                        self._db_cursor.execute("INSERT INTO charts_device (id, model) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET model=EXCLUDED.model", (candidate.bus_id, candidate.model))
                         self._db_connection.commit()
                     except psycopg2.OperationalError as ex:
                         log("Database Operational Error!")
@@ -1003,7 +1003,7 @@ class RLogDaemon(Daemon):
                 log(str(len(remaining_wr)) + " WR have not yet been discovered")
         if len(statements) > 0:
             try:
-                self._db_cursor.executemany("INSERT INTO charts_device (id, model) VALUES (%s, %s)", statements) # actually updates if exists due to database rule
+                self._db_cursor.executemany("INSERT INTO charts_device (id, model) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET model=EXCLUDED.model", statements)
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("Database is locked or some other DB error!")
@@ -1061,26 +1061,25 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-                # every insert is actually an upsert due to database rules
                 self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
                 if DEBUG_ENABLED:
                     log("storing minutely WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET exacttime=EXCLUDED.exacttime, "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
                 if DEBUG_ENABLED:
                     log("storing hourly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
                 if DEBUG_ENABLED:
                     log("storing daily WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryday (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRday))
                 if DEBUG_ENABLED:
                     log("storing monthly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
+                self._db_cursor.executemany('INSERT INTO charts_solarentrymonth (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmonth))
                 if DEBUG_ENABLED:
                     log("storing yearly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryyear (time, device_id, "lW") VALUES (%s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRyear))
                 if DEBUG_ENABLED:
                     log("storing maximum WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima)))
-                self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
+                self._db_cursor.executemany('INSERT INTO charts_solardailymaxima (time, device_id, "lW", exacttime) VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET "lw"=EXCLUDED."lW", exacttime=EXCLUDED.exacttime', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRmaxima))
                 self._db_connection.commit()
             except psycopg2.OperationalError as ex:
                 log("WR: Database Operational Error!")
