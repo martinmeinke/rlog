@@ -1164,22 +1164,22 @@ class RLogDaemon(Daemon):
                         self._db_cursor.execute('INSERT INTO charts_smartmeterentrytick ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', values)
                         if DEBUG_ENABLED:
                             log("storing minutely smartmeter data: " + str(self._aggregator.SmartMeterMinute.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryminute ("time", exacttime, reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s, %s)', self._aggregator.SmartMeterMinute.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryminute ("time", exacttime, reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (time) DO UPDATE SET exacttime=EXCLUDED.exacttime, reading=EXCLUDED.reading, phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3', self._aggregator.SmartMeterMinute.data)
                         if DEBUG_ENABLED:
                             log("storing hourly smartmeter data: " + str(self._aggregator.SmartMeterHour.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryhour ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterHour.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryhour ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (time) DO UPDATE SET reading=EXCLUDED.reading, phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3', self._aggregator.SmartMeterHour.data)
                         if DEBUG_ENABLED:
                             log("storing daily smartmeter data: " + str(self._aggregator.SmartMeterDay.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryday ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterDay.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryday ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (time) DO UPDATE SET reading=EXCLUDED.reading, phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3', self._aggregator.SmartMeterDay.data)
                         if DEBUG_ENABLED:
                             log("storing monthly smartmeter data: " + str(self._aggregator.SmartMeterMonth.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterentrymonth ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterMonth.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentrymonth ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (time) DO UPDATE SET reading=EXCLUDED.reading, phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3', self._aggregator.SmartMeterMonth.data)
                         if DEBUG_ENABLED:
                             log("storing yearly smartmeter data: " + str(self._aggregator.SmartMeterYear.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryyear ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s)', self._aggregator.SmartMeterYear.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterentryyear ("time", reading, phase1, phase2, phase3) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (time) DO UPDATE SET reading=EXCLUDED.reading, phase1=EXCLUDED.phase1, phase2=EXCLUDED.phase2, phase3=EXCLUDED.phase3', self._aggregator.SmartMeterYear.data)
                         if DEBUG_ENABLED:
                             log("storing maximum smartmeter data: " + str(self._aggregator.SmartMeterMaximum.data))
-                        self._db_cursor.execute('INSERT INTO charts_smartmeterdailymaxima ("time", exacttime, maximum) VALUES (%s, %s, %s)', self._aggregator.SmartMeterMaximum.data)
+                        self._db_cursor.execute('INSERT INTO charts_smartmeterdailymaxima ("time", exacttime, maximum) VALUES (%s, %s, %s) ON CONFLICT (time) DO UPDATE SET exacttime = EXCLUDED.exacttime, maximum = EXCLUDED.maximum', self._aggregator.SmartMeterMaximum.data)
                         self._db_connection.commit()
                     except psycopg2.OperationalError as ex:
                         log("Smart Meter: Database Operational Error!")
@@ -1195,7 +1195,7 @@ class RLogDaemon(Daemon):
         # insert Eigenverbrauch into database
         self._aggregator.updateEigenverbrauch(sumProduced, sumUsed)
         try:
-            self._db_cursor.execute("INSERT INTO charts_eigenverbrauch VALUES (%s, %s);", self._aggregator.Eigenverbrauch.data) # will do upsert because of table rule
+            self._db_cursor.execute('INSERT INTO charts_eigenverbrauch ("time", eigenverbrauch) VALUES (%s, %s) ON CONFLICT (time) DO UPDATE SET eigenverbrauch = EXCLUDED.eigenverbrauch', self._aggregator.Eigenverbrauch.data)
             self._db_connection.commit()
             if DEBUG_ENABLED:
                 log("saving eigenverbrauch: " + str(self._aggregator.Eigenverbrauch.data))
