@@ -55,6 +55,8 @@ class WR():
         return self.__model
         
     def setup_serial_port(self):
+        if not self.__serial_port:
+            return
         self.__serial_port.flushInput()
         self.__serial_port.flushOutput()
         self.__serial_port.bytesize = self.__bytesize
@@ -132,6 +134,8 @@ class WR():
         
     # returns the data message or None
     def request_data(self):
+        if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
+            return "\n*030   5 172.1  0.10    22 230.4  0.05    20  26   1925 C 3501xi\r"
         try:
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
@@ -145,6 +149,8 @@ class WR():
     # returns True / False indicating whether that device exists on the bus (if it answered valid data) and adds model name to WR object (in case of valid response)
     def does_exist(self):
         log("Running discovery on ID " + str(self.__bus_id))
+        if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
+            return True
         typ = self.request_type()
         if typ:
             if DEBUG_ENABLED:
@@ -951,7 +957,8 @@ class RLogDaemon(Daemon):
                             smart_meter_device = device_id
                             break
         if RLogDaemon.DEBUG_INVERTER_PORT:
-            self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_INVERTER_PORT, 9600, timeout = 1)
+            self._WR_serial_port = None # syserial is currently broken for pts
+            # self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_INVERTER_PORT, 9600, timeout = 1)
             log("Using device: %s" % RLogDaemon.DEBUG_INVERTER_PORT)
         else:
             log("Searching rs485 device for WR")           
