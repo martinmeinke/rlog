@@ -1054,11 +1054,11 @@ class RLogDaemon(Daemon):
                 time.sleep(0.33)
         if statements:
             try:
-                # every insert is acutally an upsert due to database rules
+                # every insert is actually an upsert due to database rules
                 self._db_cursor.executemany('INSERT INTO charts_solarentrytick (time, device_id, "gV", "gA", "gW", "lV", "lA", "lW", temp, total) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', statements)
                 if DEBUG_ENABLED:
                     log("storing minutely WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute)))
-                self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
+                self._db_cursor.executemany('INSERT INTO charts_solarentryminute (time, exacttime, device_id, "lW") VALUES (%s, %s, %s, %s) ON CONFLICT (time, device_id) DO UPDATE SET exacttime=EXCLUDED.exacttime, "lW"=EXCLUDED."lW"', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRminute))
                 if DEBUG_ENABLED:
                     log("storing hourly WR data: " + str(self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour)))
                 self._db_cursor.executemany('INSERT INTO charts_solarentryhour (time, device_id, "lW") VALUES (%s, %s, %s)', self._aggregator.makeExecutemanyDataStructure(self._aggregator.WRhour))
