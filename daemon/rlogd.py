@@ -26,7 +26,6 @@ DEBUG_ENABLED = False
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 #DATABASE = PROJECT_PATH+"/../sensor.db"
 DEVICE_NAME_BASE = "/dev/ttyUSB"
-DEBUG_INVERTER_PORT = "/dev/pts/6"
 MQTT_HOST = "localhost"
 
 LOCATIONX = "14.122994"
@@ -55,8 +54,6 @@ class WR():
         return self.__model
         
     def setup_serial_port(self):
-        if not self.__serial_port: # hacky shit because pyserial can't currently handle virtual serial ports
-            return
         self.__serial_port.flushInput()
         self.__serial_port.flushOutput()
         self.__serial_port.bytesize = self.__bytesize
@@ -134,8 +131,6 @@ class WR():
         
     # returns the data message or None
     def request_data(self):
-        if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
-            return "\n*030   5 172.1  0.10    22 230.4  0.05    {0}  26   1925 C 3501xi\r".format(self.__bus_id * 100)
         try:
             self.__serial_port.write("#" + "{0:02d}".format(self.__bus_id) + "0\r")
             self.__serial_port.flush()
@@ -149,8 +144,6 @@ class WR():
     # returns True / False indicating whether that device exists on the bus (if it answered valid data) and adds model name to WR object (in case of valid response)
     def does_exist(self):
         log("Running discovery on ID " + str(self.__bus_id))
-        if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
-            return True
         typ = self.request_type()
         if typ:
             if DEBUG_ENABLED:
@@ -186,8 +179,6 @@ class SmartMeter():
         return self.__model
         
     def setup_serial_port(self):
-        if not self.__serial_port: # hacky shit because pyserial can't currently handle virtual serial ports
-            return
         self.__serial_port.flushInput()
         self.__serial_port.flushOutput()
         self.__serial_port.bytesize = self.__bytesize
@@ -230,18 +221,6 @@ class SmartMeter():
         
     # returns the data message or None
     def request_data(self):
-        if not self.__serial_port: # dirty debug hack but pyserial can't currently open virtual serial ports any more
-            return "# 1-0:1.8.0*255(00300.00*kWh)\r\n"\
-                    "1-0:2.1.7*255(1.1*kWh)\r\n"\
-                    "1-0:4.1.7*255(2.2*kWh)\r\n"\
-                    "1-0:6.1.7*255(3.3*kWh)\r\n"\
-                    "1-0:21.7.255*255(4.4*kW)\r\n"\
-                    "1-0:41.7.255*255(5.5*kW)\r\n"\
-                    "1-0:61.7.255*255(6.6000*kW)\r\n"\
-                    "1-0:1.7.255*255(7.7000*kW)\r\n"\
-                    "1-0:96.5.5*255(q)\r\n"\
-                    "0-0:96.1.255*255(11401476)\r\n"\
-                    "\r\n"
         try:
             self.__serial_port.write("/?!\r\n")
             self.__serial_port.flush()
@@ -259,8 +238,6 @@ class SmartMeter():
     # returns True / False indicating whether that device exists on the bus (if it answered valid data)
     def does_exist(self):
         log("discovering smart meter")
-        if not self.__serial_port: # hacky shit because pyserial can't currently handle virtual serial ports
-            return True
         data = self.request_data()
         if data and self.data_valid(data):
             return True
@@ -954,8 +931,7 @@ class RLogDaemon(Daemon):
         smart_meter_device = -1 # to be excluded in the second run of 'for device_id in range(0, 100):'
         if self._smart_meter_enabled:
             if RLogDaemon.DEBUG_SMARTMETER_PORT:
-                self._smart_meter_serial_port = None # pyserial is currently broken for pts
-                #self._smart_meter_serial_port = serial.Serial(RLogDaemon.DEBUG_SMARTMETER_PORT, 9600, timeout = 1)
+                self._smart_meter_serial_port = serial.Serial(RLogDaemon.DEBUG_SMARTMETER_PORT, 9600, timeout = 1)
                 if self.findSmartMeter():
                     log("Using %s for smart meter" % RLogDaemon.DEBUG_SMARTMETER_PORT)
                     smart_meter_device = int(RLogDaemon.DEBUG_SMARTMETER_PORT[-1])
@@ -974,8 +950,7 @@ class RLogDaemon(Daemon):
                             smart_meter_device = device_id
                             break
         if RLogDaemon.DEBUG_INVERTER_PORT:
-            self._WR_serial_port = None # pyserial is currently broken for pts
-            # self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_INVERTER_PORT, 9600, timeout = 1)
+            self._WR_serial_port = serial.Serial(RLogDaemon.DEBUG_INVERTER_PORT, 9600, timeout = 1)
             log("Using device: %s" % RLogDaemon.DEBUG_INVERTER_PORT)
         else:
             log("Searching rs485 device for WR")           
@@ -1051,7 +1026,7 @@ class RLogDaemon(Daemon):
         sumUsed = Decimal(0)
         # poll the WR
         statements = [] # list of string lists that is going to be passed to executemany()
-        for (_bus_id, wr) in self._slaves.iteritems():
+        for (bus_id, wr) in self._slaves.iteritems():
             data = wr.request_data()
             if DEBUG_ENABLED:
                 log("Read row %s" % data)
@@ -1062,10 +1037,10 @@ class RLogDaemon(Daemon):
                 statements.append(tmp)
                 try:
                     linePower = Decimal(cols[7])
-                    sumProduced += linePower # add toRether production
+                    sumProduced += linePower # add to production
                     self.update_bell_counter(linePower)
                 except Exception as e:
-                    log("Exception polling WR: cols: " + str(cols) + "Message:" + str(e))
+                    log("Exception polling WR" + bus_id + ": cols: " + str(cols) + "Message:" + str(e))
                 # aggregate stuff (arguments are busID, time of reading, lW and total of day
                 self._aggregator.updateInverter(wr.bus_id, tmp[0], Decimal(cols[7]), Decimal(cols[9]))
                 # try to publish via MQTT
