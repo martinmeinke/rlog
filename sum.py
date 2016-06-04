@@ -1,4 +1,4 @@
-#! /usr/bin/python2
+#!/usr/bin/env python2
 import mqtt, time
 
 MQTT_HOST = "192.168.11.54"

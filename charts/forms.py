@@ -7,6 +7,7 @@ class StatsForm(forms.Form):
     	choices = [
     		["timeframe_day", "Heute"],
     		["timeframe_mon", "Diesen Monat"],
+    		["timeframe_week", "Diese Woche"],
     		["timeframe_yrs", "Dieses Jahr"],
     		["timeframe_cus", "Anderer Zeitraum"]
     	],
@@ -36,7 +37,7 @@ class CustomStatsForm(forms.Form):
         widget=forms.DateInput(format = '%m/%d/%Y'),
         required = True
     )
-    startfrom.widget.attrs.update({'class':'datePicker', 'readonly':'true'})
+    startfrom.widget.attrs.update({'class':'datePicker'})
 
     endby = forms.DateField(
         label = "Ende",
@@ -44,4 +45,4 @@ class CustomStatsForm(forms.Form):
         widget=forms.DateInput(format = '%m/%d/%Y'),
         required = True
     )
-    endby.widget.attrs.update({'class':'datePicker', 'readonly':'true'})
+    endby.widget.attrs.update({'class':'datePicker'})
