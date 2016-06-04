@@ -1,16 +1,20 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url
 from django.views.generic import RedirectView
 from django.conf import settings
+from charts import views as chart_views
+
+app_name = 'charts'
 
 # Uncomment the next two lines to enable the admin:
 if settings.ADMIN_ENABLED:
     from django.contrib import admin
     admin.autodiscover()
 
-urlpatterns = patterns('',
-    url(r'^$', 'charts.views.index'),
-    url(r'^live$', 'charts.views.live'),
-    url(r'^stats/(?P<timeframe_url>\w+)/$', 'charts.views.stats'),
-    url(r'^overview$', 'charts.views.overview'),
-    url(r'^liveData$', 'charts.views.liveData'),
-)
+urlpatterns = [
+    url(r'^$', chart_views.index, name="index"),
+    url(r'^live$', chart_views.live, name="live"),
+    url(r'^stats/?$', RedirectView.as_view(url='stats/timeframe_day'), name="stats"),
+    url(r'^stats/(?P<timeframe_url>\w+)/$', chart_views.stats, name="stats"),
+    url(r'^overview$', chart_views.overview, name="overview"),
+    url(r'^liveData$', chart_views.liveData, name="liveData"),
+]

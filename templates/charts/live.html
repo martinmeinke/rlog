@@ -3,7 +3,7 @@
 {% block content %}
 <script type="text/javascript">
 $(document).ready(function() {
-	autoUpdateInitial(60);
+	autoUpdateInitial(30);
   window.setTimeout(autoUpdate, 5000);
 });
 </script>
@@ -14,8 +14,8 @@ $(document).ready(function() {
   onchange="autoUpdateInitial(this.options[this.selectedIndex].value)" class="selectpicker">
       <option value="5">{% trans "5 Minutes" %}</option>
       <option value="15">{% trans "15 Minutes" %}</option>
-      <option value="30">{% trans "30 Minutes" %}</option>
-      <option selected=selected value="60">{% trans "1 Hour" %}</option>
+      <option selected=selected value="30">{% trans "30 Minutes" %}</option>
+      <option value="60">{% trans "1 Hour" %}</option>
       <option value="180">{% trans "3 Hours" %}</option>
       <option value="480">{% trans "8 Hours" %}</option>
       <option value="1440">{% trans "Today" %}</option>

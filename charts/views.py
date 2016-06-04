@@ -102,6 +102,9 @@ def stats(request, timeframe_url):
                 elif timeframe == "timeframe_day":
                     start = datetime.datetime.now(tzlocal()) + relativedelta(hour=0, minute=0, second=0, microsecond=0)
                     end = start + relativedelta(hour = 23, minute = 59)
+                elif timeframe == "timeframe_week":
+                    start = datetime.datetime.now(tzlocal())-datetime.timedelta(days=7)+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                    end = start + datetime.timedelta(days=7)
                 elif timeframe == "timeframe_mon":
                     start = datetime.datetime.now(tzlocal())+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)
                     end = start + relativedelta(day = calendar.monthrange(start.year, start.month)[1], hour = 23, minute = 59)
@@ -129,8 +132,8 @@ def stats(request, timeframe_url):
                 end = start + relativedelta(hour = 23, minute = 59)
                 period = 'period_min'
             elif timeframe == "timeframe_week":
-                start = datetime.datetime.now(tzlocal())-relativedelta(day=7, hour=0, minute=0, second=0, microsecond=0)
-                end = start + relativedelta(day = 7, hour = 23, minute = 59)
+                start = datetime.datetime.now(tzlocal())-datetime.timedelta(days=7)+relativedelta(hour=0, minute=0, second=0, microsecond=0)
+                end = start + datetime.timedelta(days=7)
                 period = 'period_day'
             elif timeframe == "timeframe_mon":
                 start = datetime.datetime.now(tzlocal())+relativedelta(day=1, hour=0, minute=0, second=0, microsecond=0)

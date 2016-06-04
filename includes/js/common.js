@@ -72,14 +72,21 @@ function update_period_choices(timeframe, set_current, period)
 {
 	var hrsOptions = { // actually  unused
         "period_tick" : "Tick",
-	    "period_min"  : "Minuetlich"
+	    "period_min"  : "Minütlich"
 	};
 
 	var dayOptions = {
         "period_tick" : "Tick",
-	    "period_min"  : "Minuetlich",
+	"period_min"  : "Minütlich",
         "period_hrs"  : "Stuendlich"
 	};
+
+	var weekOptions = {
+	"period_min"  : "Minütlich",
+        "period_hrs" : "Stuendlich",
+        "period_day" : "Taeglich"
+	};
+
 
 	var monOptions = {
         "period_hrs" : "Stuendlich",
@@ -93,7 +100,7 @@ function update_period_choices(timeframe, set_current, period)
 
 	var cusOptions = {
         "period_tick" : "Tick",
-	    "period_min"  : "Minuetlich",
+	"period_min"  : "Minütlich",
         "period_hrs"  : "Stuendlich",
         "period_day"  : "Taeglich",
         "period_mon"  : "Monatlich",
@@ -125,7 +132,19 @@ function update_period_choices(timeframe, set_current, period)
 
 		if(set_current)
 		{
-			$('#id_period').val("period_hrs");
+			$('#id_period').val("period_min");
+		}else{
+			$('#id_period').val(period);
+		}
+	}else if(timeframe == "timeframe_week")
+	{
+		$.each(weekOptions, function(val, text) {
+		    options[options.length] = new Option(text, val);
+		});
+
+		if(set_current)
+		{
+			$('#id_period').val("period_day");
 		}else{
 			$('#id_period').val(period);
 		}

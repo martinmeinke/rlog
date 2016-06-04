@@ -61,17 +61,18 @@
             <!-- Responsive Navbar Part 2: Place all navbar contents you want collapsed withing .navbar-collapse.collapse. -->
             <div class="nav-collapse collapse">
               <ul class="nav">
-                <li><a href="{% url 'charts.views.overview' %}">{% trans "Home" %}</a></li>
-                <li><a href="{% url 'charts.views.live' %}">{% trans "Live" %}</a></li>
+                <li><a href="{% url 'charts:overview' %}">{% trans "Home" %}</a></li>
+                <li><a href="{% url 'charts:live' %}">{% trans "Live" %}</a></li>
                 <li class="dropdown">
                   <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Stats" %}<b class="caret"></b></a>
                   <ul class="dropdown-menu">
                     <li class="nav-header">{% trans "Timeframe" %}</li>
-                    <li><a href="{% url 'charts.views.stats' 'timeframe_day'%}">{% trans "Today" %}</a></li>
-                    <li><a href="{% url 'charts.views.stats' 'timeframe_mon'%}">{% trans "This Month" %}</a></li>
-                    <li><a href="{% url 'charts.views.stats' 'timeframe_yrs'%}">{% trans "This Year" %}</a></li>
+                    <li><a href="{% url 'charts:stats' 'timeframe_day'%}">{% trans "Today" %}</a></li>
+                    <li><a href="{% url 'charts:stats' 'timeframe_week'%}">{% trans "Last 7 Days" %}</a></li>
+                    <li><a href="{% url 'charts:stats' 'timeframe_mon'%}">{% trans "This Month" %}</a></li>
+                    <li><a href="{% url 'charts:stats' 'timeframe_yrs'%}">{% trans "This Year" %}</a></li>
                     <li class="divider"></li>
-                    <li><a href="{% url 'charts.views.stats' 'timeframe_cus'%}">{% trans "Custom Period" %}</a></li>
+                    <li><a href="{% url 'charts:stats' 'timeframe_cus'%}">{% trans "Custom Period" %}</a></li>
                   </ul>
                 </li>
               </ul>

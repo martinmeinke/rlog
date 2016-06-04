@@ -6,8 +6,8 @@ class StatsForm(forms.Form):
     timeframe = forms.ChoiceField(
     	choices = [
     		["timeframe_day", "Heute"],
-    		["timeframe_mon", "Diesen Monat"],
-    		["timeframe_week", "Diese Woche"],
+    		["timeframe_week", "Letzten 7 Tage"],
+    		["timeframe_mon", "Dieser Monat"],
     		["timeframe_yrs", "Dieses Jahr"],
     		["timeframe_cus", "Anderer Zeitraum"]
     	],
