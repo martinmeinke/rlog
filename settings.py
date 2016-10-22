@@ -5,8 +5,10 @@ import os
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.11.54', 'wdat.ddns.net']
-DEBUG = True
+DEBUG = False #True
 TEMPLATE_DEBUG = DEBUG
+
+CSRF_COOKIE_SECURE = True
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),

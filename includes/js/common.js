@@ -21,9 +21,13 @@ $(document).ready(function() {
 	//$("#timeframe").buttonset();
 	$("input[name='timeframe']").change(function() {
 		if ($("#timeframe_cus").is(':checked')) {
-			$("#datepickerArea").css("display", "block");
+	        $("#id_startfrom")[0].required = true;
+            $("#id_endby")[0].required = true;
+            $(".custom_date_area").css("display", "block");
 		} else {
-			$("#datepickerArea").css("display", "none");
+			$(".custom_date_area").css("display", "none");
+            $("#id_startfrom")[0].required = false;
+            $("#id_endby")[0].required = false;
 		}
 	});
 
@@ -193,9 +197,13 @@ function check_custom_timeframe(set_current, period)
 	var selected_timeframe = $("#id_timeframe option:selected").val();
 
 	if(selected_timeframe == "timeframe_cus"){
-		$(".custom_date_area").css("display", "block");
-	}else{
+		$("#id_startfrom")[0].required = true;
+        $("#id_endby")[0].required = true;
+        $(".custom_date_area").css("display", "block");
+	} else {
 		$(".custom_date_area").css("display", "none");
+        $("#id_startfrom")[0].required = false;
+        $("#id_endby")[0].required = false;
 	}
 	
 	update_period_choices(selected_timeframe, set_current, period);

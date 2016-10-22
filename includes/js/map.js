@@ -92,9 +92,9 @@ function Map(containerName){
     };
     this.connect = function(){
       if (location.protocol === 'https:')
-        self.mqttClient = new Messaging.Client(location.hostname, 8883, "rlog-web-"+Math.random().toString(36).substring(6));
+        self.mqttClient = new Messaging.Client(location.hostname, 8883, "rlog-web-"+Math.random().toString(36).substring(2, 8));
       else
-        self.mqttClient = new Messaging.Client(location.hostname, 18883, "rlog-web-"+Math.random().toString(36).substring(6));
+        self.mqttClient = new Messaging.Client(location.hostname, 18883, "rlog-web-"+Math.random().toString(36).substring(2, 8));
       self.mqttClient.onConnectionLost = self.connectionLost;
       self.mqttClient.onMessageArrived = self.messageArrived;
       if (location.protocol === 'https:')

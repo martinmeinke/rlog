@@ -15,7 +15,10 @@ function export_image()
 $(document).ready(function() {
     check_custom_timeframe(0, "{{ period }}");
     addPlot({{ timeseries|safe }});
+    try {
     applySettings({{ plotsettings|safe }});
+    } catch(err) {
+    }
     // fill the checkedItems object
     $.each(plotdata, function(idx, data) {
         checkedItems[data.label] = true;

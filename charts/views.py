@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from chart import Chart
 from live_chart import LiveChart
 import datetime
@@ -12,13 +12,17 @@ from django.template import RequestContext
 from charts.models import Device
 from charts.models import SolarEntryTick, SmartMeterEntryTick
 from django.utils.translation import ugettext as _
+from django.views.decorators.csrf import ensure_csrf_cookie
 
+@ensure_csrf_cookie
 def index(request):
     return live(request)
 
+@ensure_csrf_cookie
 def live(request):
-    return render_to_response('charts/live.html', vars(), RequestContext(request))
+    return render(request, 'charts/live.html', vars())
 
+@ensure_csrf_cookie
 def liveData(request):
     #import pdb; pdb.set_trace()
     #import logging
@@ -66,6 +70,7 @@ def liveData(request):
         plotsettings = json.dumps(chart.chartOptionsLiveView(), cls=DjangoJSONEncoder)
         return HttpResponse("{\"settings\": %s, \"timeseries\": %s}" % (plotsettings,timeseries))
 
+@ensure_csrf_cookie
 def stats(request, timeframe_url):
     regular_form = StatsForm()
     custom_form = CustomStatsForm()
@@ -94,7 +99,7 @@ def stats(request, timeframe_url):
                 else:
                     print "Invalid form input"
                     print form.errors
-                    return render_to_response('charts/stats.html', vars(), RequestContext(request))
+                    return render(request, 'charts/stats.html', vars())
             else:
                 if timeframe == "timeframe_hrs": # I think this has been kicked out
                     start = datetime.datetime.now(tzlocal())+relativedelta(minute=0, second=0, microsecond=0)
@@ -114,7 +119,7 @@ def stats(request, timeframe_url):
         else:
             print "Invalid form input"
             print form.errors
-            return render_to_response('charts/stats.html', vars(), RequestContext(request))
+            return render(request, 'charts/stats.html', vars())
 
     #user navigates to stats from main menu
     else:   
@@ -145,7 +150,7 @@ def stats(request, timeframe_url):
                 period = 'period_mon'  
         else:
             regular_form.fields["timeframe"].initial = timeframe   
-            return render_to_response('charts/stats.html', vars(), RequestContext(request))
+            return render(request, 'charts/stats.html', vars())
 
     #TODO: DRY
     regular_form.fields["timeframe"].initial = timeframe   
@@ -183,7 +188,8 @@ def stats(request, timeframe_url):
     ui_begin = _("Begin: " + start.strftime(chart._formatstring))
     ui_end = _("End: " + end.strftime(chart._formatstring))
     
-    return render_to_response('charts/stats.html', vars(), RequestContext(request))
+    return render(request, 'charts/stats.html', vars())
 
+@ensure_csrf_cookie
 def overview(request):
-    return render_to_response('charts/overview.html', vars(), RequestContext(request))
+    return render(request, 'charts/overview.html', vars())
